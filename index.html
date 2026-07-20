@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#002C39">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>AAP101 – Art Appreciation | Bulacan State University</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,7 +60,7 @@
 <!-- ═══════════ MAIN ═══════════ -->
 <div id="main">
   <header id="topbar">
-    <button id="hamb" aria-label="Menu">☰</button>
+    <button id="tb-back" aria-label="Go back">‹</button>
     <div class="tb-breadcrumb">
       <span class="tb-bc-mod" id="bc-mod">AAP101</span>
       <span class="tb-bc-sep">›</span>
@@ -84,6 +87,39 @@
 </div>
 
 <button id="back-btn" title="Go back">←</button>
+
+<!-- ═══════════ MOBILE BOTTOM NAV (replaces the sidebar on phones) ═══════════ -->
+<nav id="mobilenav" aria-label="Main navigation">
+  <button class="mn-btn" data-mn="home">
+    <span class="mn-ico">⌂</span><span class="mn-lbl">Home</span>
+  </button>
+  <button class="mn-btn" data-mn="lessons">
+    <span class="mn-ico">📚</span><span class="mn-lbl">Lessons</span>
+    <span class="mn-dot" id="mn-lessons-dot"></span>
+  </button>
+  <button class="mn-btn" data-mn="badges">
+    <span class="mn-ico">🏅</span><span class="mn-lbl">Trophies</span>
+  </button>
+  <button class="mn-btn" data-mn="sound">
+    <span class="mn-ico" id="mn-sound-ico">🔊</span><span class="mn-lbl">Sound</span>
+  </button>
+</nav>
+
+<!-- ═══════════ MOBILE LESSON SHEET ═══════════ -->
+<div id="sheet">
+  <div class="sheet-back"></div>
+  <div class="sheet-card">
+    <div class="sheet-grip"></div>
+    <div class="sheet-hd">
+      <div>
+        <h3>Your Lessons</h3>
+        <p id="sheet-sub">Tap any unlocked lesson to jump in</p>
+      </div>
+      <button class="sheet-x" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-bd" id="sheet-nav"></div>
+  </div>
+</div>
 
 <!-- ═══════════ OVERLAYS ═══════════ -->
 <canvas id="fx-canvas"></canvas>

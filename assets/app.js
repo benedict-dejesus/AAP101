@@ -2061,10 +2061,11 @@ function initPage(pid){
    NAVIGATION
    ══════════════════════════════════════════════════════════════ */
 function navigateTo(pid){
-  if(pid === S.page){ closeSidebar(); return; }
+  if(pid === S.page){ closeSidebar(); closeSheet(); return; }
   S.hist.push(S.page);
   showPage(pid);
   closeSidebar();
+  closeSheet();
 }
 function goBack(){
   if(!S.hist.length) return;
@@ -2106,7 +2107,11 @@ function updateBC(pid){
   $('#bc-les').textContent = bc[1];
 }
 function updateBack(){
-  $('#back-btn').classList.toggle('vis', S.hist.length > 0 && S.page !== 'terminal');
+  const show = S.hist.length > 0 && S.page !== 'terminal';
+  $('#back-btn').classList.toggle('vis', show);
+  // On phones the floating button would sit under the bottom nav, so the
+  // topbar chevron is used instead.
+  $('#tb-back').classList.toggle('vis', show);
 }
 
 function unlockLesson(mod, num){
@@ -2174,20 +2179,99 @@ function refreshSidebar(){
     ico.textContent = done && pid !== S.page ? '✓' : num;
   });
 
+  // mobile lesson sheet mirrors the same state
+  $$('.sheet-item').forEach(item=>{
+    const k = item.dataset.mod, num = +item.dataset.num, pid = item.dataset.page;
+    const les  = findLesson(pid);
+    const open = S.unlocked[k].includes(num);
+    const done = les ? lessonComplete(les) : false;
+
+    item.classList.toggle('locked', !open);
+    item.classList.toggle('current', pid === S.page);
+    item.classList.toggle('done', done);
+    $('.sheet-flag', item).textContent = !open ? '🔒' : done ? '✓' : '›';
+    $('.sheet-num', item).textContent  = done ? '✓' : num;
+  });
+
   ['m','f'].forEach(k=>{
     const p = moduleProgress(k);
     const e = $(`[data-sbpct="${k}"]`);
     if(e) e.textContent = p.pct + '%';
+    const e2 = $(`[data-shpct="${k}"]`);
+    if(e2) e2.textContent = `${p.done}/${p.total} · ${p.pct}%`;
   });
+
+  refreshMobileNav();
 }
 
-function toggleSidebar(){
-  $('#sidebar').classList.toggle('open');
-  $('#sb-overlay').classList.toggle('on');
-}
 function closeSidebar(){
   $('#sidebar').classList.remove('open');
   $('#sb-overlay').classList.remove('on');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE NAVIGATION
+   Phones get no sidebar at all: a thumb-reachable bottom bar plus a
+   slide-up lesson sheet replaces it entirely.
+   ══════════════════════════════════════════════════════════════ */
+function buildSheet(){
+  const nav = $('#sheet-nav');
+  nav.innerHTML = '';
+  ['m','f'].forEach(k=>{
+    const mod = CONTENT[k];
+    const grp = el('div','sheet-grp');
+    grp.innerHTML = `<div class="sheet-grp-hd">
+        <span>${esc(mod.label)}</span>
+        <span class="sheet-grp-pct" data-shpct="${k}">0%</span>
+      </div>`;
+    mod.lessons.forEach(les=>{
+      const it = el('button','sheet-item');
+      it.type = 'button';
+      it.dataset.page = les.id;
+      it.dataset.mod  = k;
+      it.dataset.num  = les.num;
+      it.innerHTML = `
+        <span class="sheet-num">${les.num}</span>
+        <span class="sheet-txt">
+          <span class="sheet-t">${esc(les.title)}</span>
+          <span class="sheet-d">${esc(les.desc || '')}</span>
+        </span>
+        <span class="sheet-flag"></span>`;
+      it.addEventListener('click', ()=>{
+        if(!S.unlocked[k].includes(les.num)){
+          Audio_.play('wrong');
+          toast('🔒','Lesson locked','Complete the previous lesson to unlock this one.');
+          return;
+        }
+        closeSheet();
+        navigateTo(les.id);
+      });
+      grp.appendChild(it);
+    });
+    nav.appendChild(grp);
+  });
+}
+
+function openSheet(){
+  $('#sheet').classList.add('on');
+  document.body.classList.add('no-scroll');
+  Audio_.play('pop');
+}
+function closeSheet(){
+  $('#sheet').classList.remove('on');
+  document.body.classList.remove('no-scroll');
+}
+
+function refreshMobileNav(){
+  $$('#mobilenav .mn-btn').forEach(b=>{
+    const k = b.dataset.mn;
+    b.classList.toggle('on', (k === 'home' && S.page === 'terminal'));
+  });
+  // little dot on "Lessons" when something new is unlocked but unfinished
+  const anyOpen = ['m','f'].some(k=>
+    CONTENT[k].lessons.some(l => S.unlocked[k].includes(l.num) && !lessonComplete(l)));
+  const dot = $('#mn-lessons-dot');
+  if(dot) dot.classList.toggle('on', anyOpen && S.page === 'terminal');
 }
 
 /* ══════════════════════ TROPHY CASE ══════════════════════ */
@@ -2225,30 +2309,49 @@ function boot(){
   registerRequirements();
   FX.setup();
   buildSidebar();
+  buildSheet();
   Game.refreshHUD();
 
-  $('#hamb').addEventListener('click', toggleSidebar);
   $('#sb-overlay').addEventListener('click', closeSidebar);
   $('#back-btn').addEventListener('click', goBack);
+  $('#tb-back').addEventListener('click', goBack);
   $('#btn-badges').addEventListener('click', openBadges);
   $('.modal-back').addEventListener('click', closeModal);
   $('#lu-close').addEventListener('click', ()=> $('#levelup').classList.remove('on'));
 
+  // Mobile bottom nav + lesson sheet
+  $('.sheet-back').addEventListener('click', closeSheet);
+  $('.sheet-x').addEventListener('click', closeSheet);
+  $$('#mobilenav .mn-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      switch(btn.dataset.mn){
+        case 'home':    closeSheet(); navigateTo('terminal'); break;
+        case 'lessons': openSheet(); break;
+        case 'badges':  closeSheet(); openBadges(); break;
+        case 'sound':   toggleSound(); break;
+      }
+    });
+  });
+
   const sb = $('#btn-sound');
-  const paintSound = ()=>{
+  function paintSound(){
     sb.textContent = S.sound ? '🔊' : '🔇';
     sb.classList.toggle('muted', !S.sound);
-  };
-  paintSound();
-  sb.addEventListener('click', ()=>{
+    const mi = $('#mn-sound-ico');
+    if(mi) mi.textContent = S.sound ? '🔊' : '🔇';
+    $('#mobilenav [data-mn="sound"]')?.classList.toggle('muted', !S.sound);
+  }
+  window.toggleSound = ()=>{
     S.sound = !S.sound;
     paintSound();
     if(S.sound) Audio_.play('pop');
     save();
-  });
+  };
+  paintSound();
+  sb.addEventListener('click', ()=> toggleSound());
 
   document.addEventListener('keydown', e=>{
-    if(e.key === 'Escape'){ closeModal(); closeSidebar(); $('#levelup').classList.remove('on'); }
+    if(e.key === 'Escape'){ closeModal(); closeSidebar(); closeSheet(); $('#levelup').classList.remove('on'); }
   });
 
   // unlock audio on first gesture (browser autoplay policy)

@@ -656,7 +656,7 @@ f: {
 
 /* ─────────── Terminal / home page content ─────────── */
 const TERMINAL = {
-  heroTag:'Bulacan State University · College of Arts and Sciences',
+  heroTag:'Bulacan State University · Main Campus',
   heroTitle:'Art Appreciation',
   heroSub:'AAP101 · A.Y. 2026–2027 · 1st Semester<br>Instructor: Mr. Benedict C. de Jesus, LPT. (Sir Kito)',
   video:{src:'images/Video1.mp4', label:'Video1 · Welcome to AAP101 (autoplay · loop)'},
