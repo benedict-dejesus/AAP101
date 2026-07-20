@@ -1,0 +1,58 @@
+* Video1.mp4 - terminal page vid (OK)
+* image1.jpg - Sir Kito (OK)
+* image2.jpg - Photo 1 (OK)
+* image3.jpg - Photo 2 (OK)
+* image4.jpg - Photo 3 (OK)
+* image5.jpg - Photo 4 (OK)
+* image6.jpg - Art quote (OK)
+* image7.jpg - Art is not nature (OK)
+* image8.jpg - Art is experiential (OK)
+* image9.jpg - Art as expression (OK)
+* image10.jpg - Artist (OK)
+* image11.jpg - Artisan (OK)
+* image12.jpg - Realism (OK)
+* image13.jpg - Impressionism 
+* image14.jpg - Expressionism (OK)
+* image15.jpg - Cubism (OK)
+* image16.jpg - Surrealism (OK)
+* image17.jpg - Abstract Art (OK)
+* image18.jpg - Pop Art (OK)
+* image19.jpg - Fauvism (OK)
+* image20.jpg - Which movement? (OK)
+* image21.jpg - Line (OK)
+* image22.jpg - Shape (OK)
+* image23.jpg - Form (OK)
+* image24.jpg - Color (OK)
+* image25.jpg - Value (OK)
+* image26.jpg - Texture (OK)
+* image27.jpg - Space (OK)
+* image28.jpg - Balance (OK)
+* image29.jpg - Contrast (OK)
+* image30.jpg - Emphasis (OK)
+* image31.jpg - Movement
+* image32.jpg - Pattern
+* image33.jpg - Rhythm
+* image34.jpg - Unity
+* image35.jpg - Variety
+* image36.jpg - Proportion and Scale
+* image37.jpg - Aperture (OK)
+* image38.jpg - Shutter Speed (OK)
+* image39.jpg - ISO (OK)
+* image40.jpg - ELS (OK)
+* image41.jpg - LS (OK)
+* image42.jpg - Full Shot 
+* image43.jpg - Medium (OK)
+* image44.jpg - MCU 
+* image45.jpg - Close-Up 
+* image46.jpg - ECU (OK)
+* image47.jpg - Two Shot 
+* image48.jpg - OTS (OK)
+* image49.jpg - POV (OK)
+* image50.jpg - Insert 
+* image51.jpg - Cutaway 
+* image52.jpg - Eye-Level 
+* image53.jpg - High Angle (OK)
+* image54.jpg - Low Angle (OK)
+* image55.jpg - Bird's-Eye 
+* image56.jpg - Worm's-Eye 
+* image57.jpg - Dutch Angle (OK)

@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Mobile-friendly viewport: allow responsive scaling and pinch zoom on iOS/Android -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AAP101 – Art Appreciation | Bulacan State University</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+// early-safe stubs to prevent onerror/reference issues before main script loads
+if(!window.handleImgErr){
+  window.handleImgErr=function(img,cls,h){try{const src=img.getAttribute('src')||'';const fname=src.split('/').pop()||src;const ph=document.createElement('div');ph.className='img-ph';if(h)ph.style.height=h+'px';ph.innerHTML='<div class="iph-inner"><div class="iph-icon">🖼</div><div class="iph-name">'+fname+'</div></div>';img.parentNode.insertBefore(ph,img);img.remove();}catch(e){}
+  };
+}
+if(!window.navigateTo){window.navigateTo=function(pid){/* placeholder until main script initializes */}};
+</script>
+<style>
+:root{--deep:#002C39;--dark:#015061;--accent:#00C18E;--accent-dim:rgba(0,193,142,.14);--accent-glow:rgba(0,193,142,.3);--accent-hover:#009e73;--light:#FFF7F7;--white:#fff;--text:#1C2B30;--muted:#5B7F8A;--border:rgba(0,193,142,.18);--bhard:rgba(0,44,57,.1);--error:#EF4444;--warn:#F59E0B;--success:#10B981;--locked:#94A3B8;--sb-w:275px;--top-h:54px;--sh:0 2px 14px rgba(0,44,57,.09);--shm:0 4px 22px rgba(0,44,57,.13);--shl:0 8px 36px rgba(0,44,57,.17);--r:12px;--rsm:8px;--rxs:5px;--t:.28s cubic-bezier(.4,0,.2,1);--fh:'Playfair Display',Georgia,serif;--fb:'Inter',system-ui,sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{font-family:var(--fb);background:var(--deep);color:var(--text);font-size:16px;line-height:1.65;height:100%;overflow:hidden;-webkit-font-smoothing:antialiased}
+#sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:98}
+#sb-overlay.on{display:block}
+#sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sb-w);background:var(--deep);display:flex;flex-direction:column;z-index:99;transition:transform var(--t);border-right:1px solid rgba(255,247,247,.05)}
+#main{margin-left:var(--sb-w);height:100vh;display:flex;flex-direction:column;overflow:hidden;background:var(--light)}
+#wrap{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--light);position:relative;-webkit-overflow-scrolling:touch}
+.sb-brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,247,247,.06);flex-shrink:0}
+.sb-tag{font-size:9.5px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+.sb-brand h1{font-family:var(--fh);font-size:16px;color:var(--light);line-height:1.3;margin-bottom:6px}
+.sb-ay{font-size:10.5px;color:rgba(255,247,247,.38);line-height:1.5}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 0 16px;scrollbar-width:thin;scrollbar-color:rgba(255,247,247,.1) transparent}
+.sb-nav::-webkit-scrollbar{width:3px}
+.sb-nav::-webkit-scrollbar-thumb{background:rgba(255,247,247,.1);border-radius:2px}
+.sb-home-btn{margin:4px 14px 10px;padding:8px 14px;width:calc(100% - 28px);background:rgba(0,193,142,.1);border:1px solid rgba(0,193,142,.22);border-radius:var(--rsm);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all var(--t);display:flex;align-items:center;gap:7px;justify-content:center;font-family:var(--fb)}
+.sb-home-btn:hover{background:rgba(0,193,142,.18)}
+.sb-mod-label{padding:12px 20px 5px;font-size:9.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
+.sb-mod-div{height:1px;background:rgba(255,247,247,.05);margin:8px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px 9px 14px;cursor:pointer;transition:background var(--t);border-left:3px solid transparent;position:relative}
+.nav-item:hover:not(.nav-locked){background:rgba(0,193,142,.07)}
+.nav-item.nav-active{background:rgba(0,193,142,.11);border-left-color:var(--accent)}
+.nav-item.nav-locked{cursor:not-allowed;opacity:.65}
+.nav-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;background:rgba(255,247,247,.07);color:rgba(255,247,247,.7);font-weight:700;transition:all var(--t)}
+.nav-item.nav-active .nav-icon{background:var(--accent);color:var(--deep)}
+.nav-item.nav-locked .nav-icon{background:rgba(148,163,184,.15);color:var(--locked)}
+.nav-title{font-size:12.5px;font-weight:500;color:rgba(255,247,247,.72);line-height:1.4;flex:1}
+.nav-item.nav-active .nav-title{color:var(--light);font-weight:600}
+.nav-item.nav-locked .nav-title{color:var(--locked)}
+.nav-lock{font-size:11px;color:var(--locked);flex-shrink:0}
+.sb-footer{padding:14px 20px;border-top:1px solid rgba(255,247,247,.05);font-size:10px;color:rgba(255,247,247,.3);line-height:1.65;flex-shrink:0}
+.sb-footer strong{color:rgba(255,247,247,.45)}
+#topbar{height:var(--top-h);background:var(--white);flex-shrink:0;border-bottom:1px solid var(--bhard);display:flex;align-items:center;padding:0 22px 0 16px;box-shadow:0 1px 6px rgba(0,44,57,.06);z-index:50;gap:10px}
+#hamb{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);padding:4px 6px;border-radius:5px}
+#hamb:hover{background:rgba(0,44,57,.06)}
+.tb-breadcrumb{flex:1;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tb-bc-mod{font-weight:700;color:var(--dark)}
+.tb-bc-sep{color:var(--bhard);font-size:14px}
+.tb-bc-les{color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis}
+#back-btn{position:fixed;top:10px;right:18px;z-index:200;background:var(--accent);border:none;color:var(--deep);width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(0,193,142,.35);transition:all var(--t);opacity:0;pointer-events:none;font-weight:700}
+#back-btn.vis{opacity:1;pointer-events:all}
+#back-btn:hover{background:var(--accent-hover);transform:scale(1.08)}
+#wrap{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--light);position:relative}
+.page{display:none;min-height:100%}
+.page.active{display:block;animation:pgIn .32s var(--t)}
+@keyframes pgIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.l-hdr{background:linear-gradient(140deg,var(--deep),var(--dark));padding:44px 40px 34px;color:var(--light);position:relative;overflow:hidden}
+.l-hdr::before{content:'';position:absolute;top:-50px;right:-50px;width:220px;height:220px;border-radius:50%;background:rgba(0,193,142,.07)}
+.l-hdr::after{content:'';position:absolute;bottom:-30px;left:40%;width:140px;height:140px;border-radius:50%;background:rgba(0,193,142,.05)}
+.l-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;position:relative;z-index:1}
+.l-hdr h2{font-family:var(--fh);font-size:33px;color:var(--light);line-height:1.2;position:relative;z-index:1}
+.l-body{max-width:840px;margin:0 auto;padding:32px 26px 70px}
+.block{margin-bottom:28px}
+.b-heading{padding:4px 0}
+.b-heading h2{font-family:var(--fh);font-size:28px;color:var(--deep);line-height:1.3;padding-bottom:12px}
+.b-heading h2::after{content:'';display:block;width:44px;height:3px;background:var(--accent);border-radius:2px;margin-top:10px}
+.b-heading h3{font-family:var(--fh);font-size:21px;color:var(--dark);padding-left:14px;border-left:4px solid var(--accent);line-height:1.35}
+.b-quote{display:flex;gap:24px;align-items:flex-start;background:var(--white);border-radius:var(--r);padding:28px;box-shadow:var(--sh);border-left:5px solid var(--accent)}
+.bq-img-wrap{width:110px;height:130px;flex-shrink:0;border-radius:var(--rsm);overflow:hidden}
+.bq-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.b-quote blockquote{font-family:var(--fh);font-style:italic;font-size:17px;color:var(--deep);line-height:1.75;margin-bottom:12px}
+.b-quote blockquote em{font-weight:700;font-style:normal;color:var(--dark)}
+.bq-attr{font-size:13px;font-weight:700;color:var(--accent)}
+.b-text{background:var(--white);border-radius:var(--r);padding:26px 28px;box-shadow:var(--sh);font-size:15.5px;color:var(--text);line-height:1.8}
+.b-text p+p{margin-top:14px}
+.b-text strong{color:var(--deep);font-weight:600}
+.b-warn{border-radius:var(--r);padding:22px 26px;background:linear-gradient(135deg,rgba(245,158,11,.09),rgba(239,68,68,.07));border:1.5px solid rgba(245,158,11,.38)}
+.b-warn-title{font-weight:800;font-size:14.5px;color:#92400E;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.b-warn p{font-size:13.5px;line-height:1.75;color:#78350F}
+.b-warn strong{font-weight:700}
+.b-gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.gal-item{aspect-ratio:1;border-radius:var(--rsm);overflow:hidden;box-shadow:var(--sh);cursor:pointer;position:relative;transition:transform var(--t),box-shadow var(--t)}
+.gal-item:hover{transform:scale(1.04);box-shadow:var(--shm)}
+.gal-item img{width:100%;height:100%;object-fit:cover;display:block}
+.gal-check{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--deep);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity var(--t),transform var(--t);transform:scale(.7)}
+.gal-item.viewed .gal-check{opacity:1;transform:scale(1)}
+.gal-item.viewed{outline:2px solid var(--accent)}
+.b-grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.g2-card{background:var(--white);border-radius:var(--r);padding:24px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:14px}
+.g2-card h4{font-family:var(--fh);font-size:19px;color:var(--deep);padding-bottom:10px;border-bottom:2px solid var(--accent-dim)}
+.g2-card p{font-size:14.5px;line-height:1.75;color:var(--text)}
+.b-video{border-radius:var(--r);overflow:hidden;box-shadow:var(--shl)}
+.b-video{position:relative;z-index:1}
+.vid-ph{width:100%;aspect-ratio:16/9;background:linear-gradient(145deg,var(--deep),var(--dark));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:pointer;position:relative}
+.vid-ph::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at center,rgba(0,193,142,.13),transparent 65%)}
+.vid-play{width:74px;height:74px;border-radius:50%;background:rgba(0,193,142,.88);color:var(--deep);font-size:28px;display:flex;align-items:center;justify-content:center;transition:all var(--t);position:relative;z-index:1;box-shadow:0 0 0 10px rgba(0,193,142,.18)}
+.vid-ph:hover .vid-play{background:var(--accent);transform:scale(1.1)}
+.vid-label{font-size:13px;color:rgba(255,247,247,.55);z-index:1}
+.img-ph{background:linear-gradient(145deg,var(--dark),var(--deep));border:1.5px dashed rgba(0,193,142,.28);border-radius:var(--rsm);display:flex;align-items:center;justify-content:center;width:100%}
+.iph-inner{display:flex;flex-direction:column;align-items:center;gap:7px;color:rgba(255,247,247,.45);text-align:center;padding:16px}
+.iph-icon{font-size:26px}
+.iph-name{font-size:10.5px;font-family:monospace;opacity:.65;word-break:break-all;max-width:140px;line-height:1.4}
+.b-dnd{background:var(--white);border-radius:var(--r);padding:26px;box-shadow:var(--sh)}
+.dnd-title{font-family:var(--fh);font-size:19px;color:var(--deep);margin-bottom:6px}
+.dnd-instr{font-size:13px;color:var(--muted);margin-bottom:18px;padding:9px 14px;background:var(--light);border-radius:var(--rsm);border-left:3px solid var(--accent);line-height:1.6}
+.dnd-pool{display:flex;flex-wrap:wrap;gap:10px;min-height:56px;padding:14px;background:var(--light);border-radius:var(--rsm);border:2px dashed var(--border);margin-bottom:20px;transition:border-color var(--t),background var(--t)}
+.dnd-pool.drag-over{border-color:var(--accent);background:rgba(0,193,142,.04)}
+.dnd-pool-label{font-size:11px;color:var(--muted);width:100%;margin-bottom:4px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.dnd-item{padding:12px 16px;background:var(--white);border-radius:20px;border:2px solid var(--border);font-size:14px;font-weight:500;color:var(--text);cursor:grab;transition:all var(--t);user-select:none;-webkit-user-select:none;touch-action:manipulation;min-height:48px}
+.dnd-item:hover{border-color:rgba(0,193,142,.5);box-shadow:0 2px 10px rgba(0,193,142,.15)}
+.dnd-item.selected{border-color:var(--accent);background:var(--accent);color:var(--deep);box-shadow:0 4px 16px rgba(0,193,142,.3);cursor:pointer}
+.dnd-item.dragging{opacity:.45;cursor:grabbing}
+.dnd-item.dnd-ok{border-color:var(--success);background:rgba(16,185,129,.1);color:#065F46;cursor:default}
+.dnd-item.dnd-err{border-color:var(--error);background:rgba(239,68,68,.09);color:#991B1B}
+.dnd-cats{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.dnd-cat{border-radius:var(--rsm);border:2px solid var(--border);overflow:hidden;transition:border-color var(--t)}
+.dnd-cat.drag-over{border-color:var(--accent)}
+.dnd-cat-hd{padding:10px 14px;background:var(--deep);color:var(--light);font-size:13px;font-weight:700;text-align:center;letter-spacing:.5px}
+.dnd-drop-zone{min-height:78px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;cursor:pointer;transition:background var(--t);touch-action:manipulation}
+.dnd-drop-zone:hover{background:rgba(0,193,142,.04)}
+.btn-dnd-check{padding:10px 24px;background:var(--dark);color:var(--light);border:none;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;transition:all var(--t);font-family:var(--fb)}
+.btn-dnd-check:hover:not(:disabled){background:var(--deep);transform:translateY(-1px)}
+.btn-dnd-check:disabled{background:var(--locked);cursor:not-allowed}
+.dnd-fb{margin-top:14px;padding:11px 16px;border-radius:var(--rsm);font-size:14px;font-weight:500;display:none;line-height:1.5}
+.dnd-fb.ok{display:block;background:rgba(16,185,129,.1);color:#065F46;border:1px solid rgba(16,185,129,.28)}
+.dnd-fb.err{display:block;background:rgba(239,68,68,.08);color:#991B1B;border:1px solid rgba(239,68,68,.22)}
+.b-tabs{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.tabs-nav{display:flex;overflow-x:auto;background:var(--light);border-bottom:2px solid var(--border);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tabs-nav::-webkit-scrollbar{display:none}
+.tab-btn{padding:12px 16px;font-size:13px;font-weight:500;color:var(--muted);background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;margin-bottom:-2px;transition:all var(--t);font-family:var(--fb);position:relative;touch-action:manipulation;min-height:44px}
+.tab-btn:hover{color:var(--dark);background:rgba(0,193,142,.04)}
+.tab-btn.t-active{color:var(--dark);font-weight:600;border-bottom-color:var(--accent);background:var(--white)}
+.tab-btn.t-visited::after{content:'✓';font-size:9.5px;color:var(--accent);margin-left:5px;vertical-align:middle}
+.tab-panel{display:none;padding:26px;animation:fadePop .25s ease}
+.tab-panel.t-active{display:flex;gap:22px;align-items:flex-start}
+@keyframes fadePop{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.tp-img{width:200px;flex-shrink:0;border-radius:var(--rsm);overflow:hidden}
+.tp-img img{width:100%;display:block}
+.tp-img .img-ph{min-height:200px}
+.tp-txt h4{font-family:var(--fh);font-size:19px;color:var(--deep);margin-bottom:10px}
+.tp-txt p,.tp-txt li{font-size:14.5px;line-height:1.78;color:var(--text)}
+.tp-txt ul{padding-left:18px}
+.tp-txt ul li{margin-bottom:4px}
+.tp-txt strong{font-weight:600;color:var(--dark)}
+.tabs-footer{padding:10px 16px 12px;background:var(--light);border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tabs-prog-wrap{display:flex;align-items:center;gap:8px;flex:1}
+.tabs-prog-txt{font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+.tabs-prog-bar{flex:1;height:5px;background:rgba(0,44,57,.1);border-radius:3px;overflow:hidden;min-width:60px}
+.tabs-prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s ease}
+.tabs-gate-note{font-size:11.5px;color:var(--warn);font-weight:600}
+.b-flip-wrap{}
+.b-flipcards{display:flex;flex-direction:column;gap:18px}
+.flip-row{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+.flip-card{width:300px;height:260px;perspective:900px;cursor:pointer}
+.flip-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .52s cubic-bezier(.4,0,.2,1)}
+.flip-card.flipped .flip-inner{transform:rotateY(180deg)}
+.flip-front,.flip-back{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--r);overflow:hidden;display:flex;align-items:center;justify-content:center;padding:16px;box-shadow:var(--sh)}
+.flip-front{background:linear-gradient(150deg,var(--dark),var(--deep));flex-direction:column;gap:10px;text-align:center}
+.flip-front .front-img{width:100%;height:58%;overflow:hidden;border-radius:8px}
+.flip-front .front-img img{width:100%;height:100%;object-fit:cover;display:block}
+.fc-hint{font-size:10px;color:rgba(255,247,247,.38)}
+.fc-icon{font-size:26px;color:var(--accent)}
+.fc-title{font-family:var(--fh);font-size:14.5px;color:var(--light);line-height:1.5}
+.flip-back{background:var(--white);transform:rotateY(180deg);padding:12px;flex-direction:column}
+.flip-back .flip-back-inner{width:100%;height:100%;display:flex;flex-direction:column}
+.flip-back .fc-def{overflow:auto;padding:6px 4px;font-size:14px;line-height:1.6;color:var(--text);max-height:100%}
+.flip-back img{width:100%;height:auto;object-fit:cover;display:block;border-radius:6px}
+.flip-back .img-ph{height:100%;min-height:140px;border-radius:0}
+.flip-card.seen .flip-front::after{content:'✓ Viewed';position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:var(--accent);background:rgba(0,193,142,.18);padding:2px 8px;border-radius:10px}
+.flipcards-status{margin-top:14px;text-align:center;font-size:13px;color:var(--muted)}
+.flip-cnt{font-weight:700;color:var(--dark)}
+.b-carousel{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.car-viewport{position:relative}
+.car-slide{display:none;gap:24px;padding:28px;align-items:center;animation:fadePop .28s ease}
+.car-slide.car-active{display:flex}
+.car-slide-img{width:210px;flex-shrink:0;border-radius:var(--rsm);overflow:hidden}
+.car-slide-img img{width:100%;display:block}
+.car-slide-img .img-ph{min-height:170px}
+.car-slide-txt h4{font-family:var(--fh);font-size:21px;color:var(--deep);margin-bottom:10px}
+.car-slide-txt p{font-size:15px;line-height:1.78;color:var(--text)}
+.car-ctrl{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--light);border-top:1px solid var(--border)}
+.car-btn{padding:7px 18px;border-radius:18px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t);background:var(--deep);color:var(--light);font-family:var(--fb)}
+.car-btn:hover:not(:disabled){background:var(--dark)}
+.car-btn:disabled{background:rgba(148,163,184,.3);color:var(--locked);cursor:not-allowed}
+.car-dots{display:flex;gap:6px;align-items:center}
+.car-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,44,57,.18);cursor:pointer;transition:background var(--t),transform var(--t)}
+.car-dot.car-dot-active{background:var(--accent);transform:scale(1.35)}
+.car-dot.car-dot-visited{background:rgba(0,193,142,.45)}
+.car-ctr{font-size:12px;color:var(--muted);font-weight:600}
+.car-prog-bar{height:3px;background:rgba(0,44,57,.08);border-radius:0;overflow:hidden}
+.car-prog-fill{height:100%;background:var(--accent);transition:width .4s ease}
+.b-kc{background:var(--white);border-radius:var(--r);padding:28px;box-shadow:var(--sh)}
+.kc-badge-row{display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.kc-badge{background:var(--accent);color:var(--deep);font-size:10px;font-weight:800;padding:4px 11px;border-radius:12px;letter-spacing:.8px;text-transform:uppercase}
+.kc-multi-badge{background:rgba(0,44,57,.08);color:var(--dark);font-size:10px;font-weight:700;padding:4px 11px;border-radius:12px;letter-spacing:.5px}
+.kc-q{font-size:15.5px;font-weight:500;color:var(--text);margin-bottom:20px;line-height:1.65}
+.kc-q-img{margin-top:12px;border-radius:var(--rsm);overflow:hidden;max-height:240px}
+.kc-q-img img{width:100%;display:block;object-fit:cover;max-height:240px}
+.kc-opts{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.kc-opt{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-radius:var(--rsm);border:2px solid var(--border);cursor:pointer;transition:all var(--t);background:var(--white)}
+.kc-opt:hover{border-color:rgba(0,193,142,.45);background:rgba(0,193,142,.025)}
+.kc-opt.kc-sel{border-color:var(--accent);background:rgba(0,193,142,.05)}
+.kc-opt.kc-ok{border-color:var(--success);background:rgba(16,185,129,.07)}
+.kc-opt.kc-err{border-color:var(--error);background:rgba(239,68,68,.05)}
+.kc-opt-marker{width:22px;height:22px;border-radius:50%;border:2px solid var(--muted);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);transition:all var(--t);font-weight:700}
+.kc-opt.kc-sel .kc-opt-marker{border-color:var(--accent);background:var(--accent);color:var(--deep)}
+.kc-opt.kc-ok .kc-opt-marker{border-color:var(--success);background:var(--success);color:white}
+.kc-opt.kc-err .kc-opt-marker{border-color:var(--error);background:var(--error);color:white}
+.kc-multi .kc-opt-marker{border-radius:5px}
+.kc-opt-body{flex:1}
+.kc-opt-txt{font-size:14.5px;line-height:1.65;color:var(--text)}
+.kc-resp-inline{margin-top:8px;font-size:12.5px;line-height:1.6;padding:7px 10px;border-radius:var(--rxs);display:none}
+.kc-resp-inline.show{display:block}
+.resp-ok{background:rgba(16,185,129,.1);color:#065F46}
+.resp-err{background:rgba(239,68,68,.08);color:#991B1B}
+.kc-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.btn-kc-check{padding:10px 26px;background:var(--dark);color:var(--light);border:none;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;transition:all var(--t);font-family:var(--fb)}
+.btn-kc-check:hover:not(:disabled){background:var(--deep)}
+.btn-kc-check:disabled{background:var(--locked);cursor:not-allowed}
+.kc-multi-fb{font-size:13.5px;font-weight:500;display:none}
+.kc-multi-fb.show{display:block}
+.b-continue{text-align:center;padding:16px 0}
+.btn-cont{padding:14px 42px;background:var(--accent);color:var(--deep);border:none;border-radius:40px;font-size:16px;font-weight:700;cursor:pointer;transition:all var(--t);display:inline-flex;align-items:center;gap:10px;box-shadow:0 4px 22px rgba(0,193,142,.32);font-family:var(--fb)}
+.btn-cont:hover:not(:disabled){background:var(--accent-hover);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,193,142,.42)}
+.btn-cont:disabled{background:var(--locked);color:rgba(255,247,247,.4);cursor:not-allowed;transform:none;box-shadow:none}
+.cont-arrow{font-size:20px;transition:transform var(--t)}
+.btn-cont:hover:not(:disabled) .cont-arrow{transform:translateX(5px)}
+.cont-note{font-size:12.5px;color:var(--warn);margin-bottom:10px;font-weight:600}
+.b-process{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.proc-nav{display:flex;overflow-x:auto;background:var(--light);border-bottom:1px solid var(--border);scrollbar-width:none}
+.proc-nav::-webkit-scrollbar{display:none}
+.proc-nav-btn{padding:10px 14px;font-size:12.5px;font-weight:500;color:var(--muted);background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all var(--t);display:flex;align-items:center;gap:6px;font-family:var(--fb)}
+.proc-nav-btn:hover{color:var(--dark)}
+.proc-nav-btn.pn-active{color:var(--dark);font-weight:700;border-bottom-color:var(--accent);background:var(--white)}
+.pn-num{width:20px;height:20px;border-radius:50%;background:rgba(0,44,57,.1);font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:800}
+.proc-nav-btn.pn-active .pn-num{background:var(--accent);color:var(--deep)}
+.proc-panel{display:none;padding:26px;animation:fadePop .25s ease}
+.proc-panel.pp-active{display:block}
+.proc-panel h5{font-family:var(--fh);font-size:18px;color:var(--deep);margin-bottom:14px}
+.proc-panel p,.proc-panel li{font-size:15px;line-height:1.8;color:var(--text)}
+.proc-panel ol,.proc-panel ul{padding-left:20px}
+.proc-panel ol li,.proc-panel ul li{margin-bottom:5px}
+.b-exp-sim{background:var(--white);border-radius:var(--r);box-shadow:var(--shl);overflow:hidden}
+.es-hdr{padding:18px 24px;background:linear-gradient(90deg,var(--deep),var(--dark));color:var(--light)}
+.es-hdr h4{font-family:var(--fh);font-size:19px;margin-bottom:3px}
+.es-hdr p{font-size:12.5px;color:rgba(255,247,247,.55)}
+.es-body{display:grid;grid-template-columns:1fr 1fr}
+.es-controls{padding:24px;border-right:1px solid var(--border)}
+.es-slider-grp{margin-bottom:22px}
+.es-slider-grp label{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--dark);margin-bottom:8px}
+.es-val{font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-dim);padding:2px 10px;border-radius:12px}
+.es-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px}
+input.es-range{width:100%;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;outline:none;cursor:pointer;background:linear-gradient(to right,var(--accent) 0%,rgba(0,44,57,.15) 0%)}
+input.es-range::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);cursor:pointer;border:3px solid white;box-shadow:0 2px 8px rgba(0,193,142,.4)}
+input.es-range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--accent);cursor:pointer;border:3px solid white;box-shadow:0 2px 8px rgba(0,193,142,.4)}
+.es-exposure-row{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.es-fb{font-size:12.5px;color:var(--muted);line-height:1.65}
+.es-fb strong{color:var(--dark)}
+.es-preview{padding:24px}
+.es-prev-box{width:100%;aspect-ratio:4/3;border-radius:var(--rsm);overflow:hidden;margin-bottom:14px;position:relative;background:#1a3a50}
+.ep-sky{position:absolute;top:0;left:0;right:0;height:55%;background:linear-gradient(to bottom,#02101a,#081421)}
+.ep-stars{position:absolute;top:6%;left:0;right:0;height:55%;background-image:radial-gradient(#fff 1px, transparent 1px);background-size:6px 6px;opacity:0.18;mix-blend-mode:screen;pointer-events:none}
+.ep-buildings{position:absolute;bottom:35%;left:6%;right:6%;height:28%;background:linear-gradient(180deg,#08161b,#08121a);box-shadow:inset 0 -10px 0 rgba(255,255,255,0.02);z-index:1}
+.ep-tree{position:absolute;bottom:40%;left:12%;width:14px;background:#0f2516;height:18%;z-index:1}
+.ep-tree::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border-left:22px solid transparent;border-right:22px solid transparent;border-bottom:30px solid #18321b}
+.ep-train{position:absolute;bottom:6%;left:-30%;width:140%;height:18%;z-index:3;display:flex;align-items:flex-end;pointer-events:none}
+.ep-train-body{position:relative;height:60%;width:24%;background:linear-gradient(90deg,#cc5a2b,#7b1f1f);margin-left:6%;border-radius:6px 6px 4px 4px;box-shadow:0 6px 18px rgba(0,0,0,.6);overflow:hidden;animation:train-roll 2.6s linear infinite}
+.ep-train-body::before{content:'';position:absolute;left:8%;top:18%;width:70%;height:20%;background:linear-gradient(90deg,rgba(255,255,255,0.85),rgba(255,255,255,0.15));opacity:0.12;border-radius:4px}
+.ep-train-body::after{content:'';position:absolute;left:10%;bottom:-6px;width:12%;height:12px;border-radius:50%;background:#111;box-shadow:16px 0 0 #111,36px 0 0 #111,56px 0 0 #111}
+.ep-rails{position:absolute;bottom:2%;left:0;right:0;height:6%;background:linear-gradient(90deg,#111,#222);box-shadow:inset 0 8px 10px rgba(0,0,0,.6);z-index:2}
+.ep-motion-trail{position:absolute;top:20%;left:-18px;width:34px;height:66%;background:linear-gradient(90deg,rgba(255,255,255,0.14),rgba(255,255,255,0.02));border-radius:12px;opacity:0;pointer-events:none;filter:blur(2px);transition:opacity .2s ease,transform .2s ease,filter .2s ease}
+.ep-blur-overlay{position:absolute;inset:0;pointer-events:none;transition:backdrop-filter .3s ease}
+.ep-rails::before{content:'';position:absolute;top:40%;left:2%;right:2%;height:2px;background:linear-gradient(90deg,#b08b6a,#5a3b2a);opacity:0.35}
+
+@keyframes train-roll{0%{transform:translateX(0)}50%{transform:translateX(6%)}100%{transform:translateX(0)}}
+.ep-blur-overlay{position:absolute;inset:0;pointer-events:none;transition:backdrop-filter .3s ease}
+.ep-exp-overlay{position:absolute;inset:0;pointer-events:none;transition:background .3s ease}
+.ep-grain-overlay{position:absolute;inset:0;pointer-events:none;opacity:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");background-size:80px 80px;mix-blend-mode:overlay;transition:opacity .3s ease}
+.ep-cam-label{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.55);color:white;font-size:9.5px;font-family:monospace;padding:3px 7px;border-radius:4px}
+.es-tri-wrap{padding:8px 16px 20px;border-top:1px solid var(--border)}
+.es-tri-wrap h5{font-size:12px;font-weight:700;color:var(--dark);margin-bottom:8px;text-align:center;letter-spacing:.5px}
+.b-guitar{background:var(--white);border-radius:var(--r);box-shadow:var(--shl);overflow:hidden}
+.gs-hdr{padding:18px 24px;background:linear-gradient(90deg,var(--deep),var(--dark));color:var(--light)}
+.gs-hdr h4{font-family:var(--fh);font-size:19px;margin-bottom:3px}
+.gs-hdr p{font-size:12.5px;color:rgba(255,247,247,.55)}
+.gs-selector{display:flex;flex-wrap:wrap;gap:8px;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--light)}
+.chord-btn{padding:7px 20px;border-radius:20px;border:2px solid var(--border);background:var(--white);font-size:15px;font-weight:800;cursor:pointer;transition:all var(--t);color:var(--dark);font-family:var(--fb)}
+.chord-btn:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(0,193,142,.2)}
+.chord-btn.chord-active{border-color:var(--accent);background:var(--accent);color:var(--deep)}
+.gs-display{padding:26px;display:flex;gap:28px;align-items:flex-start}
+.gs-diagram{flex-shrink:0}
+.gs-info{flex:1}
+.gs-info h3{font-family:var(--fh);font-size:28px;color:var(--deep);margin-bottom:4px}
+.gs-type{font-size:13px;color:var(--accent);font-weight:700;margin-bottom:14px}
+.gs-desc{font-size:14px;line-height:1.75;color:var(--text);margin-bottom:12px}
+.gs-fingers{list-style:none;display:flex;flex-direction:column;gap:7px}
+.gs-fingers li{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text)}
+.gs-fnum{width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--deep);font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#page-terminal .t-hero{background:linear-gradient(155deg,var(--deep) 0%,var(--dark) 60%);padding:54px 40px 46px;color:var(--light);text-align:center;position:relative;overflow:hidden}
+#page-terminal .t-hero::before{content:'';position:absolute;top:-60px;left:-60px;width:280px;height:280px;border-radius:50%;background:rgba(0,193,142,.07)}
+#page-terminal .t-hero::after{content:'';position:absolute;bottom:-50px;right:-30px;width:200px;height:200px;border-radius:50%;background:rgba(0,193,142,.05)}
+.t-hero-inner{position:relative;z-index:1}
+.t-hero-tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px;display:block}
+.t-hero h1{font-family:var(--fh);font-size:42px;color:var(--light);margin-bottom:10px;line-height:1.15}
+.t-sub{color:rgba(255,247,247,.6);font-size:14px;line-height:1.7}
+#page-terminal .t-body{max-width:820px;margin:0 auto;padding:32px 26px 60px}
+.mod-access{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:6px;position:relative;z-index:2}
+.mod-access-btn{padding:24px 20px;border-radius:var(--r);border:2px solid var(--border);background:var(--white);cursor:pointer;transition:all var(--t);text-align:left;box-shadow:var(--sh);font-family:var(--fb);display:flex;flex-direction:column;gap:6px}
+.mod-access-btn{pointer-events:auto}
+.mod-access-btn:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:var(--shl)}
+.mab-tag{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
+.mab-h{font-family:var(--fh);font-size:21px;color:var(--deep);line-height:1.2}
+.mab-desc{font-size:13px;color:var(--muted);line-height:1.5}
+.mab-arrow{font-size:24px;color:var(--accent);margin-top:8px}
+.congrats-wrap{text-align:center;padding:70px 40px}
+.congrats-icon{font-size:72px;margin-bottom:20px;display:inline-block;animation:bounce .9s ease infinite alternate}
+@keyframes bounce{from{transform:scale(1) translateY(0)}to{transform:scale(1.08) translateY(-6px)}}
+.congrats-wrap h2{font-family:var(--fh);font-size:34px;color:var(--deep);margin-bottom:14px}
+.congrats-wrap p{font-size:16px;color:var(--muted);max-width:460px;margin:0 auto 28px;line-height:1.75}
+.confetti-row{font-size:26px;letter-spacing:8px;margin-bottom:28px}
+.btn-home{padding:13px 36px;background:var(--deep);color:var(--light);border:none;border-radius:40px;font-size:15px;font-weight:600;cursor:pointer;transition:all var(--t);font-family:var(--fb);box-shadow:var(--shm)}
+.btn-home:hover{background:var(--dark);transform:translateY(-2px)}
+.reveal-sec{display:none}
+.reveal-sec.revealed{display:block;animation:pgIn .4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.shake{animation:shake .42s ease}
+@keyframes popIn{0%{transform:scale(.88);opacity:0}100%{transform:scale(1);opacity:1}}
+.pop-in{animation:popIn .3s ease}
+@media(max-width:768px){
+  #sidebar{transform:translateX(-100%);z-index:200;width:260px}
+  #sidebar.sb-open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.32)}
+  #main{margin-left:0}
+  #hamb{display:flex}
+  #back-btn{top:10px;right:14px}
+  .l-hdr{padding:28px 20px 24px}
+  .l-hdr h2{font-size:25px}
+  .l-body{padding:18px 14px 56px}
+  .b-grid2,.dnd-cats,.mod-access,.es-body{grid-template-columns:1fr}
+  .es-controls{border-right:none;border-bottom:1px solid var(--border)}
+  .car-slide.car-active,.gs-display{flex-direction:column}
+  .car-slide-img,.tp-img{width:100%}
+  .tab-panel.t-active{flex-direction:column}
+  .b-quote{flex-direction:column}
+  .bq-img-wrap{width:100%;height:200px}
+  .flip-row{flex-direction:row;gap:10px}
+  .flip-card{height:175px;width:46%}
+  .t-hero h1{font-size:28px}
+  .b-gallery{grid-template-columns:repeat(2,1fr)}
+  #page-terminal .t-hero{padding:38px 20px 32px}
+}
+@media(max-width:480px){.flip-row{flex-direction:row;gap:8px}.flip-card{height:160px;width:100%}.tb-bc-mod,.tb-bc-sep{display:none}}
+</style>
+</head>
+<body>
+<div id="sb-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-tag">Bulacan State University</div>
+    <h1>Art Appreciation</h1>
+    <div class="sb-ay">AAP101 &nbsp;·&nbsp; A.Y. 2026–2027 &nbsp;·&nbsp; 1st Semester</div>
+  </div>
+  <nav class="sb-nav">
+    <button class="sb-home-btn" onclick="navigateTo('terminal')">⌂ &nbsp;Home / Terminal</button>
+    <div class="sb-mod-label">Midterm Module</div>
+    <div id="nav-m1" class="nav-item nav-active" data-page="m1" data-mod="m" data-num="1" onclick="navToLesson(this)"><div class="nav-icon">1</div><span class="nav-title">About the Instructor</span></div>
+    <div id="nav-m2" class="nav-item nav-locked" data-page="m2" data-mod="m" data-num="2" onclick="navToLesson(this)"><div class="nav-icon">2</div><span class="nav-title">Introduction to Art</span><span class="nav-lock">🔒</span></div>
+    <div id="nav-m3" class="nav-item nav-locked" data-page="m3" data-mod="m" data-num="3" onclick="navToLesson(this)"><div class="nav-icon">3</div><span class="nav-title">Functions of Art</span><span class="nav-lock">🔒</span></div>
+    <div id="nav-m4" class="nav-item nav-locked" data-page="m4" data-mod="m" data-num="4" onclick="navToLesson(this)"><div class="nav-icon">4</div><span class="nav-title">Artists &amp; Artisans</span><span class="nav-lock">🔒</span></div>
+    <div id="nav-m5" class="nav-item nav-locked" data-page="m5" data-mod="m" data-num="5" onclick="navToLesson(this)"><div class="nav-icon">5</div><span class="nav-title">Art Movements</span><span class="nav-lock">🔒</span></div>
+    <div id="nav-m6" class="nav-item nav-locked" data-page="m6" data-mod="m" data-num="6" onclick="navToLesson(this)"><div class="nav-icon">6</div><span class="nav-title">Visual Elements + Project</span><span class="nav-lock">🔒</span></div>
+    <div class="sb-mod-div"></div>
+    <div class="sb-mod-label">Final Term Module</div>
+    <div id="nav-f1" class="nav-item" data-page="f1" data-mod="f" data-num="1" onclick="navToLesson(this)"><div class="nav-icon">1</div><span class="nav-title">Principles of Design</span></div>
+    <div id="nav-f2" class="nav-item nav-locked" data-page="f2" data-mod="f" data-num="2" onclick="navToLesson(this)"><div class="nav-icon">2</div><span class="nav-title">Basic Photography</span><span class="nav-lock">🔒</span></div>
+    <div id="nav-f3" class="nav-item nav-locked" data-page="f3" data-mod="f" data-num="3" onclick="navToLesson(this)"><div class="nav-icon">3</div><span class="nav-title">Basic Videography</span><span class="nav-lock">🔒</span></div>
+    <div id="nav-f4" class="nav-item nav-locked" data-page="f4" data-mod="f" data-num="4" onclick="navToLesson(this)"><div class="nav-icon">4</div><span class="nav-title">Guitar Lessons</span><span class="nav-lock">🔒</span></div>
+  </nav>
+  <div class="sb-footer"><strong>Developer &amp; Instructor:</strong><br>Benedict C. de Jesus, LPT.<br><span style="font-size:9px;opacity:.5">© Bulacan State University</span></div>
+</aside>
+<button id="back-btn" onclick="goBack()" title="Previous">←</button>
+<div id="main">
+  <div id="topbar">
+    <button id="hamb" onclick="toggleSidebar()">☰</button>
+    <div class="tb-breadcrumb"><span class="tb-bc-mod">AAP101</span><span class="tb-bc-sep">›</span><span class="tb-bc-les" id="bc-les">Art Appreciation</span></div>
+  </div>
+  <div id="wrap">
+
+<!-- TERMINAL PAGE -->
+<div id="page-terminal" class="page active">
+<div class="t-hero"><div class="t-hero-inner">
+<span class="t-hero-tag">Bulacan State University · College of Arts and Sciences</span>
+<h1>Art Appreciation</h1>
+<p class="t-sub">AAP101 · A.Y. 2026–2027 · 1st Semester<br>Instructor: Mr. Benedict C. de Jesus, LPT. (Sir Kito)</p>
+</div></div>
+<div class="t-body">
+    <div class="block b-video">
+      <div class="vid-ph">
+        <video id="terminal-video" src="images/Video1.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;display:block"></video>
+        <div class="vid-label">Video1 · Welcome to AAP101 (autoplay · loop)</div>
+      </div>
+    </div>
+<div class="block b-text"><p>Welcome to <strong>AAP101 – Art Appreciation</strong> under Mr. Benedict de Jesus (Sir Kito)!</p></div>
+<div class="block b-warn">
+<div class="b-warn-title">⚠️ &nbsp;WARNING!!!</div>
+<p>This learning module was created by <strong>Mr. Benedict de Jesus (Sir Kito)</strong> for his students at <strong>Bulacan State University</strong> for the 1st semester of A.Y. 2026–2027. Distribution and sharing of the link/url/screenshots/codes to people <strong>not enrolled in AAP101 under Sir Kito during the aforementioned semester is extremely prohibited</strong> and violators will <strong>face legal charges</strong>. Enrolled students, while given access rights to the course, are <strong>discouraged to take screenshots</strong>, as the interactive elements for learning the topic will be compromised.</p>
+</div>
+<div class="mod-access">
+<button class="mod-access-btn" onclick="navigateTo('m1')"><div class="mab-tag">Midterm Module</div><div class="mab-h">Midterm Learning Module</div><div class="mab-desc">Lessons 1–6 covering Introduction to Art, Functions, Art Movements, Visual Elements, and the Coffee Painting Project.</div><div class="mab-arrow">→</div></button>
+<button class="mod-access-btn" onclick="navigateTo('f1')"><div class="mab-tag">Final Term Module</div><div class="mab-h">Final Term Learning Module</div><div class="mab-desc">Lessons 1–4 covering Principles of Design, Basic Photography, Videography, Guitar Lessons, and the Guitar Performance Project.</div><div class="mab-arrow">→</div></button>
+</div>
+</div>
+</div>
+
+<!-- MIDTERM LESSON 1 -->
+<div id="page-m1" class="page">
+<div class="l-hdr"><span class="l-tag">Midterm · Lesson 1</span><h2>About the Instructor</h2></div>
+<div class="l-body">
+<div class="block b-quote">
+<div class="bq-img-wrap"><img src="images/image1.jpg" alt="Sir Kito" onerror="handleImgErr(this,'bq-img-wrap',130)"></div>
+<div><blockquote>"Every human being is born with the potential to become an artist. Art Appreciation, being a humanities subject, will be one of the few things that will remain even when AI technology takes over the world."</blockquote><div class="bq-attr">– Benedict de Jesus (Sir Kito)</div></div>
+</div>
+<div class="block b-text">
+<p>Mr. Benedict C. de Jesus (Sir Kito) is a licensed professional English teacher who has been serving as a humble part-time instructor at Bulacan State University, teaching Art Appreciation and Communication subjects for 8 years. He is also an enthusiast of music, research, statistics, AI technology, and instructional design.</p>
+<p>He has been a freelance Research/Thesis consultant for 16 years and a frequent guest lecturer and workshop facilitator for the City Government of Malolos. Sir Kito is also a musician with over 25 years of experience and is active in instructional design and educational development.</p>
+</div>
+<div class="b-gallery block" id="gallery-m1">
+<div class="gal-item" onclick="markGallery('m1',0)"><img src="images/image2.jpg" alt="Photo 1" onerror="handleImgErr(this,'gal-item',0)"><div class="gal-check">✓</div></div>
+<div class="gal-item" onclick="markGallery('m1',1)"><img src="images/image3.jpg" alt="Photo 2" onerror="handleImgErr(this,'gal-item',0)"><div class="gal-check">✓</div></div>
+<div class="gal-item" onclick="markGallery('m1',2)"><img src="images/image4.jpg" alt="Photo 3" onerror="handleImgErr(this,'gal-item',0)"><div class="gal-check">✓</div></div>
+<div class="gal-item" onclick="markGallery('m1',3)"><img src="images/image5.jpg" alt="Photo 4" onerror="handleImgErr(this,'gal-item',0)"><div class="gal-check">✓</div></div>
+</div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-m1-note">📸 Click all 4 gallery images above to continue.</p>
+<button class="btn-cont" id="cont-m1" onclick="doContinue('cont-m1')" disabled>Continue to Lesson 2 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+
+<!-- MIDTERM LESSON 2 -->
+<div id="page-m2" class="page">
+<div class="l-hdr"><span class="l-tag">Midterm · Lesson 2</span><h2>Introduction to Art and Assumptions of Art</h2></div>
+<div class="l-body">
+<div class="block b-quote">
+<div class="bq-img-wrap"><img src="images/image6.jpg" alt="Art quote" onerror="handleImgErr(this,'bq-img-wrap',130)"></div>
+<div><blockquote>"Art is a man-made manifestation of <em>truth</em>, <em>beauty</em>, and <em>goodness</em>."</blockquote></div>
+</div>
+<div class="block b-text">
+<p>Imagine going to the beach on a nice, warm Saturday afternoon. You witnessed an amazing golden hour sunset. What would you immediately do? Most likely, you would take a photo. That act — capturing, preserving, transforming an experience — is the heart of art.</p>
+<p>Art is the product of <strong>conscious human effort</strong>. People create art because we love to experience truth, beauty, and goodness over and over again. We want to preserve those experiences; hence, we transform them into something tangible — something we can keep and return to. That is what art is.</p>
+</div>
+<div class="block b-dnd" id="dnd-m2">
+<div class="dnd-title">🎯 Matching Activity</div>
+<div class="dnd-instr">Classify each item as <strong>Art</strong> or <strong>Nature</strong>. Nature is created by natural processes; Art involves conscious human effort.<br>
+<em>Desktop: drag &amp; drop. Mobile: tap item to select (turns green), then tap a category box to place it.</em></div>
+<div class="dnd-pool" id="pool-m2">
+<div class="dnd-pool-label">ITEMS TO SORT</div>
+<div class="dnd-item" data-id="sunset" data-answer="nature">🌅 Sunset at the beach</div>
+<div class="dnd-item" data-id="banaue" data-answer="art">🌾 The Banaue Rice Terraces</div>
+<div class="dnd-item" data-id="ai-img" data-answer="art">🤖 AI-generated Images</div>
+<div class="dnd-item" data-id="crush" data-answer="nature">💕 Your crush</div>
+</div>
+<div class="dnd-cats">
+<div class="dnd-cat"><div class="dnd-cat-hd">🎨 Art</div><div class="dnd-drop-zone" data-cat="art" id="zone-m2-art"></div></div>
+<div class="dnd-cat"><div class="dnd-cat-hd">🌿 Nature</div><div class="dnd-drop-zone" data-cat="nature" id="zone-m2-nature"></div></div>
+</div>
+<button class="btn-dnd-check" id="dnd-m2-check">Check Answers</button>
+<div class="dnd-fb" id="dnd-m2-fb"></div>
+</div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-m2-mid-note">⚠️ Complete the matching activity above to continue.</p>
+<button class="btn-cont" id="cont-m2-mid" onclick="doContinue('cont-m2-mid')" disabled>Continue <span class="cont-arrow">→</span></button>
+</div>
+<div id="m2-sec-b" class="reveal-sec">
+<div class="block b-heading"><h2>Assumptions of Art</h2></div>
+<div class="block b-tabs" id="tabs-m2">
+<div class="tabs-nav">
+<button class="tab-btn t-active t-visited" data-ti="0">Art is not nature.</button>
+<button class="tab-btn" data-ti="1">Art is experiential.</button>
+<button class="tab-btn" data-ti="2">Art is a form of expression.</button>
+</div>
+<div class="tab-panel t-active" data-tp="0">
+<div class="tp-img"><img src="images/image7.jpg" alt="Art is not nature" onerror="handleImgErr(this,'tp-img',0)"></div>
+<div class="tp-txt"><h4>Art is not nature.</h4><p>Nature is the work of God or natural processes; Art is the work of <strong>conscious human effort</strong>. A sunset is beautiful, but it is not art. A painting of that sunset, however, is art. This distinction is fundamental: art requires a deliberate, purposeful human act of creation.</p></div>
+</div>
+<div class="tab-panel" data-tp="1">
+<div class="tp-img"><img src="images/image8.jpg" alt="Art is experiential" onerror="handleImgErr(this,'tp-img',0)"></div>
+<div class="tp-txt"><h4>Art is experiential.</h4><p>Art exists to be experienced. It engages our senses, emotions, and intellect. You don't just <em>look</em> at a painting — you <strong>feel</strong> it. You don't just <em>hear</em> music — you <strong>experience</strong> it. Without an audience to experience it, art loses a significant part of its purpose.</p></div>
+</div>
+<div class="tab-panel" data-tp="2">
+<div class="tp-img"><img src="images/image9.jpg" alt="Art as expression" onerror="handleImgErr(this,'tp-img',0)"></div>
+<div class="tp-txt"><h4>Art is a form of expression.</h4><p>Art is one of the most powerful tools humans use to express emotions, ideas, stories, beliefs, and values. Whether it's a painting, a song, a poem, or a dance, art gives form to what we feel inside. It bridges the gap between the inner world and the outer world.</p></div>
+</div>
+<div class="tabs-footer">
+<div class="tabs-prog-wrap"><span class="tabs-prog-txt" id="tabs-m2-txt">1 / 3 viewed</span><div class="tabs-prog-bar"><div class="tabs-prog-fill" id="tabs-m2-fill" style="width:33%"></div></div></div>
+<span class="tabs-gate-note" id="tabs-m2-gate">Visit all 3 tabs to continue</span>
+</div>
+</div>
+<div class="block b-kc kc-multi" id="kc-m2">
+<div class="kc-badge-row"><span class="kc-badge">Knowledge Check</span><span class="kc-multi-badge">Select 2 FALSE statements</span></div>
+<p class="kc-q">Based on the Definition and Assumptions of Art, which <strong>two (2)</strong> statements are clearly <strong>FALSE</strong>? Select them below, then click Check Answers.</p>
+<div class="kc-opts kc-multi" id="kc-m2-opts">
+<div class="kc-opt" data-ki="0"><div class="kc-opt-marker">✓</div><div class="kc-opt-body"><div class="kc-opt-txt">AI-generated images can be considered as art because it still involves conscious human effort (LLM architecture and codes; user prompts).</div><div class="kc-resp-inline resp-err">❌ Incorrect. This statement is TRUE. Please try again.</div></div></div>
+<div class="kc-opt" data-ki="1"><div class="kc-opt-marker">✓</div><div class="kc-opt-body"><div class="kc-opt-txt">While your crush is man-made, he/she may not be considered as art because his/her parents made no conscious effort in editing his/her appearance.</div><div class="kc-resp-inline resp-err">❌ Incorrect. This statement is TRUE. Please try again.</div></div></div>
+<div class="kc-opt" data-ki="2"><div class="kc-opt-marker">✓</div><div class="kc-opt-body"><div class="kc-opt-txt">The Banaue Rice Terraces can be considered as art because it was handcrafted by the Ifugaos along the sides of the mountains — it was definitely man-made.</div><div class="kc-resp-inline resp-err">❌ Incorrect. This statement is TRUE. Please try again.</div></div></div>
+<div class="kc-opt" data-ki="3"><div class="kc-opt-marker">✓</div><div class="kc-opt-body"><div class="kc-opt-txt">Mayon Volcano — regardless of its perfect cone shape — can still be considered as art because of its outstanding natural beauty.</div><div class="kc-resp-inline resp-ok">✅ Correct! This statement is FALSE. The Mayon Volcano was created by a natural process — not by conscious human effort. It cannot be considered art by definition.</div></div></div>
+<div class="kc-opt" data-ki="4"><div class="kc-opt-marker">✓</div><div class="kc-opt-body"><div class="kc-opt-txt">Some people are natural-born artists. They were gifted with artistic skills because a certain hemisphere of their brain is more developed. Only these people can become artists.</div><div class="kc-resp-inline resp-ok">✅ Correct! This statement is FALSE. Art can be learned. It is only a matter of exposure, experience, and mentorship. Everyone has the potential to become an artist.</div></div></div>
+<div class="kc-opt" data-ki="5"><div class="kc-opt-marker">✓</div><div class="kc-opt-body"><div class="kc-opt-txt">Writing a song after a terrible breakup is a manifestation of how art can be used to vent emotions and transform them into something that helps us express ourselves.</div><div class="kc-resp-inline resp-err">❌ Incorrect. This statement is TRUE. Please try again.</div></div></div>
+</div>
+<div class="kc-actions"><button class="btn-kc-check" id="kc-m2-check">Check Answers</button><span class="kc-multi-fb" id="kc-m2-fb"></span></div>
+</div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-m2-end-note">⚠️ Complete all activities in this lesson to continue.</p>
+<button class="btn-cont" id="cont-m2-end" onclick="doContinue('cont-m2-end')" disabled>Continue to Lesson 3 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- MIDTERM LESSON 3 -->
+<div id="page-m3" class="page">
+<div class="l-hdr"><span class="l-tag">Midterm · Lesson 3</span><h2>Functions of Art</h2></div>
+<div class="l-body">
+<div class="block b-heading"><h2>Functions of Art</h2></div>
+<div class="block b-tabs" id="tabs-m3">
+<div class="tabs-nav">
+<button class="tab-btn t-active t-visited" data-ti="0">Personal</button>
+<button class="tab-btn" data-ti="1">Social</button>
+<button class="tab-btn" data-ti="2">Economic</button>
+<button class="tab-btn" data-ti="3">Religious</button>
+<button class="tab-btn" data-ti="4">Political</button>
+<button class="tab-btn" data-ti="5">Historical</button>
+<button class="tab-btn" data-ti="6">Cultural</button>
+<button class="tab-btn" data-ti="7">Physical</button>
+<button class="tab-btn" data-ti="8">Aesthetic</button>
+</div>
+<div class="tab-panel t-active" data-tp="0"><div class="tp-txt" style="width:100%"><h4>Personal Function</h4><p>Art is created because we want to, because we love to, and because it is who we are. The personal function is intrinsic — it fulfills our inner need for expression and creativity. Examples include writing poems, personal photography, journaling, vlogging, or sketching. This function prioritizes the artist's own emotional or creative satisfaction over any external purpose.</p></div></div>
+<div class="tab-panel" data-tp="1"><div class="tp-txt" style="width:100%"><h4>Social Function</h4><p>Art is used to form connections with other people and build communities. It brings people together, fosters shared experiences, and creates bonds. Examples include joining art groups, writing a song for someone, collaborative murals, community theater, and social movements powered by music or visual art. Art in this context is a bridge between individuals and communities.</p></div></div>
+<div class="tab-panel" data-tp="2"><div class="tp-txt" style="width:100%"><h4>Economic Function</h4><p>Art is created to earn money or make a living. This function recognizes art as an industry and a livelihood. Examples include artisanry (crafting handmade goods for sale), commission-based art, tattoo art, fashion design, music production, architecture, and film. The creative economy is one of the fastest-growing sectors globally.</p></div></div>
+<div class="tab-panel" data-tp="3"><div class="tp-txt" style="width:100%"><h4>Religious Function</h4><p>Art is used for worship, spiritual expression, or to strengthen faith. This is one of the oldest functions of art. Examples include church architecture, religious icons, stained glass windows, devotional music, religious artifacts (crosses, santos, ritual items), and sacred dance or performance.</p></div></div>
+<div class="tab-panel" data-tp="4"><div class="tp-txt" style="width:100%"><h4>Political Function</h4><p>Art is used to show support or express disdain for political figures, schemes, propaganda, or ideas. Examples include election campaign jingles, political cartoons, protest songs, burning of effigies of political personalities, patriotic anthems, revolutionary posters, and documentary films exposing injustice.</p></div></div>
+<div class="tab-panel" data-tp="5"><div class="tp-txt" style="width:100%"><h4>Historical Function</h4><p>Art is used to preserve, document, and communicate history. Before written language, humans told their stories through cave paintings and carvings. Today, art continues to record our collective memory. Examples include museums, archival photography, historical paintings, documentary films, war monuments, folk songs, and oral traditions.</p></div></div>
+<div class="tab-panel" data-tp="6"><div class="tp-txt" style="width:100%"><h4>Cultural Function</h4><p>Art is used to promote and preserve culture, traditions, and identity. Examples include folk dances depicting regional culture (e.g., Tinikling, Singkil), indigenous crafts, regional cuisine, traditional music, festivals, and costumes that reflect ethnic heritage. It is one of the most powerful ways a community expresses who they are.</p></div></div>
+<div class="tab-panel" data-tp="7"><div class="tp-txt" style="width:100%"><h4>Physical Function</h4><p>Art is used for physical and mental wellness. Examples include Zumba (rhythmic fitness dance), TikTok choreography (physical activity + creative expression), art therapy (used in clinical psychology to process trauma), dance therapy, and music therapy. This function recognizes the therapeutic and health-promoting aspects of artistic expression.</p></div></div>
+<div class="tab-panel" data-tp="8"><div class="tp-txt" style="width:100%"><h4>Aesthetic Function</h4><p>Art is used to beautify ourselves, other people, or our surroundings. Examples include tattoos, piercings, body augmentation, graffiti art, interior design, landscaping, fashion, and jewelry. When art transforms an environment or person into something more beautiful, it serves an aesthetic function.</p></div></div>
+<div class="tabs-footer">
+<div class="tabs-prog-wrap"><span class="tabs-prog-txt" id="tabs-m3-txt">1 / 9 viewed</span><div class="tabs-prog-bar"><div class="tabs-prog-fill" id="tabs-m3-fill" style="width:11%"></div></div></div>
+<span class="tabs-gate-note" id="tabs-m3-gate">Visit all 9 tabs to continue</span>
+</div>
+</div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-m3-note">⚠️ Visit all 9 function tabs above to continue.</p>
+<button class="btn-cont" id="cont-m3" onclick="doContinue('cont-m3')" disabled>Continue to Lesson 4 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+
+<!-- MIDTERM LESSON 4 -->
+<div id="page-m4" class="page">
+<div class="l-hdr"><span class="l-tag">Midterm · Lesson 4</span><h2>Artists and Artisans</h2></div>
+<div class="l-body">
+<div class="block b-heading"><h2>Artists and Artisans</h2></div>
+<div class="block b-grid2">
+<div class="g2-card">
+<div style="border-radius:var(--rsm);overflow:hidden;height:180px"><img src="images/image10.jpg" alt="Artist" style="width:100%;height:100%;object-fit:cover;display:block" onerror="handleImgErr(this,'g2img',180)"></div>
+<h4>🎨 Artists</h4>
+<p>Artists focus on <strong>aesthetic and conceptual expression</strong>. They create art — such as paintings, sculptures, or music — primarily to provoke emotion, challenge ideas, or express a personal vision. The output does not need a practical, real-world utility. A painter who creates a canvas purely for beauty, emotion, or a message is an artist.</p>
+</div>
+<div class="g2-card">
+<div style="border-radius:var(--rsm);overflow:hidden;height:180px"><img src="images/image11.jpg" alt="Artisan" style="width:100%;height:100%;object-fit:cover;display:block" onerror="handleImgErr(this,'g2img',180)"></div>
+<h4>🛠️ Artisans</h4>
+<p>Artisans focus on <strong>craftsmanship and functionality</strong>. They are highly skilled manual workers who create functional, utilitarian objects — such as furniture, pottery, clothing, or bread — by hand. While their work can be beautiful, it is designed with a specific practical purpose in mind. A potter who makes clay jars for everyday use is an artisan.</p>
+</div>
+</div>
+<div class="block b-dnd" id="dnd-m4">
+<div class="dnd-title">🎯 Matching Activity</div>
+<div class="dnd-instr">Classify each professional as an <strong>Artist</strong> or an <strong>Artisan</strong> based on the definitions above.<br><em>Desktop: drag &amp; drop. Mobile: tap to select, then tap a category to place.</em></div>
+<div class="dnd-pool" id="pool-m4">
+<div class="dnd-pool-label">ITEMS TO CLASSIFY</div>
+<div class="dnd-item" data-id="potter" data-answer="artisan">🏺 Potter</div>
+<div class="dnd-item" data-id="painter" data-answer="artist">🖌️ Painter</div>
+<div class="dnd-item" data-id="photographer" data-answer="artist">📸 Photographer</div>
+<div class="dnd-item" data-id="buntal" data-answer="artisan">🎩 Buntal Hat-Maker</div>
+</div>
+<div class="dnd-cats">
+<div class="dnd-cat"><div class="dnd-cat-hd">🎨 Artists</div><div class="dnd-drop-zone" data-cat="artist" id="zone-m4-artist"></div></div>
+<div class="dnd-cat"><div class="dnd-cat-hd">🛠️ Artisans</div><div class="dnd-drop-zone" data-cat="artisan" id="zone-m4-artisan"></div></div>
+</div>
+<button class="btn-dnd-check" id="dnd-m4-check">Check Answers</button>
+<div class="dnd-fb" id="dnd-m4-fb"></div>
+</div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-m4-note">⚠️ Complete the matching activity to continue.</p>
+<button class="btn-cont" id="cont-m4" onclick="doContinue('cont-m4')" disabled>Continue to Lesson 5 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+
+<!-- MIDTERM LESSON 5 -->
+<div id="page-m5" class="page">
+<div class="l-hdr"><span class="l-tag">Midterm · Lesson 5</span><h2>Art Movements</h2></div>
+<div class="l-body">
+<div class="block b-heading"><h2>Art Movements</h2></div>
+<div class="block b-text"><p>Art movements are periods in art history defined by a shared style, technique, or philosophy. Understanding art movements helps you analyze and appreciate artworks with greater depth. <strong>Tap/click each card to flip it</strong> and reveal a representative artwork from that movement.</p></div>
+<div class="b-flip-wrap block">
+<div class="b-flipcards" id="flip-m5">
+  <div class="flip-row">
+    <div class="flip-card" data-fi="0">
+      <div class="flip-inner">
+        <div class="flip-front">
+          <div class="fc-hint">↻ Tap to flip</div>
+          <div class="front-img"><img src="images/image12.jpg" alt="Realism" onerror="handleImgErr(this,'front-img',0)"></div>
+          <div class="fc-title">Realism</div>
+        </div>
+        <div class="flip-back">
+          <div class="flip-back-inner"><h4>Realism</h4><div class="fc-def">Realism focuses on truthful, unidealized depiction of everyday life and ordinary people — rejecting romanticism and dramatic embellishment. Realist artists portray subjects with attention to detail and social context.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="flip-card" data-fi="1">
+      <div class="flip-inner">
+        <div class="flip-front"><div class="fc-hint">↻ Tap to flip</div><div class="front-img"><img src="images/image13.jpg" alt="Impressionism" onerror="handleImgErr(this,'front-img',0)"></div><div class="fc-title">Impressionism</div></div>
+        <div class="flip-back"><div class="flip-back-inner"><h4>Impressionism</h4><div class="fc-def">Impressionism emphasizes capturing the fleeting effects of light and color, often using loose brushwork and outdoor scenes to convey an impression of a moment rather than precise detail.</div></div></div>
+      </div>
+    </div>
+    <div class="flip-card" data-fi="2">
+      <div class="flip-inner">
+        <div class="flip-front"><div class="fc-hint">↻ Tap to flip</div><div class="front-img"><img src="images/image14.jpg" alt="Expressionism" onerror="handleImgErr(this,'front-img',0)"></div><div class="fc-title">Expressionism</div></div>
+        <div class="flip-back"><div class="flip-back-inner"><h4>Expressionism</h4><div class="fc-def">Expressionism prioritizes emotional experience over physical reality, using exaggerated forms, vivid colors, and distortion to convey inner feelings, angst, or psychological states.</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="flip-row">
+    <div class="flip-card" data-fi="3">
+      <div class="flip-inner">
+        <div class="flip-front"><div class="fc-hint">↻ Tap to flip</div><div class="front-img"><img src="images/image15.jpg" alt="Cubism" onerror="handleImgErr(this,'front-img',0)"></div><div class="fc-title">Cubism</div></div>
+        <div class="flip-back"><div class="flip-back-inner"><h4>Cubism</h4><div class="fc-def">Cubism breaks objects into geometric shapes and multiple viewpoints, representing subjects from several angles simultaneously to emphasize structure and form.</div></div></div>
+      </div>
+    </div>
+    <div class="flip-card" data-fi="4">
+      <div class="flip-inner">
+        <div class="flip-front"><div class="fc-hint">↻ Tap to flip</div><div class="front-img"><img src="images/image16.jpg" alt="Surrealism" onerror="handleImgErr(this,'front-img',0)"></div><div class="fc-title">Surrealism</div></div>
+        <div class="flip-back"><div class="flip-back-inner"><h4>Surrealism</h4><div class="fc-def">Surrealism explores dream imagery, the unconscious, and unexpected juxtapositions to reveal hidden truths and provoke thought beyond rational constraints.</div></div></div>
+      </div>
+    </div>
+    <div class="flip-card" data-fi="5">
+      <div class="flip-inner">
+        <div class="flip-front"><div class="fc-hint">↻ Tap to flip</div><div class="front-img"><img src="images/image17.jpg" alt="Abstract Art" onerror="handleImgErr(this,'front-img',0)"></div><div class="fc-title">Abstract Art</div></div>
+        <div class="flip-back"><div class="flip-back-inner"><h4>Abstract Art</h4><div class="fc-def">Abstract art uses shapes, colors, forms, and gestural marks to achieve its effect rather than depicting real-world visual references; it can be non-representational or symbolic.</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="flip-row">
+    <div class="flip-card" data-fi="6">
+      <div class="flip-inner">
+        <div class="flip-front"><div class="fc-hint">↻ Tap to flip</div><div class="front-img"><img src="images/image18.jpg" alt="Pop Art" onerror="handleImgErr(this,'front-img',0)"></div><div class="fc-title">Pop Art</div></div>
+        <div class="flip-back"><div class="flip-back-inner"><h4>Pop Art</h4><div class="fc-def">Pop Art draws from popular and consumer culture—advertising, comics, mass media—and often employs bold imagery, irony, and repetition to comment on contemporary life.</div></div></div>
+      </div>
+    </div>
+    <div class="flip-card" data-fi="7">
+      <div class="flip-inner">
+        <div class="flip-front"><div class="fc-hint">↻ Tap to flip</div><div class="front-img"><img src="images/image19.jpg" alt="Fauvism" onerror="handleImgErr(this,'front-img',0)"></div><div class="fc-title">Fauvism</div></div>
+        <div class="flip-back"><div class="flip-back-inner"><h4>Fauvism</h4><div class="fc-def">Fauvism emphasizes painterly qualities and strong color over representational or realistic values. Artists use vivid, non-naturalistic colors and simplified forms.</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="flipcards-status"><span class="flip-cnt" id="flip-m5-cnt">0</span> / 8 cards flipped &nbsp;–&nbsp; flip all to continue</div>
+</div>
+<div class="block b-kc" id="kc-m5">
+<div class="kc-badge-row"><span class="kc-badge">Knowledge Check</span></div>
+<p class="kc-q">Which art movement would best describe the image below?</p>
+<div class="kc-q-img"><img src="images/image20.jpg" alt="Which movement?" onerror="handleImgErr(this,'kc-q-img',220)"></div>
+<div class="kc-opts" id="kc-m5-opts">
+<div class="kc-opt" data-ki="0"><div class="kc-opt-marker">A</div><div class="kc-opt-body"><div class="kc-opt-txt">Realism</div><div class="kc-resp-inline resp-err">❌ Incorrect. Please study the art movements and analyze the image, then try again.</div></div></div>
+<div class="kc-opt" data-ki="1"><div class="kc-opt-marker">B</div><div class="kc-opt-body"><div class="kc-opt-txt">Expressionism</div><div class="kc-resp-inline resp-err">❌ Incorrect. Please study the art movements and analyze the image, then try again.</div></div></div>
+<div class="kc-opt" data-ki="2"><div class="kc-opt-marker">C</div><div class="kc-opt-body"><div class="kc-opt-txt">Impressionism</div><div class="kc-resp-inline resp-err">❌ Incorrect. Please study the art movements and analyze the image, then try again.</div></div></div>
+<div class="kc-opt" data-ki="3"><div class="kc-opt-marker">D</div><div class="kc-opt-body"><div class="kc-opt-txt">Cubism</div><div class="kc-resp-inline resp-err">❌ Incorrect. Please study the art movements and analyze the image, then try again.</div></div></div>
+<div class="kc-opt" data-ki="4"><div class="kc-opt-marker">E</div><div class="kc-opt-body"><div class="kc-opt-txt">Surrealism</div><div class="kc-resp-inline resp-err">❌ Incorrect. Please study the art movements and analyze the image, then try again.</div></div></div>
+<div class="kc-opt" data-ki="5"><div class="kc-opt-marker">F</div><div class="kc-opt-body"><div class="kc-opt-txt">Abstract Art</div><div class="kc-resp-inline resp-err">❌ Incorrect. Please study the art movements and analyze the image, then try again.</div></div></div>
+<div class="kc-opt" data-ki="6"><div class="kc-opt-marker">G</div><div class="kc-opt-body"><div class="kc-opt-txt">Pop Art</div><div class="kc-resp-inline resp-ok">✅ Correct! This artwork was inspired by an everyday consumer product or item. Pop Art draws from popular culture, advertising, comics, and consumer products — often using bold, flat colors and familiar mass-media imagery.</div></div></div>
+<div class="kc-opt" data-ki="7"><div class="kc-opt-marker">H</div><div class="kc-opt-body"><div class="kc-opt-txt">Fauvism</div><div class="kc-resp-inline resp-err">❌ Incorrect. Please study the art movements and analyze the image, then try again.</div></div></div>
+</div>
+</div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-m5-note">⚠️ Flip all 8 cards and answer the knowledge check to continue.</p>
+<button class="btn-cont" id="cont-m5" onclick="doContinue('cont-m5')" disabled>Continue to Lesson 6 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+
+<!-- MIDTERM LESSON 6 -->
+<div id="page-m6" class="page">
+<div class="l-hdr"><span class="l-tag">Midterm · Lesson 6</span><h2>Visual Elements of Art &amp; Midterm Project</h2></div>
+<div class="l-body">
+<div class="block b-heading"><h2>Visual Elements of Art</h2></div>
+<div class="block b-carousel" id="carousel-m6">
+<div class="car-prog-bar"><div class="car-prog-fill" id="cpf-m6" style="width:14%"></div></div>
+<div class="car-viewport">
+<div class="car-slide car-active" data-cs="0"><div class="car-slide-img"><img src="images/image21.jpg" alt="Line" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Line</h4><p>A mark that connects two points. Lines vary in length, width, direction, and style to create shapes, patterns, or movement. Lines guide the viewer's eye and can convey emotion — a curved line feels gentle, while a jagged line feels tense or energetic.</p></div></div>
+<div class="car-slide" data-cs="1"><div class="car-slide-img"><img src="images/image22.jpg" alt="Shape" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Shape</h4><p>A flat, two-dimensional area defined by lines, colors, or textures. Shapes can be geometric (circles, squares, triangles) or organic (natural, irregular forms that occur in nature). Shapes are the building blocks of visual composition.</p></div></div>
+<div class="car-slide" data-cs="2"><div class="car-slide-img"><img src="images/image23.jpg" alt="Form" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Form</h4><p>A three-dimensional object with height, width, and depth. Forms can be actual (sculptures, pottery) or implied through shading and perspective. Unlike shape, form exists in or gives the illusion of real three-dimensional space.</p></div></div>
+<div class="car-slide" data-cs="3"><div class="car-slide-img"><img src="images/image24.jpg" alt="Color" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Color</h4><p>The visual element produced by light. Color includes three properties: <strong>Hue</strong> (the name of the color), <strong>Value</strong> (lightness or darkness), and <strong>Intensity</strong> (brightness or dullness). Color is one of the most expressive elements, capable of evoking strong emotions.</p></div></div>
+<div class="car-slide" data-cs="4"><div class="car-slide-img"><img src="images/image25.jpg" alt="Value" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Value</h4><p>The lightness or darkness of a color or tone. Value creates contrast, depth, and the illusion of form. A full range of values — from the lightest light to the darkest dark — gives an artwork dimension and realism through shadows and highlights.</p></div></div>
+<div class="car-slide" data-cs="5"><div class="car-slide-img"><img src="images/image26.jpg" alt="Texture" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Texture</h4><p>The surface quality of an artwork. Texture may be <strong>actual</strong> (felt by touch, as in sculpture) or <strong>visual/implied</strong> (appears textured but is smooth). Artists use texture to add tactile richness and reinforce the subject matter.</p></div></div>
+<div class="car-slide" data-cs="6"><div class="car-slide-img"><img src="images/image27.jpg" alt="Space" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Space</h4><p>The area around, between, above, below, or within objects. <strong>Positive space</strong> refers to subjects or main areas of interest; <strong>negative space</strong> refers to empty areas around or between subjects. Both are equally important in creating a balanced, intentional composition.</p></div></div>
+</div>
+<div class="car-ctrl">
+<button class="car-btn" id="car-m6-prev" disabled>← Prev</button>
+<div class="car-dots" id="car-m6-dots"><span class="car-dot car-dot-active car-dot-visited" data-cdi="0"></span><span class="car-dot" data-cdi="1"></span><span class="car-dot" data-cdi="2"></span><span class="car-dot" data-cdi="3"></span><span class="car-dot" data-cdi="4"></span><span class="car-dot" data-cdi="5"></span><span class="car-dot" data-cdi="6"></span></div>
+<span class="car-ctr" id="car-m6-ctr">1 / 7</span>
+<button class="car-btn" id="car-m6-next">Next →</button>
+</div>
+</div>
+<div class="block b-heading" style="margin-top:36px"><h2>Midterm Project: Coffee Painting Self-Portrait</h2></div>
+<div class="block b-process">
+<div class="proc-nav">
+<button class="proc-nav-btn pn-active" data-pni="0"><span class="pn-num">1</span>Gather Materials</button>
+<button class="proc-nav-btn" data-pni="1"><span class="pn-num">2</span>Observe Subject</button>
+<button class="proc-nav-btn" data-pni="2"><span class="pn-num">3</span>Pencil Sketch</button>
+<button class="proc-nav-btn" data-pni="3"><span class="pn-num">4</span>Prepare Tones</button>
+<button class="proc-nav-btn" data-pni="4"><span class="pn-num">5</span>Light Tones</button>
+<button class="proc-nav-btn" data-pni="5"><span class="pn-num">6</span>Add Midtones</button>
+<button class="proc-nav-btn" data-pni="6"><span class="pn-num">7</span>Shadows &amp; Details</button>
+<button class="proc-nav-btn" data-pni="7"><span class="pn-num">8</span>Refine &amp; Blend</button>
+<button class="proc-nav-btn" data-pni="8"><span class="pn-num">9</span>Submission</button>
+</div>
+<div class="proc-panel pp-active" data-pp="0"><h5>Step 1: Gather Materials</h5><p>Prepare all materials needed:</p><ul><li>Instant coffee or brewed coffee</li><li>Water</li><li>Small containers for mixing</li><li>Paintbrushes of different sizes</li><li>Pencil and eraser</li><li>Thick Watercolor paper or Vellum Board</li><li>Mixing palette or paper plate</li><li>Tissue or paper towel</li><li>Mirror or reference photo of yourself</li></ul></div>
+<div class="proc-panel" data-pp="1"><h5>Step 2: Observe and Study the Subject</h5><p>Look carefully at your face using a mirror or a reference photograph. Observe your face shape, hair style, eye shape, nose and mouth proportions, and any distinctive facial features that make you uniquely you.</p></div>
+<div class="proc-panel" data-pp="2"><h5>Step 3: Create a Light Pencil Sketch</h5><p>Using a pencil, lightly sketch the basic structure of your face. Start with the head shape, eye line, nose placement, mouth placement, hair outline, and neck and shoulders. Avoid pressing too hard so pencil marks can be easily erased.</p></div>
+<div class="proc-panel" data-pp="3"><h5>Step 4: Prepare Different Coffee Tones</h5><p>Mix coffee with varying amounts of water to create different shades:</p><ul><li><strong>Light mixture</strong> = light brown tones</li><li><strong>Medium mixture</strong> = midtones</li><li><strong>Concentrated mixture</strong> = dark brown/shadow tones</li></ul><p>Test each mixture on scrap paper before applying to the artwork.</p></div>
+<div class="proc-panel" data-pp="4"><h5>Step 5: Apply the Lightest Tones</h5><p>Begin painting with the lightest coffee mixture. Paint base skin tones, light areas of the face, and background if desired. <strong>Allow each layer to dry before adding darker tones.</strong></p></div>
+<div class="proc-panel" data-pp="5"><h5>Step 6: Add Midtones</h5><p>Using a medium-strength coffee mixture, paint areas with moderate shadows. Focus on hair details, sides of the nose, cheeks, neck, and clothing. Work carefully to maintain facial proportions and likeness.</p></div>
+<div class="proc-panel" data-pp="6"><h5>Step 7: Add Shadows and Details</h5><p>Use the darkest coffee mixture to create contrast. Enhance the eyes and eyelashes, eyebrows, hair shadows, nose contours, mouth details, and areas beneath the chin. Apply darker tones sparingly for stronger visual impact.</p></div>
+<div class="proc-panel" data-pp="7"><h5>Step 8: Refine and Blend</h5><p>Review the portrait and make adjustments. Soften harsh edges with a damp brush. Add additional layers for darker values. Improve details and texture. <strong>Allow each layer to dry completely before adding another.</strong></p></div>
+<div class="proc-panel" data-pp="8"><h5>Step 9: Submission</h5><p>Take <strong>2 photos</strong> of the finished portrait:</p><ol><li>One close-up with the reference image beside it</li><li>One with you holding your finished work</li></ol><p style="margin-top:10px">Upload both files to your designated folder in the class GDrive.</p></div>
+</div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-m6-note">⚠️ Navigate through all 7 Visual Elements in the carousel to complete this module.</p>
+<button class="btn-cont" id="cont-m6" onclick="doContinue('cont-m6')" disabled>Complete Midterm Module 🎉 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+
+<!-- MIDTERM COMPLETE -->
+<div id="page-mc" class="page">
+<div class="congrats-wrap">
+<div class="congrats-icon">🎉</div>
+<h2>Midterm Module Complete!</h2>
+<div class="confetti-row">🎨 ✨ 🖌️ 🎭 ✨ 🎨</div>
+<p>Congratulations! You've successfully completed the <strong>Midterm Learning Module</strong> for AAP101. You've covered the foundations of Art Appreciation — from the definition of art, its functions, artists vs. artisans, major art movements, and the visual elements. Good luck on your Coffee Painting Self-Portrait!</p>
+<button class="btn-home" onclick="navigateTo('terminal')">⌂ &nbsp;Back to Home</button>
+</div>
+</div>
+
+<!-- FINAL LESSON 1 -->
+<div id="page-f1" class="page">
+<div class="l-hdr"><span class="l-tag">Final Term · Lesson 1</span><h2>Principles of Design</h2></div>
+<div class="l-body">
+<div class="block b-heading"><h2>Principles of Design</h2></div>
+<div class="block b-text"><p>The <strong>Principles of Design</strong> are the rules and guidelines artists and designers use to organize visual elements into a unified, effective composition. Navigate all 9 principles below.</p></div>
+<div class="block b-carousel" id="carousel-f1">
+<div class="car-prog-bar"><div class="car-prog-fill" id="cpf-f1" style="width:11%"></div></div>
+<div class="car-viewport">
+<div class="car-slide car-active" data-cs="0"><div class="car-slide-img"><img src="images/image28.jpg" alt="Balance" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Balance</h4><p>The distribution of visual weight within an artwork. Balance can be <strong>symmetrical</strong> (equal on both sides), <strong>asymmetrical</strong> (different but visually balanced), or <strong>radial</strong> (arranged around a central point). Balance creates a sense of stability and order in a composition.</p></div></div>
+<div class="car-slide" data-cs="1"><div class="car-slide-img"><img src="images/image29.jpg" alt="Contrast" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Contrast</h4><p>The use of noticeable differences to create visual interest and emphasis — for example, light versus dark, rough versus smooth, or large versus small. Contrast draws the viewer's eye and makes certain elements stand out from others.</p></div></div>
+<div class="car-slide" data-cs="2"><div class="car-slide-img"><img src="images/image30.jpg" alt="Emphasis" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Emphasis</h4><p>The creation of a focal point that attracts the viewer's attention first. Artists use size, color, placement, or contrast to highlight important areas. The focal point is what the artwork wants you to see first — the most visually dominant element.</p></div></div>
+<div class="car-slide" data-cs="3"><div class="car-slide-img"><img src="images/image31.jpg" alt="Movement" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Movement</h4><p>The path the viewer's eye follows through an artwork. Artists guide attention using lines, shapes, colors, and repeated elements. Movement makes a composition feel dynamic and alive, leading the viewer on a visual journey through the entire work.</p></div></div>
+<div class="car-slide" data-cs="4"><div class="car-slide-img"><img src="images/image32.jpg" alt="Pattern" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Pattern</h4><p>The repetition of elements in a predictable arrangement. Patterns create decorative effects and visual consistency. They can be simple (a repeating stripe) or complex (intricate geometric motifs), appearing in nature, textiles, architecture, and fine art.</p></div></div>
+<div class="car-slide" data-cs="5"><div class="car-slide-img"><img src="images/image33.jpg" alt="Rhythm" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Rhythm</h4><p>The repetition of visual elements that creates a sense of flow or movement. Like rhythm in music, it can be regular (consistent intervals), alternating (switching between two elements), or progressive (gradually changing in size or direction).</p></div></div>
+<div class="car-slide" data-cs="6"><div class="car-slide-img"><img src="images/image34.jpg" alt="Unity" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Unity</h4><p>The sense that all parts of an artwork belong together and work as a whole. Unity creates harmony and coherence. Without it, an artwork can feel chaotic. Artists achieve unity through consistent use of color, style, shape, or theme throughout the work.</p></div></div>
+<div class="car-slide" data-cs="7"><div class="car-slide-img"><img src="images/image35.jpg" alt="Variety" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Variety</h4><p>The use of different elements to add interest and prevent monotony. Variety keeps artwork engaging while supporting unity. The challenge is balance — too much variety becomes chaotic; too little becomes boring.</p></div></div>
+<div class="car-slide" data-cs="8"><div class="car-slide-img"><img src="images/image36.jpg" alt="Proportion and Scale" onerror="handleImgErr(this,'car-slide-img',0)"></div><div class="car-slide-txt"><h4>Proportion and Scale</h4><p>The relationship of the sizes of parts to each other and to the whole. Proper proportion creates realism, balance, or intentional distortion. Artists manipulate proportion and scale to convey importance, create drama, or guide the viewer's eye.</p></div></div>
+</div>
+<div class="car-ctrl">
+<button class="car-btn" id="car-f1-prev" disabled>← Prev</button>
+<div class="car-dots" id="car-f1-dots"><span class="car-dot car-dot-active car-dot-visited" data-cdi="0"></span><span class="car-dot" data-cdi="1"></span><span class="car-dot" data-cdi="2"></span><span class="car-dot" data-cdi="3"></span><span class="car-dot" data-cdi="4"></span><span class="car-dot" data-cdi="5"></span><span class="car-dot" data-cdi="6"></span><span class="car-dot" data-cdi="7"></span><span class="car-dot" data-cdi="8"></span></div>
+<span class="car-ctr" id="car-f1-ctr">1 / 9</span>
+<button class="car-btn" id="car-f1-next">Next →</button>
+</div>
+</div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-f1-note">⚠️ Navigate through all 9 Principles of Design to continue.</p>
+<button class="btn-cont" id="cont-f1" onclick="doContinue('cont-f1')" disabled>Continue to Lesson 2 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+
+<!-- FINAL LESSON 2 -->
+<div id="page-f2" class="page">
+<div class="l-hdr"><span class="l-tag">Final Term · Lesson 2</span><h2>Basic Photography</h2></div>
+<div class="l-body">
+<div class="block b-heading"><h2>Basic Photography</h2></div>
+<div class="block b-tabs" id="tabs-f2">
+<div class="tabs-nav">
+<button class="tab-btn t-active t-visited" data-ti="0">1. Aperture</button>
+<button class="tab-btn" data-ti="1">2. Shutter Speed</button>
+<button class="tab-btn" data-ti="2">3. ISO</button>
+</div>
+<div class="tab-panel t-active" data-tp="0">
+<div class="tp-img"><img src="images/image37.jpg" alt="Aperture" onerror="handleImgErr(this,'tp-img',0)"></div>
+<div class="tp-txt"><h4>Aperture</h4><p>The opening inside the lens that allows light to enter. Measured in <strong>f-stops</strong> (e.g., f/1.8, f/4, f/11).</p><ul><li><strong>Wider aperture</strong> (smaller f-number, e.g., f/1.8) → More light, shallower depth of field.</li><li><strong>Narrower aperture</strong> (larger f-number, e.g., f/16) → Less light, greater depth of field.</li></ul><p><strong>Depth of Field:</strong> Wide apertures blur the background (portraits); narrow apertures keep the full scene sharp (landscapes).</p></div>
+</div>
+<div class="tab-panel" data-tp="1">
+<div class="tp-img"><img src="images/image38.jpg" alt="Shutter Speed" onerror="handleImgErr(this,'tp-img',0)"></div>
+<div class="tp-txt"><h4>Shutter Speed</h4><p>The time the camera sensor is exposed to light. Measured in fractions of a second (e.g., 1/1000s, 1/125s, 1").</p><ul><li><strong>Fast shutter</strong> (e.g., 1/1000s) → Freezes motion, less light.</li><li><strong>Slow shutter</strong> (e.g., 1/15s or slower) → Motion blur, more light.</li></ul><p><strong>Use cases:</strong> Sports: 1/1000s+. Waterfalls with silky effect: 1s+.</p></div>
+</div>
+<div class="tab-panel" data-tp="2">
+<div class="tp-img"><img src="images/image39.jpg" alt="ISO" onerror="handleImgErr(this,'tp-img',0)"></div>
+<div class="tp-txt"><h4>ISO</h4><p>The camera sensor's sensitivity to light. Common values: ISO 100, 200, 400, 800, 1600, 3200, 6400.</p><ul><li><strong>Lower ISO</strong> → Less sensitive, cleaner image, requires more light.</li><li><strong>Higher ISO</strong> → More sensitive, brighter image, may introduce digital noise/grain.</li></ul><p><strong>Use cases:</strong> Bright day: ISO 100. Indoor/low-light: ISO 800–3200+.</p></div>
+</div>
+<div class="tabs-footer">
+<div class="tabs-prog-wrap"><span class="tabs-prog-txt" id="tabs-f2-txt">1 / 3 viewed</span><div class="tabs-prog-bar"><div class="tabs-prog-fill" id="tabs-f2-fill" style="width:33%"></div></div></div>
+<span class="tabs-gate-note" id="tabs-f2-gate">Visit all 3 tabs to continue</span>
+</div>
+</div>
+<!-- Replaced Exposure Triangle Simulator with new simulator implementation -->
+<div class="block b-heading"><h3>Sir Kito's Exposure Triangle Simulator</h3></div>
+<div class="block b-exp-sim">
+  <style>
+    /* Embedded simulator styles (isolated to this block) */
+    .simulator-wrapper{display:flex;width:100%;max-width:900px;height:420px;background-color:#002C39;color:#FFF7F7;border-radius:8px;overflow:hidden;margin:6px 0}
+    .panel-left{width:40%;padding:18px;background:#015061;border-right:4px solid #002C39;display:flex;flex-direction:column;justify-content:center}
+    .panel-left h2{margin:0 0 12px 0;color:#00C18E;font-size:1.1rem;text-transform:uppercase}
+    .control-group{margin-bottom:12px}
+    .control-header{display:flex;justify-content:space-between;font-weight:600;margin-bottom:6px}
+    .control-labels{display:flex;justify-content:space-between;font-size:0.75rem;opacity:.85}
+    input[type=range]{-webkit-appearance:none;width:100%;background:transparent}
+    input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:#002C39}
+    input[type=range]::-webkit-slider-thumb{width:18px;height:18px;border-radius:50%;background:#00C18E;border:2px solid #fff;margin-top:-5px}
+    .panel-right{width:60%;position:relative;background:#050b14;overflow:hidden}
+    .layer{position:absolute;top:0;left:0;width:100%;height:100%;transition:filter .2s ease,opacity .2s ease}
+    .bg-sky{background:radial-gradient(circle at 80% 20%,#1a2a40 0%,#050b14 60%)}
+    .moon{position:absolute;top:12%;right:12%;width:36px;height:36px;background:#FFF7F7;border-radius:50%;box-shadow:0 0 18px rgba(255,247,247,.36)}
+    .mg-buildings{bottom:0;top:auto;height:60%;display:flex;align-items:flex-end;padding-left:8%}
+    .building{background:#0a111a;border:1px solid #1a2a40;position:relative;overflow:hidden}
+    .b1{width:80px;height:100%;margin-right:14px}
+    .b2{width:100px;height:80%;margin-right:12px}
+    .b3{width:70px;height:110%}
+    .windows{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px}
+    .window{width:10px;height:14px;background:#d4a373;box-shadow:0 0 4px #d4a373}
+    .window:nth-child(even){background:#2a3b50;box-shadow:none}
+    .fg-train{bottom:8%;top:auto;height:24%;width:120%;left:-10%;background:linear-gradient(90deg,#111 0%,#222 50%,#111 100%);border-top:4px solid #00C18E;display:flex;align-items:center;padding:0 18px}
+    .train-window{width:76px;height:36px;background:#FFF7F7;margin-right:16px;border-radius:4px;box-shadow:0 0 12px rgba(255,247,247,.6)}
+    .noise-overlay{background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");opacity:0;mix-blend-mode:overlay;pointer-events:none}
+    .exposure-overlay{background:black;opacity:.85;pointer-events:none}
+    .success-banner{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,193,142,.95);color:#002C39;padding:8px 14px;border-radius:16px;font-weight:700;opacity:0;transition:opacity .25s}
+    .success-banner.show{opacity:1}
+    @media (max-width: 720px) {
+      .simulator-wrapper{flex-direction:column;height:auto;max-width:100%;margin:12px 0}
+      .panel-left,.panel-right{width:100%}
+      .panel-left{padding:14px;order:1}
+      .panel-right{min-height:260px;height:260px}
+      .panel-right .layer{position:absolute}
+      .panel-left h2{font-size:1rem}
+      .panel-left p{font-size:12px;line-height:1.5;margin-bottom:10px}
+      .control-group{margin-bottom:14px}
+      .control-labels{flex-wrap:wrap;gap:6px;font-size:0.72rem}
+      .control-labels span{max-width:48%}
+      .success-banner{top:10px;left:50%;transform:translateX(-50%);width:calc(100% - 28px);text-align:center}
+      .moon{top:10%;right:10%;width:30px;height:30px}
+      .fg-train{height:22%;padding:0 12px}
+      .train-window{width:58px;height:30px;margin-right:10px}
+    }
+  </style>
+
+  <div class="simulator-wrapper">
+    <div class="panel-left">
+      <h2>Exposure Settings</h2>
+      <p style="font-size:13px;color:rgba(255,255,255,0.9);margin-bottom:12px">Objective: Capture a perfectly exposed photo of the moving train. Adjust Aperture, Shutter Speed, and ISO until the banner appears; then the Continue button will unlock.</p>
+      <div class="control-group">
+        <div class="control-header"><span>Aperture</span><span id="val-aperture">f/8</span></div>
+        <input type="range" id="aperture" min="0" max="100" value="50">
+        <div class="control-labels"><span>Wide (f/1.4)</span><span>Narrow (f/22)</span></div>
+      </div>
+      <div class="control-group">
+        <div class="control-header"><span>Shutter Speed</span><span id="val-shutter">1/60s</span></div>
+        <input type="range" id="shutter" min="0" max="100" value="50">
+        <div class="control-labels"><span>Fast (1/1000s)</span><span>Slow (1s)</span></div>
+      </div>
+      <div class="control-group">
+        <div class="control-header"><span>ISO</span><span id="val-iso">ISO 400</span></div>
+        <input type="range" id="iso" min="0" max="100" value="30">
+        <div class="control-labels"><span>Low (100)</span><span>High (6400)</span></div>
+      </div>
+    </div>
+
+    <div class="panel-right">
+      <div class="layer bg-sky" id="bg-layer"><div class="moon"></div></div>
+      <div class="layer mg-buildings" id="mg-layer">
+        <div class="building b1"><div class="windows"><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div></div></div>
+        <div class="building b2"><div class="windows"><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div></div></div>
+        <div class="building b3"><div class="windows"><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div><div class="window"></div></div></div>
+      </div>
+      <div class="layer fg-train" id="fg-layer">
+        <div class="train-window"></div><div class="train-window"></div><div class="train-window"></div><div class="train-window"></div><div class="train-window"></div><div class="train-window"></div>
+      </div>
+      <div class="layer noise-overlay" id="noise-layer"></div>
+      <div class="layer exposure-overlay" id="exposure-layer"></div>
+      <div class="success-banner" id="success-message">Perfect Exposure Captured!</div>
+    </div>
+  </div>
+
+  <script>
+    const sliderAperture = document.getElementById('aperture');
+    const sliderShutter = document.getElementById('shutter');
+    const sliderIso = document.getElementById('iso');
+    const valAperture = document.getElementById('val-aperture');
+    const valShutter = document.getElementById('val-shutter');
+    const valIso = document.getElementById('val-iso');
+    const bgLayer = document.getElementById('bg-layer');
+    const mgLayer = document.getElementById('mg-layer');
+    const fgLayer = document.getElementById('fg-layer');
+    const noiseLayer = document.getElementById('noise-layer');
+    const exposureLayer = document.getElementById('exposure-layer');
+    const successMessage = document.getElementById('success-message');
+
+    const apertureLabels = ["f/1.4","f/2.8","f/4","f/5.6","f/8","f/11","f/16","f/22"];
+    const shutterLabels = ["1/1000s","1/500s","1/250s","1/125s","1/60s","1/30s","1/15s","1s"];
+    const isoLabels = ["100","200","400","800","1600","3200","6400","12800"];
+
+    function updateSimulator(){
+      const aperture = parseInt(sliderAperture.value);
+      const shutter = parseInt(sliderShutter.value);
+      const iso = parseInt(sliderIso.value);
+      const apIndex = Math.floor((aperture/100)*(apertureLabels.length-1));
+      const shIndex = Math.floor((shutter/100)*(shutterLabels.length-1));
+      const isoIndex = Math.floor((iso/100)*(isoLabels.length-1));
+      valAperture.textContent = apertureLabels[apIndex];
+      valShutter.textContent = shutterLabels[shIndex];
+      valIso.textContent = `ISO ${isoLabels[isoIndex]}`;
+
+      const bgBlur = Math.max(0,(100-aperture)/10);
+      bgLayer.style.filter = `blur(${bgBlur}px)`;
+      mgLayer.style.filter = `blur(${bgBlur*0.8}px)`;
+
+      const motionBlur = shutter/8;
+      fgLayer.style.filter = `blur(${motionBlur}px)`;
+      fgLayer.style.transform = `scaleX(${1+(shutter/500)})`;
+
+      const grainOpacity = iso/100;
+      noiseLayer.style.opacity = Math.min(0.8, grainOpacity*0.8);
+
+      const totalLight = (100-aperture)+shutter+iso;
+      let darkness = 0; let brightness = 1;
+      if(totalLight<150){ darkness = 1-(totalLight/150); }
+      else if(totalLight>200){ brightness = 1+((totalLight-200)/50); }
+      exposureLayer.style.backgroundColor = 'black';
+      exposureLayer.style.opacity = darkness;
+      document.querySelector('.panel-right').style.filter = `brightness(${brightness})`;
+
+      if(aperture<=30 && shutter<=25 && iso>=75 && totalLight>=120 && totalLight<=200){
+        successMessage.classList.add('show');
+        try{ if(typeof passGate==='function' && !(window.S && window.S.gates && window.S.gates['f2-sim'])) passGate('f2-sim'); }catch(e){}
+      }
+      else{ successMessage.classList.remove('show'); }
+    }
+
+    sliderAperture.addEventListener('input',updateSimulator);
+    sliderShutter.addEventListener('input',updateSimulator);
+    sliderIso.addEventListener('input',updateSimulator);
+    updateSimulator();
+  </script>
+
+</div>
+
+<div class="block b-continue">
+<p class="cont-note" id="cont-f2-note">⚠️ Visit all 3 photography tabs and achieve a perfect exposure in the Exposure Triangle simulator to continue.</p>
+<button class="btn-cont" id="cont-f2" onclick="doContinue('cont-f2')" disabled>Continue to Lesson 3 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+
+<!-- FINAL LESSON 3 -->
+<div id="page-f3" class="page">
+<div class="l-hdr"><span class="l-tag">Final Term · Lesson 3</span><h2>Basic Videography</h2></div>
+<div class="l-body">
+<div class="block b-heading"><h2>Basic Videography</h2></div>
+<div class="block b-heading"><h3>Types of Shot</h3></div>
+<div class="block b-tabs" id="tabs-f3-shot">
+<div class="tabs-nav">
+<button class="tab-btn t-active t-visited" data-ti="0">ELS</button><button class="tab-btn" data-ti="1">LS/WS</button><button class="tab-btn" data-ti="2">Full Shot</button><button class="tab-btn" data-ti="3">Medium</button><button class="tab-btn" data-ti="4">MCU</button><button class="tab-btn" data-ti="5">Close-Up</button><button class="tab-btn" data-ti="6">ECU</button><button class="tab-btn" data-ti="7">Two Shot</button><button class="tab-btn" data-ti="8">OTS</button><button class="tab-btn" data-ti="9">POV</button><button class="tab-btn" data-ti="10">Insert</button><button class="tab-btn" data-ti="11">Cutaway</button>
+</div>
+<div class="tab-panel t-active" data-tp="0"><div class="tp-img"><img src="images/image40.jpg" alt="ELS" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Extreme Long Shot (ELS)</h4><p>Shows a very wide view of the environment, making the subject appear small. Often used to <strong>establish location and scale</strong>. Also called an Establishing Shot, it contextualizes the story setting before focusing on characters or action.</p></div></div>
+<div class="tab-panel" data-tp="1"><div class="tp-img"><img src="images/image41.jpg" alt="LS" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Long Shot (LS) / Wide Shot (WS)</h4><p>Shows the entire subject from head to toe along with much of the surrounding environment. <strong>Provides context and setting</strong> while keeping the subject clearly visible. Both the subject and background are prominently displayed.</p></div></div>
+<div class="tab-panel" data-tp="2"><div class="tp-img"><img src="images/image42.jpg" alt="Full Shot" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Full Shot (FS)</h4><p>Frames the subject's entire body while keeping them more <strong>prominent in the frame</strong> than a wide shot. Shows the whole body — head to toe — but with less surrounding background, placing more emphasis on the subject and their physicality.</p></div></div>
+<div class="tab-panel" data-tp="3"><div class="tp-img"><img src="images/image43.jpg" alt="Medium" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Medium Shot (MS)</h4><p>Frames the subject <strong>from the waist up</strong>. Balances subject and background, ideal for conversations and interactions. One of the most commonly used shots in filmmaking and television — comfortable, natural, and versatile.</p></div></div>
+<div class="tab-panel" data-tp="4"><div class="tp-img"><img src="images/image44.jpg" alt="MCU" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Medium Close-Up (MCU)</h4><p>Frames the subject <strong>from the chest or shoulders up</strong>. Allows viewers to observe facial expressions clearly while retaining some body language. Frequently used in news broadcasts and interviews.</p></div></div>
+<div class="tab-panel" data-tp="5"><div class="tp-img"><img src="images/image45.jpg" alt="Close-Up" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Close-Up (CU)</h4><p>Focuses closely on <strong>a person's face or a specific object</strong>. Highlights emotions, details, and reactions with great intimacy. Creates an emotional connection between the viewer and the subject, drawing attention to important details.</p></div></div>
+<div class="tab-panel" data-tp="6"><div class="tp-img"><img src="images/image46.jpg" alt="ECU" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Extreme Close-Up (ECU)</h4><p>Shows a very small detail such as an eye, hand, or object. Creates <strong>emphasis, drama, or suspense</strong>. Used for maximum impact — to draw the viewer's focus to a single, highly specific detail that carries significant meaning or emotion.</p></div></div>
+<div class="tab-panel" data-tp="7"><div class="tp-img"><img src="images/image47.jpg" alt="Two Shot" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Two Shot</h4><p>Frames <strong>two subjects within the same shot</strong>. Commonly used during conversations to show the relationship and dynamic between two characters. Can use various framing sizes (medium, full, etc.) depending on context.</p></div></div>
+<div class="tab-panel" data-tp="8"><div class="tp-img"><img src="images/image48.jpg" alt="OTS" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Over-the-Shoulder Shot (OTS)</h4><p>Shows one subject <strong>from behind another person's shoulder</strong>. Frequently used in dialogue scenes to establish perspective and spatial relationship between two characters. The foreground shoulder anchors the viewer in space.</p></div></div>
+<div class="tab-panel" data-tp="9"><div class="tp-img"><img src="images/image49.jpg" alt="POV" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Point-of-View Shot (POV)</h4><p>Presents the scene <strong>from a character's perspective</strong>, allowing viewers to see what the character sees. Creates immersion and empathy — it puts the audience directly in the character's shoes. Used to show what someone is looking at or to heighten tension.</p></div></div>
+<div class="tab-panel" data-tp="10"><div class="tp-img"><img src="images/image50.jpg" alt="Insert" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Insert Shot</h4><p>Focuses on <strong>a specific object or detail important to the story</strong> — such as a phone screen, clock, or key. Provides the audience with information necessary to understand the narrative, showing something the character is reading, handling, or looking at closely.</p></div></div>
+<div class="tab-panel" data-tp="11"><div class="tp-img"><img src="images/image51.jpg" alt="Cutaway" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt"><h4>Cutaway Shot</h4><p>Temporarily <strong>shifts away from the main action</strong> to show a related subject, reaction, or environmental detail. Used to add context, show reactions, compress time, or build tension. A fundamental tool of film editing used to shape pace and meaning.</p></div></div>
+<div class="tabs-footer">
+<div class="tabs-prog-wrap"><span class="tabs-prog-txt" id="tabs-f3-shot-txt">1 / 12 viewed</span><div class="tabs-prog-bar"><div class="tabs-prog-fill" id="tabs-f3-shot-fill" style="width:8%"></div></div></div>
+<span class="tabs-gate-note" id="tabs-f3-shot-gate">Visit all 12 shot types to continue</span>
+</div>
+</div>
+<div class="block b-heading"><h3>Camera Angles</h3></div>
+<div class="block b-tabs" id="tabs-f3-angle">
+<div class="tabs-nav">
+<button class="tab-btn t-active t-visited" data-ti="0">Eye-Level</button><button class="tab-btn" data-ti="1">High Angle</button><button class="tab-btn" data-ti="2">Low Angle</button><button class="tab-btn" data-ti="3">Bird's-Eye</button><button class="tab-btn" data-ti="4">Worm's-Eye</button><button class="tab-btn" data-ti="5">Dutch Angle</button>
+</div>
+<div class="tab-panel t-active" data-tp="0"><div class="tp-img"><img src="images/image52.jpg" alt="Eye-Level" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt" style="width:100%"><h4>Eye-Level Angle</h4><p>The camera is positioned at the <strong>subject's eye level</strong>. Creates a natural, neutral perspective making the viewer feel equal to the subject. The most common camera angle in everyday filmmaking — it neither elevates nor diminishes the subject.</p></div></div>
+<div class="tab-panel" data-tp="1"><div class="tp-img"><img src="images/image53.jpg" alt="High Angle" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt" style="width:100%"><h4>High Angle</h4><p>The camera <strong>looks down on the subject from above</strong>. Can make the subject appear smaller, weaker, vulnerable, or less important. Used to show a character in a powerless situation, depict a crowd scene, or establish the relative scale of a subject in their environment.</p></div></div>
+<div class="tab-panel" data-tp="2"><div class="tp-img"><img src="images/image54.jpg" alt="Low Angle" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt" style="width:100%"><h4>Low Angle</h4><p>The camera <strong>looks up at the subject from below</strong>. Can make the subject appear larger, stronger, more powerful, or intimidating. Used to convey authority, dominance, or heroism. Superhero films frequently use low angles when showing protagonists in action.</p></div></div>
+<div class="tab-panel" data-tp="3"><div class="tp-img"><img src="images/image55.jpg" alt="Bird's-Eye" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt" style="width:100%"><h4>Bird's-Eye View (Aerial Shot)</h4><p>The camera is positioned <strong>directly above the scene, looking straight down</strong>. Provides a unique, disorienting perspective and reveals spatial relationships. Often used in establishing shots, action sequences, or to create a sense of surveillance or omniscience.</p></div></div>
+<div class="tab-panel" data-tp="4"><div class="tp-img"><img src="images/image56.jpg" alt="Worm's-Eye" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt" style="width:100%"><h4>Worm's-Eye View</h4><p>The camera is placed <strong>very low, near the ground, looking upward</strong>. Exaggerates height and creates a dramatic, often unsettling effect. Makes everything above the camera look towering and powerful — used in action, horror, or scenes requiring extreme visual drama.</p></div></div>
+<div class="tab-panel" data-tp="5"><div class="tp-img"><img src="images/image57.jpg" alt="Dutch Angle" onerror="handleImgErr(this,'tp-img',0)"></div><div class="tp-txt" style="width:100%"><h4>Dutch Angle (Tilted Angle)</h4><p>The camera is <strong>intentionally tilted sideways</strong>. Creates a sense of tension, imbalance, confusion, or unease. Also called the "canted angle" or "oblique angle," the Dutch Angle is a stylistic choice used in thrillers, horror films, and scenes depicting psychological instability.</p></div></div>
+<div class="tabs-footer">
+<div class="tabs-prog-wrap"><span class="tabs-prog-txt" id="tabs-f3-angle-txt">1 / 6 viewed</span><div class="tabs-prog-bar"><div class="tabs-prog-fill" id="tabs-f3-angle-fill" style="width:17%"></div></div></div>
+<span class="tabs-gate-note" id="tabs-f3-angle-gate">Visit all 6 camera angles to continue</span>
+</div>
+</div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-f3-note">⚠️ View all Shot Types and Camera Angle tabs to continue.</p>
+<button class="btn-cont" id="cont-f3" onclick="doContinue('cont-f3')" disabled>Continue to Lesson 4 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+
+<!-- FINAL LESSON 4 -->
+<div id="page-f4" class="page">
+<div class="l-hdr"><span class="l-tag">Final Term · Lesson 4</span><h2>Guitar Lessons for Beginners</h2></div>
+<div class="l-body">
+<div class="block b-heading"><h2>Guitar Lessons for Beginners</h2></div>
+<div class="block b-heading"><h3>Sir Kito's Interactive Guitar Chord Cheat Sheet</h3></div>
+<div class="block b-guitar" id="guitar-sheet">
+<div class="gs-hdr"><h4>🎸 Interactive Guitar Chord Cheat Sheet</h4><p>Selected Open Chords for Beginners — click a chord name to view its diagram and fingering guide</p></div>
+<div class="gs-selector">
+  <button class="chord-btn" data-chord="A">A</button>
+  <button class="chord-btn chord-active" data-chord="Am">Am</button>
+  <button class="chord-btn" data-chord="B">B</button>
+  <button class="chord-btn" data-chord="Bm">Bm</button>
+  <button class="chord-btn" data-chord="Bb">B-flat</button>
+  <button class="chord-btn" data-chord="C">C</button>
+  <button class="chord-btn" data-chord="C#m">C#m</button>
+  <button class="chord-btn" data-chord="D">D</button>
+  <button class="chord-btn" data-chord="Dm">Dm</button>
+  <button class="chord-btn" data-chord="E">E</button>
+  <button class="chord-btn" data-chord="Em">Em</button>
+  <button class="chord-btn" data-chord="F">F</button>
+  <button class="chord-btn" data-chord="F#m">F#m</button>
+</div>
+<div class="gs-display" id="gs-display"></div>
+</div>
+<div class="block b-heading"><h3>Strumming Patterns</h3></div>
+<div class="block b-text">
+<p><strong>D</strong> = Downstroke &nbsp;&nbsp;|&nbsp;&nbsp; <strong>U</strong> = Upstroke</p>
+<p style="margin-top:14px"><strong>Whole Note</strong> (4 beats): <span style="font-family:monospace">D (sustained to 4 beats)</span></p>
+<p><strong>Half Note</strong> (2 beats): <span style="font-family:monospace">D – D (each sustained to 2 beats)</span></p>
+<p><strong>Quarter Note</strong> (1 beat): <span style="font-family:monospace">D – D – D – D</span></p>
+<p><strong>Eighth Note</strong> (½ beat): <span style="font-family:monospace">DU – DU – DU – DU</span></p>
+<p><strong>Sixteenth Note</strong> (¼ beat): <span style="font-family:monospace">DUDU – DUDU – DUDU – DUDU</span></p>
+<p style="margin-top:12px;color:var(--muted);font-style:italic">Same principles apply to rests — pauses in which you don't make a sound.</p>
+</div>
+<div class="block b-kc" id="kc-f4">
+<div class="kc-badge-row"><span class="kc-badge">Knowledge Check</span></div>
+<p class="kc-q">Which pattern most likely contains a <strong>half note</strong>?</p>
+<div class="kc-opts" id="kc-f4-opts">
+<div class="kc-opt" data-ki="0"><div class="kc-opt-marker">A</div><div class="kc-opt-body"><div class="kc-opt-txt" style="font-family:monospace;font-size:15px">D – D – D – D</div><div class="kc-resp-inline resp-err">❌ Incorrect. This pattern has four quarter notes — each lasts 1 beat. No half note here. Try again!</div></div></div>
+<div class="kc-opt" data-ki="1"><div class="kc-opt-marker">B</div><div class="kc-opt-body"><div class="kc-opt-txt" style="font-family:monospace;font-size:15px">D (sustained to 4 beats)</div><div class="kc-resp-inline resp-err">❌ Incorrect. This is a <strong>whole note</strong> — it lasts 4 full beats. Try again!</div></div></div>
+<div class="kc-opt" data-ki="2"><div class="kc-opt-marker">C</div><div class="kc-opt-body"><div class="kc-opt-txt" style="font-family:monospace;font-size:15px">D – DU – DU – D</div><div class="kc-resp-inline resp-err">❌ Incorrect. This pattern does not contain a half note. Try again!</div></div></div>
+<div class="kc-opt" data-ki="3"><div class="kc-opt-marker">D</div><div class="kc-opt-body"><div class="kc-opt-txt" style="font-family:monospace;font-size:15px">D – DUDU – D – D</div><div class="kc-resp-inline resp-err">❌ Incorrect. This pattern does not contain a half note. Try again!</div></div></div>
+<div class="kc-opt" data-ki="4"><div class="kc-opt-marker">E</div><div class="kc-opt-body"><div class="kc-opt-txt" style="font-family:monospace;font-size:15px">D – D – DUDU – D</div><div class="kc-resp-inline resp-err">❌ Incorrect. This pattern does not contain a half note. Try again!</div></div></div>
+<div class="kc-opt" data-ki="5"><div class="kc-opt-marker">F</div><div class="kc-opt-body"><div class="kc-opt-txt" style="font-family:monospace;font-size:15px">DUDU – DUDU – D</div><div class="kc-resp-inline resp-ok">✅ Correct! The last note in this pattern is a half note. DUDU (2 beats) + DUDU (2 beats) + D (2 beats) — that final "D" lasts 2 beats, making it a half note that completes the measure.</div></div></div>
+</div>
+</div>
+<div class="block b-heading"><h3>Final Term Project: Guitar Performance Video</h3></div>
+<div class="block b-text"><p>Instructions for the Final Term Project will be personally given by your instructor to allow room for questions and concerns. Please attend the designated class session where Sir Kito will walk you through the requirements, rubric, and submission details.</p></div>
+<div class="block b-continue">
+<p class="cont-note" id="cont-f4-note">⚠️ Answer the knowledge check above to complete this module.</p>
+<button class="btn-cont" id="cont-f4" onclick="doContinue('cont-f4')" disabled>Complete Final Term Module 🎉 <span class="cont-arrow">→</span></button>
+</div>
+</div>
+</div>
+
+<!-- FINAL COMPLETE -->
+<div id="page-fc" class="page">
+<div class="congrats-wrap">
+<div class="congrats-icon">🏆</div>
+<h2>Final Term Module Complete!</h2>
+<div class="confetti-row">🎸 ✨ 📸 🎬 ✨ 🎸</div>
+<p>Congratulations! You've successfully completed the <strong>Final Term Learning Module</strong> for AAP101. You've mastered the Principles of Design, the fundamentals of Photography and Videography, and explored Guitar Basics. Good luck with your Guitar Performance Video project!</p>
+<button class="btn-home" onclick="navigateTo('terminal')">⌂ &nbsp;Back to Home</button>
+</div>
+</div>
+
+  </div><!-- /wrap -->
+</div><!-- /main -->
+<script>
+'use strict';
+const AP_VALS=[1.4,2,2.8,4,5.6,8,11,16,22];
+const SS_VALS=[1/4000,1/2000,1/1000,1/500,1/250,1/125,1/60,1/30,1/15,1/8,1/4,1/2,1];
+const SS_LBL=['1/4000','1/2000','1/1000','1/500','1/250','1/125','1/60','1/30','1/15','1/8','1/4','1/2','1'];
+const ISO_VALS=[100,200,400,800,1600,3200,6400];
+const CHORDS={
+A:{name:'A Major',type:'Open Major',strings:['x','o',null,null,null,'o'],fingers:[[2,2,1],[3,2,2],[4,2,3]],barre:null,desc:'A bright open chord. Use three fingers on the D, G, and B strings.',fing:['Index (1): D string, 2nd fret','Middle (2): G string, 2nd fret','Ring (3): B string, 2nd fret']},
+Am:{name:'A Minor',type:'Open Minor',strings:['x','o',null,null,null,'o'],fingers:[[2,2,2],[3,2,3],[4,1,1]],barre:null,desc:'A minor variant of A. Mute the low E string.',fing:['Index (1): B string, 1st fret','Middle (2): D string, 2nd fret','Ring (3): G string, 2nd fret']},
+B:{name:'B Major',type:'Barre Major',strings:['x',null,null,null,null,null],fingers:[[2,4,3],[3,4,4],[4,4,2]],barre:{fret:2,fromStr:1,toStr:5},desc:'B major (A-shape barre): x24442. Index bars at 2nd fret.',fing:['Index (1): Barre at 2nd fret (A->high e)','Middle (2): B string, 4th fret','Ring (3): D string, 4th fret','Pinky (4): G string, 4th fret']},
+Bm:{name:'B Minor',type:'Barre Minor',strings:['x',null,null,null,null,null],fingers:[[2,4,4],[3,4,3],[4,3,2]],barre:{fret:2,fromStr:1,toStr:5},desc:'B minor (xm shape) commonly played as a barre at 2nd fret (x24432).',fing:['Index (1): Barre at 2nd fret','Middle (2): B string, 3rd fret','Ring (3): D string, 4th fret','Pinky (4): G string, 4th fret']},
+Bb:{name:'Bb Major',type:'Barre Major',strings:['x',null,null,null,null,null],fingers:[[2,3,2],[3,3,3],[4,3,4]],barre:{fret:1,fromStr:1,toStr:5},desc:'Bb major often played as a small barre at 1st fret (x13331).',fing:['Index (1): Barre at 1st fret','Middle (2): D string, 3rd fret','Ring (3): G string, 3rd fret','Pinky (4): B string, 3rd fret']},
+C:{name:'C Major',type:'Open Major',strings:['x','o',null,'o',null,'o'],fingers:[[1,3,3],[2,2,2],[4,1,1]],barre:null,desc:'C major open chord. Mute the low E string.',fing:['Index (1): B string, 1st fret','Middle (2): D string, 2nd fret','Ring (3): A string, 3rd fret']},
+'C#m':{name:'C# Minor',type:'Barre Minor',strings:['x',null,null,null,null,null],fingers:[[2,6,3],[3,6,4],[4,5,2]],barre:{fret:4,fromStr:1,toStr:5},desc:'C# minor typically played as a barre at the 4th fret (x46654).',fing:['Index (1): Barre at 4th fret','Middle (2): B string, 5th fret','Ring (3): D string, 6th fret','Pinky (4): G string, 6th fret']},
+D:{name:'D Major',type:'Open Major',strings:['x','x','o',null,null,null],fingers:[[3,2,1],[4,3,3],[5,2,2]],barre:null,desc:'D major open chord. Only the top four strings are used.',fing:['Index (1): G string, 2nd fret','Middle (2): high e, 2nd fret','Ring (3): B string, 3rd fret']},
+Dm:{name:'D Minor',type:'Open Minor',strings:['x','x','o',null,null,'o'],fingers:[[3,2,2],[4,3,3],[5,1,1]],barre:null,desc:'D minor open chord.',fing:['Index (1): G string, 2nd fret','Middle (2): B string, 3rd fret','Ring (3): high e, 1st fret']},
+E:{name:'E Major',type:'Open Major',strings:['o',null,null,null,'o','o'],fingers:[[1,2,2],[2,2,3],[3,1,1]],barre:null,desc:'E major open chord. All six strings ring.',fing:['Index (1): G string, 1st fret','Middle (2): A string, 2nd fret','Ring (3): D string, 2nd fret']},
+Em:{name:'E Minor',type:'Open Minor',strings:['o',null,null,'o','o','o'],fingers:[[1,2,2],[2,2,3]],barre:null,desc:'E minor open chord (two fingers).',fing:['Middle (2): A string, 2nd fret','Ring (3): D string, 2nd fret']},
+F:{name:'F Major',type:'Barre Major',strings:[null,null,null,null,null,null],fingers:[[1,3,3],[2,3,4],[3,2,2]],barre:{fret:1,fromStr:0,toStr:5},desc:'F major full barre at 1st fret (133211).',fing:['Index (1): Full barre at 1st fret','Middle (2): G string, 2nd fret','Ring (3): D string, 3rd fret','Pinky (4): A string, 3rd fret']},
+'F#m':{name:'F# Minor',type:'Barre Minor',strings:[null,null,null,null,null,null],fingers:[[1,4,3],[2,4,4]],barre:{fret:2,fromStr:0,toStr:5},desc:'F# minor full barre at 2nd fret (244222).',fing:['Index (1): Full barre at 2nd fret','Ring (3): A string, 4th fret','Pinky (4): D string, 4th fret']}
+};
+const BC={terminal:['AAP101','Art Appreciation'],m1:['Midterm Module','Lesson 1: About the Instructor'],m2:['Midterm Module','Lesson 2: Introduction to Art'],m3:['Midterm Module','Lesson 3: Functions of Art'],m4:['Midterm Module','Lesson 4: Artists & Artisans'],m5:['Midterm Module','Lesson 5: Art Movements'],m6:['Midterm Module','Lesson 6: Visual Elements + Project'],mc:['Midterm Module','Complete! 🎉'],f1:['Final Term Module','Lesson 1: Principles of Design'],f2:['Final Term Module','Lesson 2: Basic Photography'],f3:['Final Term Module','Lesson 3: Basic Videography'],f4:['Final Term Module','Lesson 4: Guitar Lessons'],fc:['Final Term Module','Complete! 🏆']};
+const S={page:'terminal',hist:[],inited:new Set(),gates:{},unlocked:{m:new Set([1]),f:new Set([1])}};
+const GREQS={'cont-m1':['m1-gal'],'cont-m2-mid':['m2-dnd'],'cont-m2-end':['m2-tabs','m2-kc'],'cont-m3':['m3-tabs'],'cont-m4':['m4-dnd'],'cont-m5':['m5-flip','m5-kc'],'cont-m6':['m6-car'],'cont-f1':['f1-car'],'cont-f2':['f2-tabs','f2-sim'],'cont-f3':['f3-shot','f3-angle'],'cont-f4':['f4-kc']};
+const CACT={'cont-m1':()=>{navigateTo('m2');unlockL('m',2)},'cont-m2-mid':()=>revealSec('m2-sec-b'),'cont-m2-end':()=>{navigateTo('m3');unlockL('m',3)},'cont-m3':()=>{navigateTo('m4');unlockL('m',4)},'cont-m4':()=>{navigateTo('m5');unlockL('m',5)},'cont-m5':()=>{navigateTo('m6');unlockL('m',6)},'cont-m6':()=>navigateTo('mc'),'cont-f1':()=>{navigateTo('f2');unlockL('f',2)},'cont-f2':()=>{navigateTo('f3');unlockL('f',3)},'cont-f3':()=>{navigateTo('f4');unlockL('f',4)},'cont-f4':()=>navigateTo('fc')};
+
+function navigateTo(pid){if(pid===S.page){closeSidebar();return;}S.hist.push(S.page);showPage(pid);S.page=pid;updateBackBtn();updateSidebar(pid);updateBC(pid);closeSidebar();}
+function goBack(){if(!S.hist.length)return;const p=S.hist.pop();showPage(p);S.page=p;updateBackBtn();updateSidebar(p);updateBC(p);}
+function showPage(pid){
+  // pause any playing videos on page switch
+  document.querySelectorAll('video').forEach(v=>{try{v.pause();}catch(e){}});
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const t=document.getElementById('page-'+pid);
+  if(!t) return;
+  t.classList.add('active');
+  document.getElementById('wrap').scrollTop=0;
+  if(!S.inited.has(pid)){initPage(pid);S.inited.add(pid);}
+  // resume terminal video when opening terminal
+  if(pid==='terminal'){const tv=document.getElementById('terminal-video');if(tv){try{tv.play();}catch(e){}}}
+}
+function navToLesson(el){const pid=el.dataset.page,mod=el.dataset.mod,num=parseInt(el.dataset.num);if(!S.unlocked[mod].has(num))return;navigateTo(pid);}
+function doContinue(cid){if(!canCont(cid))return;if(CACT[cid])CACT[cid]();}
+function canCont(cid){return(GREQS[cid]||[]).every(g=>S.gates[g]);}
+
+function passGate(gid){S.gates[gid]=true;Object.keys(GREQS).forEach(cid=>{if(GREQS[cid].includes(gid))updCont(cid);});}
+function updCont(cid){const btn=document.getElementById(cid);if(!btn)return;const ok=canCont(cid);btn.disabled=!ok;if(ok){btn.classList.add('pop-in');const n=document.getElementById(cid+'-note');if(n)n.style.display='none';setTimeout(()=>btn.classList.remove('pop-in'),400);}}
+function revealSec(sid){const s=document.getElementById(sid);if(!s)return;s.classList.add('revealed');setTimeout(()=>{const top=s.getBoundingClientRect().top+document.getElementById('wrap').scrollTop-20;document.getElementById('wrap').scrollTo({top,behavior:'smooth'});},50);}
+
+function updateSidebar(pid){document.querySelectorAll('.nav-item').forEach(el=>{el.classList.remove('nav-active');const mod=el.dataset.mod,num=parseInt(el.dataset.num),epid=el.dataset.page;const lk=el.querySelector('.nav-lock');const ok=S.unlocked[mod]?.has(num);el.classList.toggle('nav-locked',!ok);if(lk)lk.style.display=ok?'none':'';if(epid===pid)el.classList.add('nav-active');});}
+function unlockL(mod,num){S.unlocked[mod].add(num);updateSidebar(S.page);}
+function updateBackBtn(){const b=document.getElementById('back-btn');(S.hist.length>0&&S.page!=='terminal')?b.classList.add('vis'):b.classList.remove('vis');}
+function updateBC(pid){const bc=BC[pid]||['AAP101','Art Appreciation'];document.querySelector('.tb-bc-mod').textContent=bc[0];document.getElementById('bc-les').textContent=bc[1];}
+function toggleSidebar(){const s=document.getElementById('sidebar'),o=document.getElementById('sb-overlay');s.classList.toggle('sb-open');o.classList.toggle('on');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('sb-open');document.getElementById('sb-overlay').classList.remove('on');}
+
+function handleImgErr(img,cls,h){const src=img.getAttribute('src')||'',fname=src.split('/').pop()||src;const ph=document.createElement('div');ph.className='img-ph';if(h)ph.style.height=h+'px';ph.innerHTML=`<div class="iph-inner"><div class="iph-icon">🖼</div><div class="iph-name">${fname}</div></div>`;img.parentNode.insertBefore(ph,img);img.remove();}
+
+const galV={};
+function markGallery(gid,idx){if(!galV[gid])galV[gid]=new Set();galV[gid].add(idx);const g=document.getElementById('gallery-'+gid);if(!g)return;g.querySelectorAll('.gal-item')[idx]?.classList.add('viewed');if(galV[gid].size>=g.querySelectorAll('.gal-item').length){passGate(gid+'-gal');updCont('cont-'+gid);}}
+
+function setupDnD(dndId,ansMap,gateId,checkId,fbId){const cont=document.getElementById(dndId);if(!cont)return;let sel=null; // Mobile: tap to select, then tap target zone to place. Works on iOS/Android where HTML5 drag can be inconsistent.
+cont.querySelectorAll('.dnd-item').forEach(item=>{
+  item.setAttribute('draggable','true');
+  item.addEventListener('click',e=>{e.stopPropagation();if(sel===item){item.classList.remove('selected');sel=null;}else{sel?.classList.remove('selected');item.classList.add('selected');sel=item;}});
+  item.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){e.preventDefault();item.focus?.();}});
+  item.addEventListener('dragstart',e=>{e.dataTransfer.setData('iid',item.dataset.id);sel=item;setTimeout(()=>item.classList.add('dragging'),0);});
+  item.addEventListener('dragend',()=>item.classList.remove('dragging'));
+});
+cont.querySelectorAll('.dnd-drop-zone,.dnd-pool').forEach(zone=>{
+  zone.addEventListener('click',()=>{if(sel){zone.appendChild(sel);sel.classList.remove('selected');sel=null;}});
+  zone.addEventListener('touchstart',e=>{e.stopPropagation();});
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
+  zone.addEventListener('dragleave',e=>{if(!zone.contains(e.relatedTarget))zone.classList.remove('drag-over');});
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');const id=e.dataTransfer.getData('iid');const itm=cont.querySelector(`[data-id="${id}"]`);if(itm){zone.appendChild(itm);itm.classList.remove('dragging','selected');sel=null;}});
+});
+// Touch-friendly note: tap-to-select and tap-to-place support mobile browsers where HTML5 drag events are unreliable.
+
+document.getElementById(checkId)?.addEventListener('click',()=>{
+  const pool=cont.querySelector('.dnd-pool'),fb=document.getElementById(fbId);
+  if(pool.querySelectorAll('.dnd-item').length>0){showDndFb(fb,'err','⚠️ Place all items into a category first!');cont.classList.add('shake');setTimeout(()=>cont.classList.remove('shake'),500);return;}
+  let ok=true;
+  cont.querySelectorAll('.dnd-item').forEach(item=>{const placed=item.closest('.dnd-drop-zone')?.dataset.cat;item.classList.remove('dnd-ok','dnd-err');if(placed===ansMap[item.dataset.id])item.classList.add('dnd-ok');else{item.classList.add('dnd-err');ok=false;}});
+  if(ok){showDndFb(fb,'ok','✅ All items matched correctly! Great job!');document.getElementById(checkId).disabled=true;passGate(gateId);}
+  else{showDndFb(fb,'err','❌ Some items are in the wrong category. Check the highlighted ones!');setTimeout(()=>{cont.querySelectorAll('.dnd-item.dnd-err').forEach(i=>{i.classList.remove('dnd-err');cont.querySelector('.dnd-pool').appendChild(i);});fb.className='dnd-fb';fb.textContent='';},2400);}
+});}
+function showDndFb(el,t,m){el.className='dnd-fb '+t;el.textContent=m;}
+
+function setupTabs(tid,total,gateId,txtId,fillId){const cont=document.getElementById(tid);if(!cont)return;const visited=new Set([0]);const btns=cont.querySelectorAll('.tab-btn'),panels=cont.querySelectorAll('.tab-panel');
+function go(idx){btns.forEach(b=>b.classList.remove('t-active'));panels.forEach(p=>p.classList.remove('t-active'));btns[idx]?.classList.add('t-active');panels[idx]?.classList.add('t-active');
+if(!visited.has(idx)){visited.add(idx);btns[idx]?.classList.add('t-visited');const pct=Math.round(visited.size/total*100);const tx=document.getElementById(txtId),fl=document.getElementById(fillId);if(tx)tx.textContent=`${visited.size} / ${total} viewed`;if(fl)fl.style.width=pct+'%';
+if(visited.size>=total){passGate(gateId);const gn=cont.querySelector('.tabs-gate-note');if(gn){gn.style.color='var(--success)';gn.textContent='✓ All tabs viewed!';}}}
+}
+btns.forEach((b,i)=>b.addEventListener('click',()=>go(i)));
+if(total<=1)passGate(gateId);}
+
+function setupFlip(cid,total,gateId,cntId){const cont=document.getElementById(cid);if(!cont)return;const flipped=new Set();cont.querySelectorAll('.flip-card').forEach((card,idx)=>{card.addEventListener('click',()=>{card.classList.toggle('flipped');if(!flipped.has(idx)){flipped.add(idx);card.classList.add('seen');const ce=document.getElementById(cntId);if(ce)ce.textContent=flipped.size;if(flipped.size>=total)passGate(gateId);}});});}
+
+function setupCarousel(cid,total,gateId,prevId,nextId,ctrId,dotsId,fillId){let cur=0;const viewed=new Set([0]);const slides=document.querySelectorAll(`#${cid} .car-slide`);const prev=document.getElementById(prevId),next=document.getElementById(nextId),ctr=document.getElementById(ctrId),dotsEl=document.getElementById(dotsId),fill=document.getElementById(fillId);if(!slides.length)return;
+function go(idx){slides[cur]?.classList.remove('car-active');dotsEl?.querySelectorAll('.car-dot')[cur]?.classList.remove('car-dot-active');cur=idx;slides[cur]?.classList.add('car-active');const dot=dotsEl?.querySelectorAll('.car-dot')[cur];dot?.classList.add('car-dot-active');if(!viewed.has(cur)){viewed.add(cur);dot?.classList.add('car-dot-visited');const pct=Math.round(viewed.size/total*100);if(fill)fill.style.width=pct+'%';if(viewed.size>=total)passGate(gateId);}if(ctr)ctr.textContent=`${cur+1} / ${total}`;if(prev)prev.disabled=cur===0;if(next)next.disabled=cur===total-1;}
+prev?.addEventListener('click',()=>{if(cur>0)go(cur-1);});next?.addEventListener('click',()=>{if(cur<total-1)go(cur+1);});dotsEl?.querySelectorAll('.car-dot').forEach((d,i)=>d.addEventListener('click',()=>go(i)));go(0);}
+
+function setupSingleKC(kcId,correctIdx,gateId){const opts=document.querySelectorAll(`#${kcId} .kc-opt`);const resps=document.querySelectorAll(`#${kcId} .kc-resp-inline`);opts.forEach((opt,idx)=>{opt.addEventListener('click',()=>{if(S.gates[gateId])return;opts.forEach(o=>o.classList.remove('kc-sel','kc-ok','kc-err'));resps.forEach(r=>r.classList.remove('show'));opt.classList.add('kc-sel');resps[idx]?.classList.add('show');if(idx===correctIdx){opt.classList.add('kc-ok');const mk=opt.querySelector('.kc-opt-marker');if(mk)mk.textContent='✓';passGate(gateId);}else{opt.classList.add('kc-err');opt.classList.add('shake');setTimeout(()=>opt.classList.remove('shake'),500);}});});}
+
+function setupMultiKC(kcId,correctIdxs,gateId,checkId,fbId){const cont=document.getElementById(kcId);const opts=cont.querySelectorAll('.kc-opt');const btn=document.getElementById(checkId),fbEl=document.getElementById(fbId);const sel=new Set();opts.forEach((opt,idx)=>{opt.addEventListener('click',()=>{if(S.gates[gateId])return;if(sel.has(idx)){sel.delete(idx);opt.classList.remove('kc-sel');}else{sel.add(idx);opt.classList.add('kc-sel');}});});
+btn?.addEventListener('click',()=>{if(S.gates[gateId])return;if(sel.size===0){if(fbEl){fbEl.className='kc-multi-fb show';fbEl.style.color='var(--warn)';fbEl.textContent='⚠️ Please select at least one option.';}return;}
+const resps=cont.querySelectorAll('.kc-resp-inline');opts.forEach(o=>o.classList.remove('kc-ok','kc-err'));resps.forEach(r=>r.classList.remove('show'));let allOk=true,allFound=correctIdxs.every(i=>sel.has(i));
+sel.forEach(idx=>{const ok=correctIdxs.includes(idx);opts[idx]?.classList.add(ok?'kc-ok':'kc-err');resps[idx]?.classList.add('show');if(!ok)allOk=false;});
+if(allOk&&allFound&&sel.size===correctIdxs.length){passGate(gateId);if(btn)btn.disabled=true;if(fbEl){fbEl.className='kc-multi-fb show';fbEl.style.color='var(--success)';fbEl.textContent='✅ Both correct answers identified! You may continue.';}}
+else{let msg='❌ ';if(!allOk)msg+='Some selected statements are TRUE. ';if(!allFound)msg+='You may have missed a FALSE statement. ';msg+='Review and try again.';if(fbEl){fbEl.className='kc-multi-fb show';fbEl.style.color='var(--error)';fbEl.textContent=msg;}setTimeout(()=>{opts.forEach(o=>o.classList.remove('kc-err'));resps.forEach(r=>r.classList.remove('show'));},3000);}});}
+
+function setupProcessTabs(pid){const proc=document.querySelector('#page-'+pid+' .b-process');if(!proc)return;const btns=proc.querySelectorAll('.proc-nav-btn'),panels=proc.querySelectorAll('.proc-panel');btns.forEach((b,i)=>b.addEventListener('click',()=>{btns.forEach(x=>x.classList.remove('pn-active'));panels.forEach(x=>x.classList.remove('pp-active'));b.classList.add('pn-active');panels[i]?.classList.add('pp-active');}));}
+
+function initExposureSim(){
+  const apEl=document.getElementById('es-aperture'),ssEl=document.getElementById('es-shutter'),isoEl=document.getElementById('es-iso');
+  if(!apEl) return;
+  const LIGHT_LABEL='8pm';
+  const IDEAL_EV=8;
+  const BASE_LIGHT=0.38;
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function upd(){
+    const ai=parseInt(apEl.value),si=parseInt(ssEl.value),ii=parseInt(isoEl.value);
+    const ap=AP_VALS[ai],ss=SS_VALS[si],iso=ISO_VALS[ii];
+    document.getElementById('es-light-label').textContent=LIGHT_LABEL;
+    document.getElementById('es-ap-val').textContent='f/'+ap;
+    document.getElementById('es-ss-val').textContent=SS_LBL[si]+'s';
+    document.getElementById('es-iso-val').textContent='ISO '+iso;
+    document.getElementById('ep-cam-label').textContent=`f/${ap} · ${SS_LBL[si]}s · ISO ${iso}`;
+    const ev=Math.log2(ap*ap/ss)-Math.log2(iso/100);
+    const dev=ev-IDEAL_EV;
+
+    const exposureFactor = Math.pow(2, dev) * BASE_LIGHT;
+    const brightness = clamp(0.15,2.4, exposureFactor);
+    const sat = clamp(0.5,1.2, 0.9 + dev*0.04);
+
+    const sky=document.querySelector('.ep-sky');
+    const ground=document.querySelector('.ep-ground');
+    const fg=document.querySelector('.ep-train');
+    const fgBody=fg?.querySelector('.ep-train-body');
+    const bgEls=document.querySelectorAll('.ep-buildings,.ep-tree,.ep-ground,.ep-sky');
+    if(sky) sky.style.filter=`brightness(${clamp(brightness*0.9,0.12,1.2)}) saturate(${sat})`;
+    if(ground) ground.style.filter=`brightness(${clamp(brightness*0.75,0.08,1.1)}) saturate(${clamp(0.55,1.1,0.92 + dev*0.02)})`;
+
+    const minAp=1.4, maxAp=22;
+    const focusRatio=(Math.log(ap)-Math.log(minAp))/(Math.log(maxAp)-Math.log(minAp));
+    const bgBlur=clamp(0,12,(1-focusRatio)*12);
+    const fgBlur=clamp(0,10,focusRatio*10);
+    bgEls.forEach(e=>{ e.style.filter=`blur(${bgBlur}px)`; });
+    if(fgBody) fgBody.style.filter = `blur(${fgBlur}px)`;
+
+    const slowIndex = Math.max(0, si - 5);
+    const motionBlur = clamp(0,14, slowIndex * 2.4);
+    const motionPx = clamp(0,24, slowIndex * 2.8);
+    const motionLabel = si<=5 ? 'Frozen' : (si<=8 ? 'Soft blur' : 'Motion blur');
+    if(fg){
+      fg.style.transform = `translateX(${motionPx}px)`;
+      if(fgBody) fgBody.style.filter = `blur(${clamp(0,12,fgBlur + motionBlur)}px)`;
+      fg.style.opacity = clamp(0.65,1, 0.7 + (1 - motionBlur/14) * 0.25);
+      fg.style.boxShadow = motionBlur ? `-10px 0 24px rgba(243,243,243,${clamp(0.1,0.45,motionBlur/14)})` : 'none';
+      if(!fg.querySelector('.ep-motion-trail')){const trail=document.createElement('span');trail.className='ep-motion-trail';fg.appendChild(trail);}
+    }
+
+    const trailEl = fg?.querySelector('.ep-motion-trail');
+    if(trailEl){
+      trailEl.style.opacity = motionBlur ? clamp(0.14,0.55,motionBlur/14) : 0;
+      trailEl.style.transform = `translateX(${motionPx*0.8}px)`;
+      trailEl.style.filter = `blur(${motionBlur*0.9}px)`;
+    }
+
+    const grEl=document.getElementById('ep-grain'); if(grEl) grEl.style.opacity = clamp(0,0.95, (iso/1600) );
+    [apEl,ssEl,isoEl].forEach(sl=>{const p=(sl.value/sl.max)*100;sl.style.background=`linear-gradient(to right,var(--accent) ${p}%,rgba(0,44,57,.15) ${p}%)`;});
+
+    let fb='';
+    if(dev<-3) fb='<strong>Very Underexposed.</strong> The scene is too dark for night lighting.';
+    else if(dev<-1.5) fb='<strong>Underexposed.</strong> Open the aperture, slow down the shutter, or raise ISO slightly.';
+    else if(dev<-.5) fb='<strong>Slightly Underexposed.</strong> Small adjustment should improve brightness.';
+    else if(dev>3) fb='<strong>Very Overexposed.</strong> The scene is too bright for night lighting.';
+    else if(dev>1.5) fb='<strong>Overexposed.</strong> Reduce exposure with a smaller aperture, faster shutter, or lower ISO.';
+    else if(dev>.5) fb='<strong>Slightly Overexposed.</strong> Minor adjustment recommended.';
+    else fb='✅ <strong>Correct Exposure!</strong> These settings are suitable for the low-light 8pm scene.';
+    fb+=`<br><span style="font-size:11px;color:var(--muted);display:block;margin-top:6px">Lighting: <strong>${LIGHT_LABEL}</strong> · DoF: <strong>${ap<=2.8?'Foreground focus':'Background focus'}</strong> · Motion: <strong>${motionLabel}</strong> · Noise: <strong>${iso<=400?'Low grain':iso<=1600?'Moderate grain':'High grain'}</strong></span>`;
+    document.getElementById('es-fb').innerHTML=fb;
+    drawTri(ap,SS_LBL[si],iso);
+  }
+  apEl.addEventListener('input',upd);ssEl.addEventListener('input',upd);isoEl.addEventListener('input',upd);
+  upd();
+}
+
+
+function drawTri(ap,ssl,iso){const svg=document.getElementById('es-tri-svg');if(!svg)return;const W=300,H=220,cx=150,ty=22,bl=30,br=270,by=190;
+svg.innerHTML=`<defs><linearGradient id="tg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="rgba(0,193,142,.22)"/><stop offset="100%" stop-color="rgba(0,193,142,.07)"/></linearGradient></defs>
+<polygon points="${cx},${ty} ${bl},${by} ${br},${by}" fill="url(#tg)" stroke="rgba(0,193,142,.6)" stroke-width="2" stroke-linejoin="round"/>
+<line x1="${cx}" y1="${ty}" x2="${(bl+br)/2}" y2="${by}" stroke="rgba(0,193,142,.2)" stroke-width="1" stroke-dasharray="4,3"/>
+<circle cx="${cx}" cy="${ty}" r="24" fill="var(--accent)" opacity=".9"/>
+<text x="${cx}" y="${ty-1}" text-anchor="middle" dominant-baseline="middle" font-size="8.5" fill="var(--deep)" font-weight="700">APERTURE</text>
+<text x="${cx}" y="${ty+20}" text-anchor="middle" font-size="12" fill="var(--dark)" font-weight="800">f/${ap}</text>
+<circle cx="${bl}" cy="${by}" r="24" fill="var(--dark)" opacity=".92"/>
+<text x="${bl}" y="${by-1}" text-anchor="middle" dominant-baseline="middle" font-size="8" fill="var(--light)" font-weight="700">SHUTTER</text>
+<text x="${bl}" y="${by-20}" text-anchor="middle" font-size="10" fill="var(--accent)" font-weight="800">${ssl}s</text>
+<circle cx="${br}" cy="${by}" r="24" fill="var(--dark)" opacity=".92"/>
+<text x="${br}" y="${by-1}" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="var(--light)" font-weight="700">ISO</text>
+<text x="${br}" y="${by-20}" text-anchor="middle" font-size="10" fill="var(--accent)" font-weight="800">${iso}</text>
+<text x="${cx}" y="${(ty+by)/2-8}" text-anchor="middle" font-size="9" fill="var(--muted)" font-weight="600">EXPOSURE</text>
+<text x="${cx}" y="${(ty+by)/2+6}" text-anchor="middle" font-size="9" fill="var(--muted)" font-weight="600">TRIANGLE</text>`;}
+
+function initGuitar(){const sheet=document.getElementById('guitar-sheet');if(!sheet)return;sheet.querySelectorAll('.chord-btn').forEach(btn=>{btn.addEventListener('click',()=>{sheet.querySelectorAll('.chord-btn').forEach(b=>b.classList.remove('chord-active'));btn.classList.add('chord-active');renderChord(btn.dataset.chord);});});renderChord('Am');}
+function renderChord(name){const disp=document.getElementById('gs-display');if(!disp)return;const ch=CHORDS[name];if(!ch)return;const svg=buildChordSVG(ch);const fi=ch.fing.map(f=>{const m=f.match(/(\d)/);return`<li><span class="gs-fnum">${m?m[1]:'?'}</span><span>${f}</span></li>`;}).join('');const strNames=['E','A','D','G','B','e'];const strSummary=strNames.map((n,i)=>{const s=ch.strings[i];const fret=s===null?(ch.fingers.find(f=>f[0]===i)||[0,0])[1]:null;return`<strong>${n}:</strong> ${s==='o'?'open':s==='x'?'muted':fret?'fret '+fret:'—'}`;}).join(' · ');disp.innerHTML=`<div class="gs-diagram">${svg}</div><div class="gs-info"><h3>${ch.name}</h3><div class="gs-type">${ch.type}</div><p class="gs-desc">${ch.desc}</p><ul class="gs-fingers">${fi}</ul><p style="margin-top:14px;font-size:11px;color:var(--muted)">${strSummary}</p></div>`;}
+function buildChordSVG(ch){const W=160,H=195,strGap=22,fH=24,sX=20,nutY=42,nS=6,nF=5;const sx=i=>sX+i*strGap,fy=f=>nutY+f*fH;let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+for(let i=0;i<nS;i++)s+=`<line x1="${sx(i)}" y1="${nutY}" x2="${sx(i)}" y2="${fy(nF)}" stroke="#334155" stroke-width="${i===0||i===5?1.5:1}"/>`;
+for(let f=0;f<=nF;f++){const sw=f===0?4:1.2;s+=`<line x1="${sx(0)}" y1="${fy(f)}" x2="${sx(nS-1)}" y2="${fy(f)}" stroke="${f===0?'#002C39':'#94A3B8'}" stroke-width="${sw}"/>`;}
+['E','A','D','G','B','e'].forEach((n,i)=>s+=`<text x="${sx(i)}" y="${fy(nF)+14}" text-anchor="middle" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">${n}</text>`);
+ch.strings.forEach((v,i)=>{const x=sx(i),y=nutY-15;if(v==='x')s+=`<text x="${x}" y="${y+2}" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#EF4444" font-weight="900" font-family="Arial">✕</text>`;else if(v==='o')s+=`<circle cx="${x}" cy="${y}" r="6" fill="none" stroke="#002C39" stroke-width="1.8"/>`;});
+if(ch.barre){const b=ch.barre,y=fy(b.fret)-fH/2,x1=sx(b.fromStr),x2=sx(b.toStr);s+=`<rect x="${x1-9}" y="${y-7}" width="${x2-x1+18}" height="14" rx="7" fill="rgba(0,44,57,.88)"/>`;}
+ch.fingers.forEach(([si,fret,finger])=>{const x=sx(si),y=fy(fret)-fH/2;const barred=ch.barre&&fret===ch.barre.fret&&si>=ch.barre.fromStr&&si<=ch.barre.toStr;if(!barred){s+=`<circle cx="${x}" cy="${y}" r="10" fill="var(--accent)"/>`;s+=`<text x="${x}" y="${y+1}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="var(--deep)" font-weight="800" font-family="Inter,sans-serif">${finger}</text>`;}else{s+=`<text x="${x}" y="${y+1}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="white" font-weight="800">1</text>`;}});
+s+=`<text x="${W/2}" y="${H-3}" text-anchor="middle" font-size="14" fill="var(--deep)" font-weight="700" font-family="Playfair Display,serif">${ch.name||''}</text>`;s+='</svg>';return s;}
+
+function initPage(pid){switch(pid){case 'm1':updCont('cont-m1');break;case 'm2':setupDnD('dnd-m2',{sunset:'nature',banaue:'art','ai-img':'art',crush:'nature'},'m2-dnd','dnd-m2-check','dnd-m2-fb');setupTabs('tabs-m2',3,'m2-tabs','tabs-m2-txt','tabs-m2-fill');setupMultiKC('kc-m2',[3,4],'m2-kc','kc-m2-check','kc-m2-fb');updCont('cont-m2-mid');updCont('cont-m2-end');break;case 'm3':setupTabs('tabs-m3',9,'m3-tabs','tabs-m3-txt','tabs-m3-fill');updCont('cont-m3');break;case 'm4':setupDnD('dnd-m4',{potter:'artisan',painter:'artist',photographer:'artist',buntal:'artisan'},'m4-dnd','dnd-m4-check','dnd-m4-fb');updCont('cont-m4');break;case 'm5':setupFlip('flip-m5',8,'m5-flip','flip-m5-cnt');setupSingleKC('kc-m5',6,'m5-kc');updCont('cont-m5');break;case 'm6':setupCarousel('carousel-m6',7,'m6-car','car-m6-prev','car-m6-next','car-m6-ctr','car-m6-dots','cpf-m6');setupProcessTabs('m6');updCont('cont-m6');break;case 'f1':setupCarousel('carousel-f1',9,'f1-car','car-f1-prev','car-f1-next','car-f1-ctr','car-f1-dots','cpf-f1');updCont('cont-f1');break;case 'f2':setupTabs('tabs-f2',3,'f2-tabs','tabs-f2-txt','tabs-f2-fill');initExposureSim();updCont('cont-f2');break;case 'f3':setupTabs('tabs-f3-shot',12,'f3-shot','tabs-f3-shot-txt','tabs-f3-shot-fill');setupTabs('tabs-f3-angle',6,'f3-angle','tabs-f3-angle-txt','tabs-f3-angle-fill');updCont('cont-f3');break;case 'f4':setupSingleKC('kc-f4',5,'f4-kc');initGuitar();updCont('cont-f4');break;}}
+
+document.addEventListener('DOMContentLoaded',()=>{showPage('terminal');updateSidebar('terminal');updateBC('terminal');const nf1=document.getElementById('nav-f1');if(nf1)nf1.classList.remove('nav-locked');});
+</script>
+</body>
+</html>

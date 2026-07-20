@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AAP101 – Art Appreciation | Bulacan State University</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<!-- ═══════════ BOOT / LOADING VEIL ═══════════ -->
+<div id="boot">
+  <div class="boot-inner">
+    <div class="boot-mark">
+      <svg viewBox="0 0 100 100" width="72" height="72" aria-hidden="true">
+        <circle class="boot-ring" cx="50" cy="50" r="40" fill="none" stroke="rgba(0,193,142,.18)" stroke-width="4"/>
+        <circle class="boot-arc" cx="50" cy="50" r="40" fill="none" stroke="#00C18E" stroke-width="4"
+                stroke-linecap="round" stroke-dasharray="60 191"/>
+      </svg>
+      <span class="boot-emoji">🎨</span>
+    </div>
+    <div class="boot-title">Art Appreciation</div>
+    <div class="boot-sub">Preparing your studio…</div>
+  </div>
+</div>
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<div id="sb-overlay"></div>
+<aside id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-tag">Bulacan State University</div>
+    <h1>Art Appreciation</h1>
+    <div class="sb-ay">AAP101 · A.Y. 2026–2027 · 1st Semester</div>
+  </div>
+
+  <!-- Player card -->
+  <div class="sb-player" id="sb-player">
+    <div class="pl-avatar" id="pl-avatar">🎨</div>
+    <div class="pl-meta">
+      <div class="pl-rank" id="pl-rank">Apprentice</div>
+      <div class="pl-xpline"><span id="pl-xp">0</span> XP · Lv <span id="pl-lvl">1</span></div>
+      <div class="pl-bar"><div class="pl-bar-fill" id="pl-bar-fill"></div></div>
+    </div>
+  </div>
+
+  <nav class="sb-nav" id="sb-nav"><!-- built by app.js --></nav>
+
+  <div class="sb-footer">
+    <strong>Developer &amp; Instructor:</strong><br>Benedict C. de Jesus, LPT.
+    <span class="sb-copy">© Bulacan State University</span>
+  </div>
+</aside>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div id="main">
+  <header id="topbar">
+    <button id="hamb" aria-label="Menu">☰</button>
+    <div class="tb-breadcrumb">
+      <span class="tb-bc-mod" id="bc-mod">AAP101</span>
+      <span class="tb-bc-sep">›</span>
+      <span class="tb-bc-les" id="bc-les">Art Appreciation</span>
+    </div>
+    <div class="tb-hud">
+      <div class="hud-chip hud-streak" id="hud-streak" title="Answer streak">
+        <span class="hud-ico">🔥</span><span id="hud-streak-n">0</span>
+      </div>
+      <div class="hud-chip hud-xp" id="hud-xp" title="Experience points">
+        <span class="hud-ico">⚡</span><span id="hud-xp-n">0</span><span class="hud-unit">XP</span>
+      </div>
+      <div class="hud-chip hud-lvl" id="hud-lvl" title="Your level">
+        <span class="hud-lvl-n" id="hud-lvl-n">1</span>
+      </div>
+      <button class="hud-btn" id="btn-badges" title="Trophy case">🏅</button>
+      <button class="hud-btn" id="btn-sound" title="Toggle sound">🔊</button>
+    </div>
+  </header>
+
+  <div id="wrap">
+    <div id="pages"><!-- built by app.js --></div>
+  </div>
+</div>
+
+<button id="back-btn" title="Go back">←</button>
+
+<!-- ═══════════ OVERLAYS ═══════════ -->
+<canvas id="fx-canvas"></canvas>
+<div id="toasts"></div>
+
+<div id="modal-layer">
+  <div class="modal-back"></div>
+  <div class="modal-card" id="modal-card"></div>
+</div>
+
+<div id="levelup">
+  <div class="lu-inner">
+    <div class="lu-burst"></div>
+    <div class="lu-badge" id="lu-badge">2</div>
+    <div class="lu-kicker">Level Up!</div>
+    <div class="lu-rank" id="lu-rank">Sketcher</div>
+    <button class="lu-btn" id="lu-close">Keep Going →</button>
+  </div>
+</div>
+
+<script src="assets/content.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
