@@ -5,9 +5,49 @@ Instructor & developer: Benedict C. de Jesus, LPT. (Sir Kito)
 
 ---
 
+## Access control & the class database
+
+The module is gated: students need an access code issued from the
+**AAP101_Database** Google Sheet, and their activity streams back into it live.
+
+**→ Setting this up for the first time: read [`SETUP_GUIDE.md`](SETUP_GUIDE.md).**
+
+How it fits together:
+
+```
+GitHub Pages (this repo)  ──asks──▶  Google Apps Script  ──writes──▶  AAP101_Database
+   assets/auth.js                    google-apps-script/Code.gs        (6 tabs)
+```
+
+- The 600 access codes live **only** in the sheet — never in this repo, and
+  never in anything shipped to a browser.
+- Each code is claimed by the first device that uses it; sharing is refused and
+  logged. Release a lock from the sheet's **AAP101 Database** menu.
+- Sessions are signed (HMAC-SHA256) and stored in a first-party cookie, mirrored
+  to `localStorage` because Safari expires script-set cookies after 7 days.
+- Telemetry is queued in `localStorage` and flushed every ~20s, on important
+  events, and via `sendBeacon` when the tab closes. Students can work offline;
+  the queue drains when the connection returns.
+- Progress is namespaced per code (`aap101.progress.v2::AAP-XXXX-XXXX`) so a
+  shared phone never mixes two students' XP.
+
+`assets/auth.js` **wraps** the engine's existing functions rather than editing
+them — `passGate`, `Game.hit/miss/awardXP/giveBadge/levelUp`, and `showPage`.
+`app.js` itself has only two changes: a per-student save key and booting behind
+the login gate. Keep it that way: new tracking belongs in `auth.js`.
+
+> **The gate fails closed.** If `auth.js` fails to load, the module refuses to
+> start rather than opening unlocked. See the emergency override at the end of
+> `SETUP_GUIDE.md`.
+
+---
+
 ## Running it
 
 Open **`index.html`** in any modern browser. No build step, no install.
+
+> Without a configured `assets/config.js` the login screen will say the module
+> isn't connected to the database yet — that's expected, not a bug.
 
 > **Note:** open it through a local web server if you can (e.g. `npx http-server .`
 > then visit `http://127.0.0.1:8080`). Opening the raw `file://` path works in most
@@ -23,8 +63,14 @@ assets/
   styles.css          ← all styling and animation
   content.js          ← ALL learning content, badges, chords, levels
   app.js              ← game engine + block renderer + navigation
+  config.js           ← ⚙️ the one file you edit: the database URL
+  auth.js             ← access codes, sessions, live telemetry
+  auth.css            ← login screen styling
+google-apps-script/
+  Code.gs             ← the backend; paste into the Google Sheet's Apps Script
 images/               ← image1–57.jpg, video1.mp4 (unchanged)
 index.txt             ← the original single-file version, kept for reference
+SETUP_GUIDE.md        ← step-by-step setup walkthrough (start here)
 ```
 
 The module is **data-driven**: lessons live in `content.js` as arrays of blocks.
@@ -112,11 +158,17 @@ Verified with no horizontal overflow at 320px, 375px, 768px, and 1280px.
 
 ### Resetting a student's progress
 
-In the browser console:
+In the browser console (note the per-student suffix):
 
 ```js
-localStorage.removeItem('aap101.progress.v2'); location.reload();
+Object.keys(localStorage)
+  .filter(k => k.startsWith('aap101.progress'))
+  .forEach(k => localStorage.removeItem(k));
+location.reload();
 ```
+
+This clears the copy on that device only. The authoritative record stays in the
+**AccessCodes** tab of the spreadsheet.
 
 ---
 

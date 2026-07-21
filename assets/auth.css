@@ -1,0 +1,248 @@
+/* ══════════════════════════════════════════════════════════════
+   AAP101 · ACCESS GATE
+   Login screen, connection banner, signed-in chip.
+   Uses the module's existing palette variables so it feels native.
+   Kept in its own file so styles.css is never touched.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────── LOGIN OVERLAY ─────────────────────── */
+
+#aap-gate{
+  position:fixed; inset:0; z-index:100000;
+  display:flex; align-items:center; justify-content:center;
+  padding:24px 20px;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(0,193,142,.20), transparent 60%),
+    linear-gradient(160deg, #002C39 0%, #013D4C 55%, #015061 100%);
+  overflow-y:auto;
+  animation:ag-in .45s ease both;
+  /* keeps the card clear of iPhone notches and home indicators */
+  padding-top:max(24px, env(safe-area-inset-top));
+  padding-bottom:max(24px, env(safe-area-inset-bottom));
+}
+#aap-gate.gone{ animation:ag-out .4s ease both; pointer-events:none; }
+
+@keyframes ag-in { from{opacity:0} to{opacity:1} }
+@keyframes ag-out{ from{opacity:1} to{opacity:0; visibility:hidden} }
+
+.ag-card{
+  width:100%; max-width:420px;
+  background:rgba(255,247,247,.97);
+  border:1px solid rgba(0,193,142,.28);
+  border-radius:24px;
+  padding:34px 30px 24px;
+  box-shadow:0 24px 70px rgba(0,0,0,.42);
+  text-align:center;
+  animation:ag-rise .55s cubic-bezier(.22,1,.36,1) both .08s;
+}
+@keyframes ag-rise{ from{opacity:0; transform:translateY(22px) scale(.97)} to{opacity:1; transform:none} }
+
+.ag-crest{
+  width:64px; height:64px; margin:0 auto 14px;
+  display:grid; place-items:center;
+  font-size:31px; line-height:1;
+  border-radius:20px;
+  background:linear-gradient(145deg,#00C18E,#009e73);
+  box-shadow:0 8px 26px rgba(0,193,142,.42);
+}
+
+.ag-tag{
+  font:600 10.5px/1 'Inter',system-ui,sans-serif;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:#5B7F8A; margin-bottom:9px;
+}
+.ag-card h1{
+  font:700 27px/1.15 'Playfair Display',Georgia,serif;
+  color:#002C39; margin:0 0 5px;
+}
+.ag-sub{
+  font:500 11.5px/1.4 'Inter',system-ui,sans-serif;
+  color:#8FA9B2; margin-bottom:24px;
+}
+
+/* ── Form steps ── */
+.ag-step[hidden]{ display:none !important; }
+
+.ag-step label{
+  display:block; text-align:left;
+  font:600 13px/1.4 'Inter',system-ui,sans-serif;
+  color:#1C2B30; margin:0 0 8px;
+}
+.ag-step label + input{ margin-bottom:14px; }
+
+.ag-step input{
+  width:100%; box-sizing:border-box;
+  padding:14px 15px;
+  font:600 16px/1 'Inter',system-ui,sans-serif;  /* 16px stops iOS zooming on focus */
+  color:#002C39;
+  background:#fff;
+  border:1.5px solid rgba(0,44,57,.16);
+  border-radius:13px;
+  outline:none;
+  transition:border-color .18s, box-shadow .18s;
+}
+.ag-step input:focus{
+  border-color:#00C18E;
+  box-shadow:0 0 0 4px rgba(0,193,142,.16);
+}
+#ag-code{
+  font-family:'Space Grotesk','Roboto Mono',monospace;
+  letter-spacing:.09em; text-align:center; font-size:19px;
+}
+
+.ag-hint{
+  font:400 11.5px/1.5 'Inter',system-ui,sans-serif;
+  color:#5B7F8A; text-align:left;
+  margin:0 0 18px;
+}
+
+.ag-btn{
+  width:100%; padding:14px 18px;
+  min-height:48px;                 /* comfortable thumb target on phones */
+  font:700 15px/1 'Inter',system-ui,sans-serif;
+  color:#fff; letter-spacing:.01em;
+  background:linear-gradient(135deg,#00C18E,#009e73);
+  border:none; border-radius:13px;
+  cursor:pointer;
+  box-shadow:0 8px 22px rgba(0,193,142,.34);
+  transition:transform .15s, box-shadow .2s, filter .2s;
+}
+.ag-btn:hover{ filter:brightness(1.06); box-shadow:0 10px 28px rgba(0,193,142,.44); }
+.ag-btn:active{ transform:translateY(1px) scale(.99); }
+.ag-btn:disabled{
+  background:#94A3B8; box-shadow:none; cursor:not-allowed; filter:none;
+}
+
+.ag-link{
+  display:block; width:100%; margin-top:12px;
+  padding:9px; min-height:44px;
+  background:none; border:none;
+  font:500 12.5px/1 'Inter',system-ui,sans-serif;
+  color:#5B7F8A; cursor:pointer; border-radius:9px;
+}
+.ag-link:hover{ color:#002C39; background:rgba(0,44,57,.05); }
+
+/* ── Busy state ── */
+.ag-spinner{
+  width:34px; height:34px; margin:14px auto 16px;
+  border:3px solid rgba(0,193,142,.2);
+  border-top-color:#00C18E;
+  border-radius:50%;
+  animation:ag-spin .8s linear infinite;
+}
+@keyframes ag-spin{ to{ transform:rotate(360deg) } }
+.ag-busy-msg{
+  font:500 13.5px/1.4 'Inter',system-ui,sans-serif;
+  color:#5B7F8A; margin:0 0 12px;
+}
+
+/* ── Message / error ── */
+.ag-msg{
+  margin-top:16px; padding:12px 14px;
+  font:500 12.8px/1.55 'Inter',system-ui,sans-serif;
+  text-align:left; border-radius:11px;
+  background:rgba(239,68,68,.09);
+  border:1px solid rgba(239,68,68,.26);
+  color:#B91C1C;
+  animation:ag-shake .4s ease;
+}
+.ag-msg:not(.bad){
+  background:rgba(0,193,142,.1);
+  border-color:rgba(0,193,142,.3);
+  color:#047857;
+  animation:none;
+}
+.ag-msg[hidden]{ display:none !important; }
+@keyframes ag-shake{
+  0%,100%{ transform:translateX(0) }
+  25%{ transform:translateX(-5px) }
+  75%{ transform:translateX(5px) }
+}
+
+.ag-foot{
+  margin-top:22px; padding-top:15px;
+  border-top:1px solid rgba(0,44,57,.09);
+  font:400 10.5px/1.5 'Inter',system-ui,sans-serif;
+  color:#8FA9B2;
+}
+
+/* ── Phones ── */
+@media (max-width:480px){
+  #aap-gate{ padding-left:16px; padding-right:16px; align-items:flex-start; }
+  .ag-card{ padding:28px 22px 20px; border-radius:20px; }
+  .ag-card h1{ font-size:23px; }
+  .ag-crest{ width:56px; height:56px; font-size:27px; border-radius:17px; }
+  #ag-code{ font-size:17px; }
+}
+
+/* Respect students who have reduced-motion turned on. */
+@media (prefers-reduced-motion:reduce){
+  #aap-gate, .ag-card, .ag-msg{ animation:none !important; }
+  .ag-spinner{ animation-duration:1.6s; }
+}
+
+/* ─────────────────────── CONNECTION BANNER ─────────────────────── */
+
+#aap-net-banner{
+  position:fixed; left:50%; z-index:99000;
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  transform:translate(-50%, 130%);
+  max-width:min(440px, calc(100vw - 32px));
+  padding:11px 18px;
+  font:600 12.5px/1.45 'Inter',system-ui,sans-serif;
+  text-align:center;
+  color:#002C39;
+  background:rgba(255,247,247,.98);
+  border:1px solid rgba(0,44,57,.14);
+  border-radius:999px;
+  box-shadow:0 10px 32px rgba(0,44,57,.24);
+  opacity:0; pointer-events:none;
+  transition:transform .38s cubic-bezier(.22,1,.36,1), opacity .3s;
+}
+#aap-net-banner.on{ transform:translate(-50%,0); opacity:1; }
+#aap-net-banner.bad{
+  background:#B91C1C; color:#fff; border-color:transparent;
+}
+/* clear the mobile bottom nav */
+@media (max-width:768px){
+  #aap-net-banner{ bottom:calc(78px + env(safe-area-inset-bottom)); }
+}
+
+/* ─────────────────────── SIGNED-IN CHIP ─────────────────────── */
+
+.aap-whoami{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin-top:12px; padding-top:11px;
+  border-top:1px solid rgba(255,255,255,.14);
+  font:500 11px/1.4 'Inter',system-ui,sans-serif;
+}
+.aap-whoami .aw-name{
+  flex:1 1 auto; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  opacity:.78;
+}
+.aap-whoami .aw-out{
+  flex:0 0 auto;
+  padding:5px 11px;
+  font:600 10.5px/1 'Inter',system-ui,sans-serif;
+  color:inherit;
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:999px;
+  cursor:pointer;
+  transition:background .18s;
+}
+.aap-whoami .aw-out:hover{ background:rgba(255,255,255,.2); }
+
+/* Inside the mobile lesson sheet the background is light, so invert. */
+#sheet .aap-whoami{
+  margin:0 20px 10px; padding-top:10px;
+  border-top-color:rgba(0,44,57,.1);
+  color:#5B7F8A;
+}
+#sheet .aap-whoami .aw-out{
+  color:#002C39;
+  background:rgba(0,44,57,.06);
+  border-color:rgba(0,44,57,.14);
+}
+#sheet .aap-whoami .aw-out:hover{ background:rgba(0,44,57,.12); }

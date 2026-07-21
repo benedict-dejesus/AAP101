@@ -7,6 +7,16 @@
 /* ══════════════════════ STATE ══════════════════════ */
 const SAVE_KEY = 'aap101.progress.v2';
 
+/* Progress is stored per access code, so two students sharing one phone (or a
+   campus computer) never inherit each other's XP. Falls back to the original
+   key when the access layer is absent, which keeps the module standalone. */
+function saveKey(){
+  try{
+    if(window.AAPAuth && AAPAuth.student()) return SAVE_KEY + '::' + AAPAuth.codeKey();
+  }catch(e){}
+  return SAVE_KEY;
+}
+
 const S = {
   page:'terminal',
   hist:[],
@@ -27,7 +37,7 @@ const S = {
 
 function save(){
   try{
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
+    localStorage.setItem(saveKey(), JSON.stringify({
       gates:S.gates, unlocked:S.unlocked, xp:S.xp, badges:S.badges,
       bestStreak:S.bestStreak, correct:S.correct, attempts:S.attempts,
       quest:S.quest, sound:S.sound, lastPage:S.lastPage
@@ -37,7 +47,7 @@ function save(){
 
 function load(){
   try{
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(saveKey());
     if(!raw) return;
     const d = JSON.parse(raw);
     S.gates      = d.gates      || {};
@@ -2363,4 +2373,25 @@ function boot(){
   setTimeout(()=> $('#boot').classList.add('gone'), 620);
 }
 
-document.addEventListener('DOMContentLoaded', boot);
+/* The access layer (assets/auth.js) must clear a student before the module
+   builds itself. This fails CLOSED on purpose: if the access layer is missing
+   or broken, nobody gets in, because an unlocked module would hand the whole
+   course to anyone with the URL. */
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(!(window.AAPAuth && typeof AAPAuth.gate === 'function')){
+    console.error('[AAP101] assets/auth.js did not load — module locked.');
+    document.body.innerHTML =
+      '<div style="position:fixed;inset:0;display:flex;align-items:center;'
+    + 'justify-content:center;padding:28px;background:#002C39;color:#FFF7F7;'
+    + 'font:500 15px/1.6 Inter,system-ui,sans-serif;text-align:center">'
+    + '<div><div style="font-size:40px;margin-bottom:14px">🔒</div>'
+    + '<strong style="display:block;font-size:19px;margin-bottom:8px">Could not start</strong>'
+    + 'The sign-in system did not load. Please check your connection and refresh '
+    + 'this page.<br><br><span style="opacity:.6;font-size:13px">If it keeps happening, '
+    + 'contact your instructor.</span></div></div>';
+    return;
+  }
+  AAPAuth.gate().then(boot).catch(err=>{
+    console.error('[AAP101] gate failed:', err);
+  });
+});
