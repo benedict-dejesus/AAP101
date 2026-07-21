@@ -128,7 +128,7 @@ web address.
    ```
 
    Click **Copy**. **Keep this tab open** until Step 4 is done.
-
+https://script.google.com/macros/s/AKfycbz58d-JYZ6KFhGcXTeLbcd7tRbGF9O13fjQKtPeMaPxaPGH6FZSmI6vvkktuQYi7mNHMA/exec
 ---
 
 ## Step 4 — Tell the module where the doorman lives
