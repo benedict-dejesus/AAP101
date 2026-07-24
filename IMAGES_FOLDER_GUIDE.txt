@@ -29,28 +29,28 @@
 * image28.jpg - Balance (OK)
 * image29.jpg - Contrast (OK)
 * image30.jpg - Emphasis (OK)
-* image31.jpg - Movement
-* image32.jpg - Pattern
-* image33.jpg - Rhythm
-* image34.jpg - Unity
-* image35.jpg - Variety
-* image36.jpg - Proportion and Scale
+* image31.jpg - Movement (OK)
+* image32.jpg - Pattern (OK)
+* image33.jpg - Rhythm (OK)
+* image34.jpg - Unity (OK)
+* image35.jpg - Variety (OK)
+* image36.jpg - Proportion and Scale (OK)
 * image37.jpg - Aperture (OK)
 * image38.jpg - Shutter Speed (OK)
 * image39.jpg - ISO (OK)
 * image40.jpg - ELS (OK)
 * image41.jpg - LS (OK)
-* image42.jpg - Full Shot 
+* image42.jpg - Full Shot (OK)
 * image43.jpg - Medium (OK)
-* image44.jpg - MCU 
-* image45.jpg - Close-Up 
+* image44.jpg - MCU (OK)
+* image45.jpg - Close-Up (OK)
 * image46.jpg - ECU (OK)
-* image47.jpg - Two Shot 
+* image47.jpg - Two Shot (OK)
 * image48.jpg - OTS (OK)
 * image49.jpg - POV (OK)
-* image50.jpg - Insert 
-* image51.jpg - Cutaway 
-* image52.jpg - Eye-Level 
+* image50.jpg - Insert (OK)
+* image51.jpg - Cutaway (OK)
+* image52.jpg - Eye-Level (OK)
 * image53.jpg - High Angle (OK)
 * image54.jpg - Low Angle (OK)
 * image55.jpg - Bird's-Eye 
