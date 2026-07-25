@@ -37,11 +37,13 @@
   --sb-w:280px;
   --top-h:60px;
 
-  /* ── Shadows ── */
-  --sh:0 2px 14px rgba(0,44,57,.09);
-  --shm:0 6px 26px rgba(0,44,57,.13);
-  --shl:0 14px 44px rgba(0,44,57,.18);
-  --sh-glow:0 8px 30px rgba(0,193,142,.28);
+  /* ── Shadows (layered for high-end depth: crisp contact + soft ambient) ── */
+  --sh:0 1px 2px rgba(0,44,57,.06),0 4px 14px rgba(0,44,57,.08);
+  --shm:0 2px 6px rgba(0,44,57,.06),0 10px 30px rgba(0,44,57,.13);
+  --shl:0 4px 12px rgba(0,44,57,.10),0 24px 56px rgba(0,44,57,.20);
+  --sh-glow:0 3px 12px rgba(0,193,142,.22),0 12px 34px rgba(0,193,142,.30);
+  /* subtle top inner highlight for glassy surfaces */
+  --hair:inset 0 1px 0 rgba(255,255,255,.55);
 
   /* ── Radii ── */
   --r:16px;
@@ -52,6 +54,10 @@
   /* ── Motion ── */
   --t:.28s cubic-bezier(.4,0,.2,1);
   --spring:.5s cubic-bezier(.34,1.56,.64,1);
+  /* refined easing tokens for the polish layer */
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-emph:cubic-bezier(.16,1,.3,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
 
   /* ── Type ── */
   --fh:'Playfair Display',Georgia,serif;
@@ -1797,4 +1803,163 @@ body.no-scroll{overflow:hidden}
   #sidebar,#topbar,#back-btn,#toasts,#fx-canvas,#mobilenav,#sheet{display:none!important}
   #main{margin-left:0;padding-bottom:0;height:auto}
   body{overflow:visible;height:auto}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ✦ PREMIUM POLISH LAYER · 2026 refresh ✦
+   Purely cosmetic. No markup, class, id, or behaviour is changed —
+   this only refines depth, light, motion and micro-interaction on top
+   of the existing system. Every animated flourish is gated behind
+   prefers-reduced-motion:no-preference and every hover flourish behind
+   hover:hover so touch + accessibility experiences stay pristine.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Global finish: selection, scrollbars, smoother rendering ── */
+::selection{background:rgba(0,193,142,.24);color:var(--deep)}
+:focus-visible{outline-offset:3px}
+
+#wrap{scrollbar-width:thin;scrollbar-color:rgba(0,193,142,.4) transparent}
+#wrap::-webkit-scrollbar{width:11px;height:11px}
+#wrap::-webkit-scrollbar-track{background:transparent}
+#wrap::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,rgba(0,193,142,.5),rgba(1,80,97,.45));
+  border-radius:99px;border:3px solid var(--light);background-clip:padding-box;
+}
+#wrap::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,rgba(0,193,142,.75),rgba(1,80,97,.6));background-clip:padding-box}
+
+/* ── Boot veil: warmer, more cinematic entrance ── */
+.boot-title{background:linear-gradient(92deg,var(--light),#bff3e2 60%,var(--light));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+@media(prefers-reduced-motion:no-preference){
+  .boot-mark::after{
+    content:'';position:absolute;inset:-14px;border-radius:50%;z-index:-1;
+    background:radial-gradient(circle,rgba(0,193,142,.28),transparent 68%);
+    animation:bootHalo 1.6s ease-in-out infinite;
+  }
+  @keyframes bootHalo{0%,100%{opacity:.5;transform:scale(.9)}50%{opacity:1;transform:scale(1.12)}}
+}
+
+/* ── Topbar: crisper frosted glass with a hairline sheen ── */
+@supports((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  #topbar{
+    background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(255,255,255,.72));
+    -webkit-backdrop-filter:blur(20px) saturate(1.5);
+    backdrop-filter:blur(20px) saturate(1.5);
+    box-shadow:0 1px 0 rgba(255,255,255,.6),0 6px 20px rgba(0,44,57,.06);
+  }
+}
+
+/* ── HUD chips: glassy depth + lively press ── */
+.hud-chip{box-shadow:var(--hair);transition:transform var(--t),box-shadow var(--t),background var(--t),color var(--t)}
+.hud-lvl{box-shadow:0 3px 12px rgba(0,44,57,.28),inset 0 1px 0 rgba(255,255,255,.14)}
+@media(hover:hover){
+  .hud-chip:hover{transform:translateY(-1px)}
+  .hud-btn:hover{box-shadow:var(--sh-glow)}
+}
+.hud-btn:active{transform:scale(.9)}
+
+/* ── Sidebar: living ambient glow + refined active nav rail ── */
+@media(prefers-reduced-motion:no-preference){
+  #sidebar::before{animation:auroraDrift 16s ease-in-out infinite alternate}
+  @keyframes auroraDrift{to{transform:translate(34px,26px) scale(1.18)}}
+}
+.pl-avatar{box-shadow:0 4px 14px rgba(0,193,142,.34),inset 0 1px 0 rgba(255,255,255,.35)}
+.nav-item{overflow:hidden}
+.nav-item.nav-active::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:60%;border-radius:0 3px 3px 0;
+  background:linear-gradient(180deg,var(--accent),var(--accent-deep));
+  box-shadow:0 0 10px rgba(0,193,142,.6);
+}
+@media(hover:hover){.nav-item:not(.nav-locked):active{transform:translateX(2px) scale(.99)}}
+
+/* ── Ambient drift on dark decorative headers (subtle, premium) ── */
+@media(prefers-reduced-motion:no-preference) and (min-width:769px){
+  .l-hdr::before,.t-hero::before,.cg-wrap::before{animation:auroraDrift 20s ease-in-out infinite alternate}
+  .l-hdr::after,.t-hero::after{animation:auroraDrift2 26s ease-in-out infinite alternate}
+  @keyframes auroraDrift2{to{transform:translate(-28px,-20px) scale(1.2)}}
+}
+
+/* ── Cards: refined lift with border-glow + top highlight ── */
+.b-text,.b-act,.dash-card,.mod-card,.cmp-card,.tl-card,.b-video,
+.b-exp-sim,.b-guitar,.b-boss{transition:transform var(--spring),box-shadow var(--t),border-color var(--t)}
+.dash-card,.b-text{position:relative}
+.dash-card::after,.mod-card::after{
+  content:'';position:absolute;left:14px;right:14px;top:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent);opacity:.7;
+}
+@media(hover:hover){
+  .dash-card:hover{box-shadow:var(--shl);border-color:var(--border)}
+  .b-text:hover{box-shadow:var(--shm)}
+  .mod-card:hover{box-shadow:0 4px 12px rgba(0,44,57,.10),0 24px 56px rgba(0,44,57,.20),0 0 0 1px rgba(0,193,142,.25)}
+}
+
+/* ── Discovery / flip / match tiles: buttery cubic motion ── */
+.dg-tile,.mt-tile,.fd-card,.pol,.so-item,.qz-opt,.badge-card,.strum-pat,.chord-btn{
+  transition-timing-function:var(--ease-out)!important;
+}
+@media(hover:hover){
+  .dg-tile:hover .dg-ico{animation:tileIcoPop .5s var(--ease-spring)}
+  @keyframes tileIcoPop{0%{transform:scale(1)}55%{transform:scale(1.3) rotate(-8deg)}100%{transform:scale(1.18) rotate(-6deg)}}
+}
+
+/* ── Primary buttons: glass sheen sweep + confident press ── */
+.btn-cont,.btn-boss,.btn-home,.lu-btn,.dk-btn,.btn-check{
+  position:relative;overflow:hidden;isolation:isolate;
+}
+.btn-cont::after,.btn-boss::after,.btn-home::after,.lu-btn::after{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:1;
+  background:linear-gradient(115deg,transparent 32%,rgba(255,255,255,.45) 46%,transparent 60%);
+  transform:translateX(-140%);
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  .btn-cont:hover:not(:disabled)::after,.btn-boss:hover::after,
+  .btn-home:hover::after,.lu-btn:hover::after{
+    transform:translateX(140%);transition:transform .7s var(--ease-out);
+  }
+}
+.btn-cont:active:not(:disabled),.btn-boss:active,.btn-home:active,
+.lu-btn:active,.btn-check:active:not(:disabled),.dk-btn:active:not(:disabled){transform:translateY(1px) scale(.985)}
+
+/* mc-go arrow: gentle idle glow so the module cards feel alive */
+.mc-go{box-shadow:0 4px 14px rgba(0,193,142,.3),inset 0 1px 0 rgba(255,255,255,.3)}
+
+/* ── Quiz options: smoother, springier state changes ── */
+.qz-opt{transition:transform var(--t),border-color var(--t),background var(--t),box-shadow var(--t)}
+@media(hover:hover){.qz-opt:hover{box-shadow:0 4px 16px rgba(0,193,142,.14)}}
+
+/* ── Continue rail + progress fills: soft glow on the moving edge ── */
+.act-prog-fill,.mc-prog-fill,.pl-bar-fill{box-shadow:0 0 10px rgba(0,193,142,.45)}
+
+/* ── Toasts & modals: deeper, softer glass ── */
+.toast{box-shadow:0 8px 30px rgba(0,20,26,.4),inset 0 1px 0 rgba(255,255,255,.08)}
+.modal-card{box-shadow:0 30px 80px rgba(0,20,26,.5)}
+
+/* ── Staggered entrance: blocks cascade in for a curated reveal ── */
+@media(prefers-reduced-motion:no-preference){
+  .page.active .l-body>.block:nth-child(1){animation-delay:.02s}
+  .page.active .l-body>.block:nth-child(2){animation-delay:.08s}
+  .page.active .l-body>.block:nth-child(3){animation-delay:.14s}
+  .page.active .l-body>.block:nth-child(4){animation-delay:.2s}
+  .page.active .l-body>.block:nth-child(5){animation-delay:.26s}
+  .page.active .l-body>.block:nth-child(6){animation-delay:.32s}
+  .page.active .t-body>*{animation:blockIn .55s var(--ease-out) backwards}
+  .page.active .t-body>*:nth-child(1){animation-delay:.03s}
+  .page.active .t-body>*:nth-child(2){animation-delay:.1s}
+  .page.active .t-body>*:nth-child(3){animation-delay:.17s}
+  .page.active .t-body>*:nth-child(4){animation-delay:.24s}
+}
+
+/* ── Back FAB: subtle floating shadow ── */
+#back-btn{box-shadow:0 8px 24px rgba(0,20,26,.35),inset 0 1px 0 rgba(255,255,255,.08)}
+
+/* ── Level-up: golden aura behind the burst ── */
+@media(prefers-reduced-motion:no-preference){
+  .lu-badge{animation:luSpin .9s cubic-bezier(.34,1.4,.64,1),luBadgeGlow 2.4s ease-in-out .9s infinite}
+  @keyframes luBadgeGlow{0%,100%{box-shadow:0 14px 46px rgba(0,193,142,.5)}50%{box-shadow:0 14px 60px rgba(0,193,142,.75)}}
+}
+
+/* ── Mobile bottom nav: active pill indicator ── */
+@media(max-width:768px){
+  #mobilenav .mn-btn.on .mn-ico{transform:translateY(-1px) scale(1.08);transition:transform var(--spring)}
+  #mobilenav{box-shadow:0 -6px 26px rgba(0,20,26,.34),inset 0 1px 0 rgba(255,255,255,.06)}
 }

@@ -246,3 +246,66 @@
   border-color:rgba(0,44,57,.14);
 }
 #sheet .aap-whoami .aw-out:hover{ background:rgba(0,44,57,.12); }
+
+/* ══════════════════════════════════════════════════════════════
+   ✦ PREMIUM POLISH · ACCESS GATE ✦
+   Cosmetic-only refinements matching the module's 2026 refresh.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Animated aurora field behind the login card (motion-safe). */
+#aap-gate::before{
+  content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(680px 420px at 18% 12%, rgba(0,193,142,.22), transparent 60%),
+    radial-gradient(560px 380px at 88% 88%, rgba(1,80,97,.42), transparent 62%),
+    radial-gradient(460px 300px at 78% 6%, rgba(0,193,142,.12), transparent 60%);
+}
+@media (prefers-reduced-motion:no-preference){
+  #aap-gate::before{ animation:ag-aurora 24s ease-in-out infinite alternate; }
+  @keyframes ag-aurora{
+    0%  { transform:translate(0,0) scale(1); opacity:.9; }
+    100%{ transform:translate(-24px,20px) scale(1.12); opacity:1; }
+  }
+}
+/* Fine static grain to keep large gradients from banding. */
+#aap-gate::after{
+  content:''; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+}
+.ag-card{ position:relative; z-index:1; }
+
+/* Frosted-glass card with a crisp top hairline. */
+@supports((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .ag-card{
+    background:rgba(255,247,247,.9);
+    -webkit-backdrop-filter:blur(22px) saturate(1.4);
+    backdrop-filter:blur(22px) saturate(1.4);
+    box-shadow:0 24px 70px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.7);
+  }
+}
+
+/* Crest: soft breathing glow so the gate feels alive. */
+.ag-crest{ box-shadow:0 8px 26px rgba(0,193,142,.42), inset 0 1px 0 rgba(255,255,255,.4); }
+@media (prefers-reduced-motion:no-preference){
+  .ag-crest{ animation:ag-crest-glow 3.2s ease-in-out infinite; }
+  @keyframes ag-crest-glow{
+    0%,100%{ box-shadow:0 8px 26px rgba(0,193,142,.42), inset 0 1px 0 rgba(255,255,255,.4); }
+    50%    { box-shadow:0 12px 34px rgba(0,193,142,.6),  inset 0 1px 0 rgba(255,255,255,.4); }
+  }
+}
+
+/* Inputs: smoother focus ring with a hint of lift. */
+.ag-step input{ transition:border-color .2s var(--ease-out,ease), box-shadow .2s ease, transform .2s ease; }
+.ag-step input:focus{ transform:translateY(-1px); }
+
+/* Primary button: glass sheen sweep on hover. */
+.ag-btn{ position:relative; overflow:hidden; isolation:isolate; }
+.ag-btn::after{
+  content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:1;
+  background:linear-gradient(115deg,transparent 32%,rgba(255,255,255,.5) 46%,transparent 60%);
+  transform:translateX(-140%);
+}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){
+  .ag-btn:hover:not(:disabled)::after{ transform:translateX(140%); transition:transform .7s cubic-bezier(.22,1,.36,1); }
+}
