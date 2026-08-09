@@ -86,6 +86,7 @@ function route_(body) {
     case 'ping':     return { ok: true, service: 'AAP101', time: new Date().toISOString() };
     case 'check':    return apiCheck_(body);
     case 'login':    return apiLogin_(body);
+    case 'resume':   return apiResume_(body);
     case 'sync':     return apiSync_(body);
     default:         return { ok: false, error: 'UNKNOWN_ACTION' };
   }
@@ -212,6 +213,33 @@ function apiLogin_(b) {
   }
 }
 
+/* ─────────────────────────── API: RESUME ─────────────────────────── */
+/* Called once when a returning student's browser already has a saved session.
+   SECURITY: the old client trusted any saved session blindly, so anyone could
+   type a fake session into their browser and skip the access code. This checks
+   the saved session against the server — the token signature, the code's
+   status, and the device binding — so a forged or disabled session is refused
+   and the student is sent back to the login screen. */
+
+function apiResume_(b) {
+  var code = normCode_(b.code);
+  var dev  = String(b.deviceId || '');
+  if (!verifyToken_(b.token, code, dev)) {
+    return { ok: false, error: 'BAD_TOKEN', message: 'Please log in again.' };
+  }
+  var row = findCodeRow_(code);
+  if (!row) return { ok: false, error: 'NOT_FOUND', message: 'Please log in again.' };
+
+  var rec = sheet_(SH_CODES).getRange(row, 1, 1, CODES_HEADERS.length).getValues()[0];
+  if (String(rec[C.STATUS - 1]).toUpperCase() === 'DISABLED') {
+    return { ok: false, error: 'DISABLED', message: 'This access code has been disabled.' };
+  }
+  if (String(rec[C.DEVICE - 1] || '') !== dev) {
+    return { ok: false, error: 'DEVICE_LOCKED', message: 'This code is locked to another device.' };
+  }
+  return { ok: true, name: rec[C.NAME - 1], section: rec[C.SECTION - 1] };
+}
+
 /* ─────────────────────────── API: SYNC ─────────────────────────── */
 /* Receives a batch of queued events plus the student's current snapshot. */
 
@@ -241,31 +269,45 @@ function apiSync_(b) {
       return { ok: false, error: 'DEVICE_LOCKED', message: 'This code is now locked to another device.' };
     }
 
-    /* ── 1. Append the batched events, grouped so each sheet is written once ── */
+    /* SECURITY: a disabled code must stop working right away, not keep syncing
+       for the full 180-day life of its token. */
+    if (String(rec[C.STATUS - 1]).toUpperCase() === 'DISABLED') {
+      return { ok: false, error: 'DISABLED', message: 'This access code has been disabled.' };
+    }
+
+    /* ── 1. Append the batched events, grouped so each sheet is written once ──
+       SECURITY: every field below comes straight from the student's browser, so
+       each text field is run through cleanText_ (which strips control characters,
+       caps length, and neutralises formula injection) and each number through
+       numCell_. The batch is also capped so one client cannot flood the sheet. */
     var buckets = { assess: [], run: [], event: [] };
-    var events  = b.events || [];
+    var events  = (b.events || []).slice(0, 500);
 
     for (var i = 0; i < events.length; i++) {
       var ev = events[i];
+      /* Timestamps are attacker-controlled too — fall back to server time if the
+         client sends a missing or malformed date. */
       var ts = ev.ts ? new Date(ev.ts) : new Date();
+      if (isNaN(ts.getTime())) ts = new Date();
 
       if (ev.kind === 'answer') {
         buckets.assess.push([ts, code, name, sect,
-          ev.lesson || '', ev.actId || '', ev.actType || '', ev.actTitle || '',
-          ev.correct ? 'CORRECT' : 'WRONG', ev.attempt || '', ev.xp || 0, ev.sid || '']);
+          cleanText_(ev.lesson, 120), cleanText_(ev.actId, 60), cleanText_(ev.actType, 40), cleanText_(ev.actTitle, 160),
+          ev.correct ? 'CORRECT' : 'WRONG', numCell_(ev.attempt) || '', numCell_(ev.xp) || 0, cleanText_(ev.sid, 40)]);
 
       } else if (ev.kind === 'activity') {
         buckets.assess.push([ts, code, name, sect,
-          ev.lesson || '', ev.actId || '', ev.actType || 'activity', ev.actTitle || '',
-          'COMPLETED', ev.attempt || '', ev.xp || 0, ev.sid || '']);
+          cleanText_(ev.lesson, 120), cleanText_(ev.actId, 60), cleanText_(ev.actType, 40) || 'activity', cleanText_(ev.actTitle, 160),
+          'COMPLETED', numCell_(ev.attempt) || '', numCell_(ev.xp) || 0, cleanText_(ev.sid, 40)]);
 
       } else if (ev.kind === 'runtime') {
-        buckets.run.push([ts, code, name, sect, ev.sid || '', ev.event || '',
-          round1_(ev.minutes || 0), ev.page || '', ev.note || '']);
+        buckets.run.push([ts, code, name, sect, cleanText_(ev.sid, 40), cleanText_(ev.event, 40),
+          round1_(Number(ev.minutes) || 0), cleanText_(ev.page, 60), cleanText_(ev.note, 120)]);
 
       } else {
-        buckets.event.push([ts, code, name, sect, ev.kind || 'event',
-          ev.detail || '', ev.value == null ? '' : ev.value, ev.page || '', ev.sid || '']);
+        var val = numCell_(ev.value);
+        buckets.event.push([ts, code, name, sect, cleanText_(ev.kind, 40) || 'event',
+          cleanText_(ev.detail, 200), (val === undefined ? cleanText_(ev.value, 100) : val), cleanText_(ev.page, 60), cleanText_(ev.sid, 40)]);
       }
     }
 
@@ -285,28 +327,41 @@ function apiSync_(b) {
       var lastMin = Number(rec[C.SESSMIN - 1] || 0);
       var delta   = (lastId === String(b.sid)) ? (Number(s.sessionMinutes) - lastMin)
                                                :  Number(s.sessionMinutes);
+      /* SECURITY: study time is measured in the browser and could be faked. A
+         student can never study more minutes than real time that has actually
+         passed since we last heard from them, so cap the increase to the
+         wall-clock gap (plus a 2-minute buffer for clock drift). */
+      var lastSeenMs = rec[C.LAST - 1] ? new Date(rec[C.LAST - 1]).getTime() : 0;
+      if (lastSeenMs) {
+        var wallMin = (now.getTime() - lastSeenMs) / 60000 + 2;
+        if (delta > wallMin) delta = wallMin;
+      }
       if (delta > 0) totalMin += delta;
     }
 
     var out = sh.getRange(row, C.LAST, 1, C.SESSMIN - C.LAST + 1).getValues()[0];
     function put(col, val) { if (val !== undefined && val !== null) out[col - C.LAST] = val; }
 
+    /* SECURITY: numbers are coerced (numCell_/clamp_) and text is neutralised
+       (cleanText_) so the browser cannot inject a formula or a nonsense value
+       into the dashboard. These guards reduce casual grade-tampering; they do
+       NOT fully verify grades — that would require server-side answer checking. */
     put(C.LAST,     now);
     put(C.MINUTES,  round1_(totalMin));
-    put(C.XP,       s.xp);
-    put(C.LEVEL,    s.level);
-    put(C.RANK,     s.rank);
-    put(C.ACC,      s.accuracy);
-    put(C.CORRECT,  s.correct);
-    put(C.ATTEMPTS, s.attempts);
-    put(C.STREAK,   s.bestStreak);
-    put(C.BADGE_N,  s.badgeCount);
-    put(C.BADGE_L,  s.badgeList);
-    put(C.LESSONS,  s.lessonsDone);
-    put(C.PROGRESS, s.progressPct);
-    put(C.ACTS,     s.activitiesDone);
-    put(C.LASTPAGE, s.lastPage);
-    if (b.sid) { put(C.SESSID, String(b.sid)); put(C.SESSMIN, round1_(s.sessionMinutes || 0)); }
+    put(C.XP,       numCell_(s.xp));
+    put(C.LEVEL,    numCell_(s.level));
+    put(C.RANK,     cleanText_(s.rank, 40));
+    put(C.ACC,      clamp_(s.accuracy, 0, 100));
+    put(C.CORRECT,  numCell_(s.correct));
+    put(C.ATTEMPTS, numCell_(s.attempts));
+    put(C.STREAK,   numCell_(s.bestStreak));
+    put(C.BADGE_N,  numCell_(s.badgeCount));
+    put(C.BADGE_L,  cleanText_(s.badgeList, 200));
+    put(C.LESSONS,  numCell_(s.lessonsDone));
+    put(C.PROGRESS, clamp_(s.progressPct, 0, 100));
+    put(C.ACTS,     numCell_(s.activitiesDone));
+    put(C.LASTPAGE, cleanText_(s.lastPage, 60));
+    if (b.sid) { put(C.SESSID, cleanText_(b.sid, 40)); put(C.SESSMIN, round1_(Number(s.sessionMinutes) || 0)); }
 
     sh.getRange(row, C.LAST, 1, out.length).setValues([out]);
 
@@ -373,9 +428,33 @@ function normCode_(v) {
   return String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 function cleanText_(v, max) {
-  return String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').trim().slice(0, max);
+  var s = String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').trim();
+  if (max) s = s.slice(0, max);
+  /* SECURITY: neutralise spreadsheet formula injection. Google Sheets runs any
+     cell that starts with = + - or @ as a live formula, so a student could type
+     a formula as their "name" that steals data when the sheet is opened. A
+     leading apostrophe forces Sheets to keep the value as plain text. */
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
+  return s;
 }
 function round1_(n) { return Math.round(Number(n || 0) * 10) / 10; }
+
+/* Coerces a value to a safe non-negative number, or undefined if it is not a
+   real number. Blocks a tampered client from writing a formula string (e.g.
+   "=IMAGE(...)") into a numeric dashboard cell. */
+function numCell_(v) {
+  if (v === undefined || v === null || v === '') return undefined;
+  var n = Number(v);
+  return (isFinite(n) && n >= 0) ? n : undefined;
+}
+
+/* Coerces to a number clamped between lo and hi, or undefined if not numeric. */
+function clamp_(v, lo, hi) {
+  if (v === undefined || v === null || v === '') return undefined;
+  var n = Number(v);
+  if (!isFinite(n)) return undefined;
+  return Math.max(lo, Math.min(hi, n));
+}
 
 function maskName_(n) {
   n = String(n || '').trim();
@@ -418,8 +497,11 @@ function appendRows_(sheetName, rows) {
 
 function logLogin_(code, name, section, event, result, dev, sid, ua, screen) {
   try {
-    appendRows_(SH_LOGIN, [[new Date(), code, name || '', section || '', event,
-      result, dev || '', sid || '', shortUA_(ua), screen || '']]);
+    /* SECURITY: deviceId, sessionId and screen come from the browser, so they
+       are neutralised too. shortUA_ already reduces the user-agent to a fixed
+       set of safe labels. */
+    appendRows_(SH_LOGIN, [[new Date(), code, cleanText_(name, 80), cleanText_(section, 40), event,
+      result, cleanText_(dev, 80), cleanText_(sid, 40), shortUA_(ua), cleanText_(screen, 20)]]);
   } catch (e) { /* logging must never break a login */ }
 }
 
