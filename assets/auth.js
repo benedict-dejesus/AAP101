@@ -725,8 +725,36 @@ const AAPAuth = {
   /** app.js awaits this before booting. Resolves only once a student is in. */
   gate() {
     const s = Session.load();
-    if (s) return Promise.resolve().then(() => this.afterLogin());
-    return Gate.open().then(() => this.afterLogin());
+    if (!s) return Gate.open().then(() => this.afterLogin());
+
+    /* Standalone mode (no database) or genuinely offline: keep working. When
+       offline, the first successful sync still re-validates the token, and a
+       forged session can never sync because it has no valid signature. */
+    if (!CFG.ENDPOINT || !navigator.onLine) {
+      return Promise.resolve().then(() => this.afterLogin());
+    }
+
+    /* SECURITY (Critical 3): a saved session used to be trusted blindly, so
+       anyone could paste a fake session into their browser and skip the access
+       code. Now we ask the server to confirm it. Only an EXPLICIT rejection
+       forces re-login; if the server is unreachable we fall through and let the
+       student keep working (their sync will re-check the token). */
+    /* Only these mean "this session is genuinely invalid — send them to login".
+       Any other reply (including UNKNOWN_ACTION from a backend that hasn't been
+       re-deployed yet) is treated as "can't confirm right now", so we let the
+       student in and rely on the next sync to re-check the token. This keeps the
+       rollout safe if the site updates before the Apps Script is re-deployed. */
+    const REJECT = { BAD_TOKEN: 1, NOT_FOUND: 1, DISABLED: 1, DEVICE_LOCKED: 1 };
+    return post({ action: 'resume', code: s.code, token: s.token, deviceId: deviceId() }, 12000)
+      .then(res => {
+        if (res && !res.ok && REJECT[res.error]) {
+          Session.clear();
+          Queue.clear();
+          return Gate.open().then(() => this.afterLogin());
+        }
+        return this.afterLogin();
+      })
+      .catch(() => this.afterLogin());
   },
 
   afterLogin() {
