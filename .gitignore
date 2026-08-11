@@ -1,0 +1,4 @@
+# Local-only archive. Anything in here is deliberately NOT published to
+# GitHub Pages — it held the pre-hardening single-file build of the module,
+# which had no access-code gate and carried every answer key inline.
+archive/

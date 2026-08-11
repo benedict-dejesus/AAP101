@@ -16,7 +16,7 @@ How it fits together:
 
 ```
 GitHub Pages (this repo)  ──asks──▶  Google Apps Script  ──writes──▶  AAP101_Database
-   assets/auth.js                    google-apps-script/Code.gs        (6 tabs)
+   assets/auth.js                    _apps-script/Code.gs        (6 tabs)
 ```
 
 - The 600 access codes live **only** in the sheet — never in this repo, and
@@ -31,13 +31,30 @@ GitHub Pages (this repo)  ──asks──▶  Google Apps Script  ──writes�
 - Progress is namespaced per code (`aap101.progress.v2::AAP-XXXX-XXXX`) so a
   shared phone never mixes two students' XP.
 
-`assets/auth.js` **wraps** the engine's existing functions rather than editing
-them — `passGate`, `Game.hit/miss/awardXP/giveBadge/levelUp`, and `showPage`.
-`app.js` itself has only two changes: a per-student save key and booting behind
-the login gate. Keep it that way: new tracking belongs in `auth.js`.
+### Where the authority lives
+
+Since the 2026-08 hardening pass, **the browser scores nothing.** When a student
+answers, the module sends what they did to Apps Script, which checks it against
+a key they cannot reach and replies with the verdict, the XP it decided to
+award, and their authoritative progress. The module renders that reply.
+
+That means the published site contains:
+
+- no correct answers (`_apps-script/AnswerKey.gs` holds them)
+- no XP values (same)
+- no way to mark an activity complete (`_ServerGates` in the sheet holds that)
+
+`S` in `app.js` and `aap101.progress.v2` in `localStorage` are still there, but
+they are now a **cache of the server's answer**, overwritten on sign-in and on
+every sync. Editing them changes what one student sees for a few seconds and
+nothing in the grade book.
+
+`assets/auth.js` still wraps the engine rather than editing it — `showPage` for
+page views, plus `applyServerState()`, which is the one-way door the server's
+record comes through. New tracking belongs in `auth.js`.
 
 > **The gate fails closed.** If `auth.js` fails to load, the module refuses to
-> start rather than opening unlocked. See the emergency override at the end of
+> start rather than opening unlocked. See the emergency playbook at the end of
 > `SETUP_GUIDE.md`.
 
 ---
@@ -66,10 +83,10 @@ assets/
   config.js           ← ⚙️ the one file you edit: the database URL
   auth.js             ← access codes, sessions, live telemetry
   auth.css            ← login screen styling
-google-apps-script/
+_apps-script/
   Code.gs             ← the backend; paste into the Google Sheet's Apps Script
 images/               ← image1–57.jpg, video1.mp4 (unchanged)
-index.txt             ← the original single-file version, kept for reference
+archive/              ← local only, never published (see .gitignore)
 SETUP_GUIDE.md        ← step-by-step setup walkthrough (start here)
 ```
 
@@ -82,17 +99,31 @@ To change wording, open `assets/content.js` and edit the text — no HTML surger
 needed. To add a new activity, append a block object to a lesson's `blocks` array:
 
 ```js
-{t:'quiz', mode:'single', gate:'m2-extra', xp:50,
+{t:'quiz', mode:'single', gate:'m2-extra',
  title:'My New Check', kicker:'Knowledge Check',
  q:'Question text?',
  opts:[
-   {txt:'Wrong answer',  correct:false, fb:'❌ Not quite — try again.'},
-   {txt:'Right answer',  correct:true,  fb:'✅ Correct! Because…'}
+   {txt:'Wrong answer'},
+   {txt:'Right answer'}
  ]}
 ```
 
-Then add its `gate` id to the lesson's `continue` block `req:[…]` array if it
-should be required to advance.
+Notice what is **not** there: no `correct`, no `fb`, no `xp`. Since the
+hardening pass those live in `_apps-script/AnswerKey.gs`, which never leaves
+the server. Add the matching entry there:
+
+```js
+'m2-extra': { type:'quiz-single', xp:50, mod:'m', lesson:2,
+              nOpts:2, correct:1, badgeOnClean:'sharp-eye' },
+```
+
+and its feedback lines to `QUIZ_FEEDBACK`. Then add the `gate` id to the
+lesson's `continue` block `req:[…]` array if it should be required to advance.
+
+> ⚠️ **An activity with no entry in `AnswerKey.gs` cannot be completed** — the
+> server rejects gates it does not recognise, by design. After editing content,
+> run **AAP101 Database ▸ Check the answer key** in the spreadsheet; it lists
+> anything that has drifted out of sync.
 
 ---
 
@@ -152,9 +183,17 @@ Verified with no horizontal overflow at 320px, 375px, 768px, and 1280px.
 - **Bonuses** — first-try sorts and flawless match runs award extra XP.
 - **Speed Rounds** — optional timed challenges with a combo multiplier (up to ×5).
 - **Report card** — XP, level, accuracy, best streak, and badges at module completion.
-- **Progress saving** — everything persists to `localStorage` under `aap101.progress.v2`.
-  Students can close the tab and resume; the home page offers a "continue where you
-  left off" shortcut.
+- **Progress saving** — the record is the **AccessCodes** tab of your spreadsheet.
+  `localStorage` keeps a copy under `aap101.progress.v2` so the module paints
+  instantly, and it is refreshed from the server at sign-in and on every sync. A
+  student who clears their browser, switches phones, or edits their saved data
+  gets their real progress back.
+
+> XP, levels, accuracy, streaks, badges and bonuses are all decided server-side.
+> The two exceptions are noted in `AnswerKey.gs`: memory-match "flawless run"
+> bonuses and the exploration activities (galleries, decks, simulators), which
+> have nothing a server can check. Those are recorded as **CLAIMED** rather than
+> **CHECKED** in the Assessments tab.
 
 ### Resetting a student's progress
 

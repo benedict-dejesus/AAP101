@@ -21,6 +21,7 @@ const CFG = Object.assign({
 const K_DEVICE  = 'aap101.device';
 const K_SESSION = 'aap101.session';
 const K_QUEUE   = 'aap101.queue';
+const K_CLAIMS  = 'aap101.claims';
 const COOKIE    = 'aap101_session';
 
 function dbg() { if (CFG.DEBUG) console.log('[AAP101]', ...arguments); }
@@ -225,32 +226,22 @@ const Telemetry = {
     if (n >= CFG.SYNC_AT_EVENTS) this.flush();
   },
 
-  /** Everything the dashboard row needs, recomputed fresh each sync. */
+  /**
+   * What this browser reports about itself.
+   *
+   * Deliberately tiny. It used to carry xp, level, rank, accuracy, correct,
+   * attempts, bestStreak, badgeCount, badgeList, lessonsDone, progressPct and
+   * activitiesDone — all read out of localStorage, all written straight into
+   * the instructor's grade book. Anyone who opened DevTools could set them to
+   * whatever they liked.
+   *
+   * Those numbers are now computed on the server from what it actually graded,
+   * and the two fields left here are the only ones a wrong answer cannot buy:
+   * roughly how long this tab has been in use, and which page is open. Both
+   * are range-checked at the other end.
+   */
   snapshot() {
-    const out = { sessionMinutes: Clock.minutes(), lastPage: currentPage() };
-    try {
-      const st = (typeof Game !== 'undefined' && Game.stats) ? Game.stats() : null;
-      if (st) {
-        out.xp = st.xp; out.level = st.lvl; out.accuracy = st.acc;
-        out.bestStreak = st.streak; out.badgeCount = st.badges;
-        out.rank = (Game.rankFor(st.xp) || {}).name || '';
-      }
-      if (typeof S !== 'undefined') {
-        out.correct = S.correct;
-        out.attempts = S.attempts;
-        out.badgeList = (S.badges || []).map(id => {
-          const b = (typeof BADGES !== 'undefined') ? BADGES.find(x => x.id === id) : null;
-          return b ? b.n : id;
-        }).join(', ');
-
-        const gates = allGateIds();
-        const done  = gates.filter(g => S.gates[g]).length;
-        out.activitiesDone = done;
-        out.progressPct = gates.length ? Math.round((done / gates.length) * 100) : 0;
-        out.lessonsDone = countLessonsDone();
-      }
-    } catch (e) { dbg('snapshot error', e); }
-    return out;
+    return { sessionMinutes: Clock.minutes(), lastPage: currentPage() };
   },
 
   envelope(events) {
@@ -310,8 +301,12 @@ const Telemetry = {
           Queue.write(rest);
           this.online = true;
           Banner.hide();
+          /* The server's answer is the record. If this browser's localStorage
+             has been edited, this is where it snaps back. */
+          if (res.state) applyServerState(res.state);
+          Claims.flush();
           dbg('synced', batch.length);
-        } else if (res && (res.error === 'BAD_TOKEN' || res.error === 'DEVICE_LOCKED')) {
+        } else if (res && (res.error === 'BAD_TOKEN' || res.error === 'DEVICE_LOCKED' || res.error === 'DISABLED')) {
           dbg('session rejected:', res.error);
           Banner.show(res.message || 'Your session ended. Please log in again.', true);
           setTimeout(() => AAPAuth.signOut(), 4000);
@@ -324,6 +319,156 @@ const Telemetry = {
         this.online = false;
         dbg('sync failed — will retry', err.message);
         Banner.show('Working offline — your progress is saved and will sync automatically.');
+      });
+  }
+};
+
+/* ═════════════════════════ SERVER-SIDE GRADING ═════════════════════════
+   The module no longer knows any answers. When a student submits, the answer
+   goes to Apps Script, which checks it against a key they cannot reach and
+   replies with the verdict, the XP it decided to award, and the student's
+   authoritative progress. Everything on screen is a rendering of that reply.  */
+
+/**
+ * Mirrors the server's state into the engine's `S` and repaints.
+ *
+ * This is one-way on purpose: the browser is a display for the record, not a
+ * second copy of it. Anything a student edits in localStorage is overwritten
+ * the next time the server speaks.
+ */
+function applyServerState(state) {
+  if (!state || typeof S === 'undefined') return;
+  try {
+    /* Remember what the screen said, so anything the server has granted since
+       can be celebrated rather than just silently appearing. */
+    const hadLevel  = (typeof Game !== 'undefined' && Game.rankFor)
+                      ? Game.rankFor(S.xp || 0).lvl : 1;
+    const hadBadges = new Set(S.badges || []);
+
+    S.xp         = Number(state.xp) || 0;
+    S.correct    = Number(state.correct) || 0;
+    S.attempts   = Number(state.attempts) || 0;
+    S.bestStreak = Number(state.bestStreak) || 0;
+    S.streak     = Number(state.run) || 0;
+
+    S.gates = {};
+    (state.gates || []).forEach(g => { S.gates[g] = true; });
+    S.badges = (state.badges || []).slice();
+
+    /* Lessons the student has reached stay unlocked so navigation does not
+       jump around, but the gates themselves are now the server's word. */
+    unlockFromGates();
+
+    if (typeof Game !== 'undefined' && Game.refreshHUD) Game.refreshHUD();
+    if (typeof refreshLessonRail === 'function') refreshLessonRail();
+    if (typeof refreshSidebar === 'function') refreshSidebar();
+    if (typeof refreshAllContinues === 'function') refreshAllContinues();
+    if (typeof save === 'function') save();
+
+    /* Celebrate what the server just granted. Only ever a reaction to the
+       reply — none of this can hand out a badge or a level by itself. */
+    if (typeof Game !== 'undefined') {
+      (S.badges || []).forEach((id, i) => {
+        if (!hadBadges.has(id)) setTimeout(() => Game.announceBadge(id), 260 + i * 420);
+      });
+      const nowLevel = Game.rankFor ? Game.rankFor(S.xp).lvl : hadLevel;
+      if (nowLevel > hadLevel) setTimeout(() => Game.levelUp(nowLevel), 420);
+    }
+  } catch (e) { dbg('applyServerState failed', e); }
+}
+
+/** Re-derives which lessons are open from the gates the server has cleared. */
+function unlockFromGates() {
+  try {
+    ['m', 'f'].forEach(k => {
+      const open = new Set(S.unlocked[k] || [1]);
+      open.add(1);
+      (CONTENT[k].lessons || []).forEach(les => {
+        const gates = [];
+        (function walk(blocks) {
+          (blocks || []).forEach(b => {
+            if (b.blocks) walk(b.blocks);
+            if (b.gate) gates.push(b.gate);
+          });
+        })(les.blocks);
+        if (gates.length && gates.every(g => S.gates[g])) open.add(les.num + 1);
+      });
+      S.unlocked[k] = Array.from(open).filter(n =>
+        n <= (CONTENT[k].lessons || []).length).sort((a, b) => a - b);
+    });
+  } catch (e) { dbg('unlockFromGates failed', e); }
+}
+
+/* Exploration activities — galleries, card decks, the quest log, the two
+   simulators — have no answer for a server to check; "I looked at every card"
+   is not verifiable from the outside. The server still decides what they are
+   worth and still refuses to pay twice, so these can safely be queued while
+   the student is offline and submitted when the connection returns. Quizzes,
+   sorters and speed rounds are never queued: they need a real verdict.       */
+const Claims = {
+  read() { try { return JSON.parse(lsGet(K_CLAIMS) || '[]'); } catch (e) { return []; } },
+  write(a) { lsSet(K_CLAIMS, JSON.stringify(a.slice(-60))); },
+  add(gate) {
+    const q = this.read();
+    if (q.indexOf(gate) < 0) { q.push(gate); this.write(q); }
+  },
+  flush() {
+    const q = this.read();
+    if (!q.length || !Session.data) return;
+    const gate = q[0];
+    Server.send(gate, null, {}).then(res => {
+      if (res && (res.ok || res.error === 'UNKNOWN_ACTIVITY')) {
+        this.write(this.read().filter(g => g !== gate));
+        if (res.state) applyServerState(res.state);
+        if (this.read().length) this.flush();
+      }
+    }).catch(() => { /* still offline — try again on the next sync */ });
+  }
+};
+
+const Server = {
+  /** Raw call. Resolves with the server's reply; rejects only on transport failure. */
+  send(gate, answer, meta) {
+    if (!Session.data) return Promise.reject(new Error('NO_SESSION'));
+    return post({
+      action: 'grade',
+      code: Session.data.code,
+      token: Session.data.token,
+      deviceId: deviceId(),
+      sid: Telemetry.sid,
+      gate: gate,
+      answer: answer,
+      title: (meta && meta.title) || ''
+    }, 25000);
+  },
+
+  /**
+   * @param {string}  gate    activity id
+   * @param {*}       answer  what the student did; null for a claim
+   * @param {object}  meta    { title, claim }
+   * @returns {Promise<object>} the server verdict, or a rejection the caller
+   *          should surface as "could not reach the class database".
+   */
+  grade(gate, answer, meta) {
+    meta = meta || {};
+    return this.send(gate, answer, meta)
+      .then(res => {
+        if (!res) throw new Error('BAD_RESPONSE');
+        if (res.state) applyServerState(res.state);
+        if (!res.ok && (res.error === 'BAD_TOKEN' || res.error === 'DEVICE_LOCKED' || res.error === 'DISABLED')) {
+          Banner.show(res.message || 'Your session ended. Please log in again.', true);
+          setTimeout(() => AAPAuth.signOut(), 4000);
+        }
+        return res;
+      })
+      .catch(err => {
+        if (meta.claim) {
+          /* Nothing to verify — record it locally and send it when we can. */
+          Claims.add(gate);
+          Banner.show('Working offline — this will be saved when you reconnect.');
+          return { ok: true, correct: true, offline: true, xpAwarded: 0 };
+        }
+        throw err;
       });
   }
 };
@@ -662,7 +807,10 @@ const Gate = {
 
     post({ action: 'login', code: code, name: name, section: section,
            deviceId: deviceId(), ua: navigator.userAgent,
-           screen: screen.width + '×' + screen.height })
+           screen: screen.width + '×' + screen.height,
+           /* Lets the instructor's "Check the answer key" tool spot when the
+              module and the server key have drifted apart. */
+           gates: allGateIds() })
       .then(res => {
         if (!res.ok) {
           this.step(res.error === 'NAME_REQUIRED' ? 'name' : 'code');
@@ -672,6 +820,11 @@ const Gate = {
         Session.save({
           code: res.code, token: res.token,
           name: res.name, section: res.section,
+          /* The authoritative record, handed over at sign-in. boot() renders
+             this instead of whatever is sitting in localStorage, so a student
+             who clears their browser keeps their progress — and one who edits
+             it gains nothing. */
+          state: res.state || null,
           at: Date.now()
         });
         this.close();
@@ -734,6 +887,11 @@ const AAPAuth = {
       installHooks();
       Telemetry.begin();
       Telemetry.track('login', { detail: Session.data.name || '', value: Session.data.code });
+      /* Check in straight away rather than waiting for the 20s timer: the
+         reply carries the authoritative progress, so a returning student's
+         screen is corrected within a second of opening the module. */
+      Telemetry.flush();
+      Claims.flush();
       setTimeout(installIdentityChip, 60);
       if (!navigator.onLine) {
         Banner.show('Working offline — your progress is saved and will sync automatically.');
@@ -746,16 +904,43 @@ const AAPAuth = {
 
   student() { return Session.data ? Object.assign({}, Session.data) : null; },
 
+  /**
+   * Submit an answer for marking. The engine calls this instead of checking
+   * answers itself — it has none to check with any more.
+   *
+   * @param {string} gate    activity id, e.g. 'm2-kc'
+   * @param {*}      answer  index | [indices] | {itemId: category} | [{q,a}] | null
+   * @param {object} meta    { title, claim }
+   * @returns {Promise<object>} { ok, correct, firstClear, xpAwarded, wrong…, state }
+   */
+  grade(gate, answer, meta) { return Server.grade(gate, answer, meta); },
+
+  /** The last authoritative progress the server sent, if any. */
+  serverState() { return (Session.data && Session.data.state) || null; },
+
+  /** Renders that state into the engine. Called by boot() after load(). */
+  applyState(state) {
+    const s = state || this.serverState();
+    if (s) applyServerState(s);
+    return !!s;
+  },
+
   signOut() {
     try { Telemetry.flush(true); } catch (e) {}
     Session.clear();
     Queue.clear();
+    lsDel(K_CLAIMS);
     location.reload();
-  },
-
-  /* Exposed for troubleshooting from the browser console. */
-  _debug: { CFG, Session, Queue, Telemetry, Clock, deviceId, post }
+  }
 };
+
+/* The old build hung Session, Queue, Telemetry, deviceId and a raw `post`
+   helper off this object permanently, which handed anyone with DevTools a
+   ready-made console for forging requests. It is now behind the DEBUG flag in
+   assets/config.js, and off by default. */
+if (CFG.DEBUG) {
+  AAPAuth._debug = { CFG, Session, Queue, Claims, Telemetry, Clock, deviceId, post, Server };
+}
 
 window.AAPAuth = AAPAuth;
 

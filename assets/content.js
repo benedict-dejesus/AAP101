@@ -124,10 +124,10 @@ m: {
        title:'Sorting Gauntlet: Art or Nature?', kicker:'Drag & Drop Challenge',
        instr:'Classify each item as <strong>Art</strong> or <strong>Nature</strong>. Nature is created by natural processes; Art involves conscious human effort.<br><em>Desktop: drag &amp; drop. Mobile: tap an item to select it (turns green), then tap a category box to place it.</em>',
        items:[
-         {id:'sunset', label:'🌅 Sunset at the beach',   answer:'nature'},
-         {id:'banaue', label:'🌾 The Banaue Rice Terraces', answer:'art'},
-         {id:'ai-img', label:'🤖 AI-generated Images',   answer:'art'},
-         {id:'crush',  label:'💕 Your crush',            answer:'nature'}
+         {id:'sunset', label:'🌅 Sunset at the beach'},
+         {id:'banaue', label:'🌾 The Banaue Rice Terraces'},
+         {id:'ai-img', label:'🤖 AI-generated Images'},
+         {id:'crush',  label:'💕 Your crush'}
        ],
        cats:[{id:'art', label:'🎨 Art'},{id:'nature', label:'🌿 Nature'}]},
 
@@ -157,18 +157,12 @@ m: {
          badgeText:'Select 2 FALSE statements',
          q:'Based on the Definition and Assumptions of Art, which <strong>two (2)</strong> statements are clearly <strong>FALSE</strong>? Select them below, then click Check Answers.',
          opts:[
-           {txt:'AI-generated images can be considered as art because it still involves conscious human effort (LLM architecture and codes; user prompts).',
-            correct:false, fb:'❌ Incorrect. This statement is TRUE. Please try again.'},
-           {txt:'While your crush is man-made, he/she may not be considered as art because his/her parents made no conscious effort in editing his/her appearance.',
-            correct:false, fb:'❌ Incorrect. This statement is TRUE. Please try again.'},
-           {txt:'The Banaue Rice Terraces can be considered as art because it was handcrafted by the Ifugaos along the sides of the mountains — it was definitely man-made.',
-            correct:false, fb:'❌ Incorrect. This statement is TRUE. Please try again.'},
-           {txt:'Mayon Volcano — regardless of its perfect cone shape — can still be considered as art because of its outstanding natural beauty.',
-            correct:true, fb:'✅ Correct! This statement is FALSE. The Mayon Volcano was created by a natural process — not by conscious human effort. It cannot be considered art by definition.'},
-           {txt:'Some people are natural-born artists. They were gifted with artistic skills because a certain hemisphere of their brain is more developed. Only these people can become artists.',
-            correct:true, fb:'✅ Correct! This statement is FALSE. Art can be learned. It is only a matter of exposure, experience, and mentorship. Everyone has the potential to become an artist.'},
-           {txt:'Writing a song after a terrible breakup is a manifestation of how art can be used to vent emotions and transform them into something that helps us express ourselves.',
-            correct:false, fb:'❌ Incorrect. This statement is TRUE. Please try again.'}
+           {txt:'AI-generated images can be considered as art because it still involves conscious human effort (LLM architecture and codes; user prompts).'},
+           {txt:'While your crush is man-made, he/she may not be considered as art because his/her parents made no conscious effort in editing his/her appearance.'},
+           {txt:'The Banaue Rice Terraces can be considered as art because it was handcrafted by the Ifugaos along the sides of the mountains — it was definitely man-made.'},
+           {txt:'Mayon Volcano — regardless of its perfect cone shape — can still be considered as art because of its outstanding natural beauty.'},
+           {txt:'Some people are natural-born artists. They were gifted with artistic skills because a certain hemisphere of their brain is more developed. Only these people can become artists.'},
+           {txt:'Writing a song after a terrible breakup is a manifestation of how art can be used to vent emotions and transform them into something that helps us express ourselves.'}
          ]},
 
         {t:'continue', id:'cont-m2-end', req:['m2-tabs','m2-kc'], label:'Continue to Lesson 3',
@@ -246,10 +240,10 @@ m: {
        title:'Sorting Gauntlet: Artist or Artisan?', kicker:'Drag & Drop Challenge',
        instr:'Classify each professional as an <strong>Artist</strong> or an <strong>Artisan</strong> based on the definitions above.<br><em>Desktop: drag &amp; drop. Mobile: tap to select, then tap a category to place.</em>',
        items:[
-         {id:'potter',       label:'🏺 Potter',           answer:'artisan'},
-         {id:'painter',      label:'🖌️ Painter',          answer:'artist'},
-         {id:'photographer', label:'📸 Photographer',     answer:'artist'},
-         {id:'buntal',       label:'🎩 Buntal Hat-Maker', answer:'artisan'}
+         {id:'potter',       label:'🏺 Potter'},
+         {id:'painter',      label:'🖌️ Painter'},
+         {id:'photographer', label:'📸 Photographer'},
+         {id:'buntal',       label:'🎩 Buntal Hat-Maker'}
        ],
        cats:[{id:'artist', label:'🎨 Artists'},{id:'artisan', label:'🛠️ Artisans'}]},
 
@@ -294,14 +288,14 @@ m: {
        q:'Which art movement would best describe the image below?',
        img:'images/image20.jpg', imgAlt:'Which movement?',
        opts:[
-         {txt:'Realism',       correct:false, fb:'❌ Incorrect. Please study the art movements and analyze the image, then try again.'},
-         {txt:'Expressionism', correct:false, fb:'❌ Incorrect. Please study the art movements and analyze the image, then try again.'},
-         {txt:'Impressionism', correct:false, fb:'❌ Incorrect. Please study the art movements and analyze the image, then try again.'},
-         {txt:'Cubism',        correct:false, fb:'❌ Incorrect. Please study the art movements and analyze the image, then try again.'},
-         {txt:'Surrealism',    correct:false, fb:'❌ Incorrect. Please study the art movements and analyze the image, then try again.'},
-         {txt:'Abstract Art',  correct:false, fb:'❌ Incorrect. Please study the art movements and analyze the image, then try again.'},
-         {txt:'Pop Art',       correct:true,  fb:'✅ Correct! This artwork was inspired by an everyday consumer product or item. Pop Art draws from popular culture, advertising, comics, and consumer products — often using bold, flat colors and familiar mass-media imagery.'},
-         {txt:'Fauvism',       correct:false, fb:'❌ Incorrect. Please study the art movements and analyze the image, then try again.'}
+         {txt:'Realism'},
+         {txt:'Expressionism'},
+         {txt:'Impressionism'},
+         {txt:'Cubism'},
+         {txt:'Surrealism'},
+         {txt:'Abstract Art'},
+         {txt:'Pop Art'},
+         {txt:'Fauvism'}
        ]},
 
       {t:'boss', gate:'m5-boss', xp:120, optional:true,
@@ -310,21 +304,21 @@ m: {
        time:10,
        questions:[
          {q:'Which movement breaks objects into geometric shapes and multiple viewpoints at once?',
-          opts:['Cubism','Realism','Fauvism','Impressionism'], correct:0},
+          opts:['Cubism','Realism','Fauvism','Impressionism']},
          {q:'Which movement captures fleeting effects of light with loose brushwork?',
-          opts:['Surrealism','Impressionism','Pop Art','Realism'], correct:1},
+          opts:['Surrealism','Impressionism','Pop Art','Realism']},
          {q:'Which movement explores dream imagery and the unconscious mind?',
-          opts:['Abstract Art','Expressionism','Surrealism','Cubism'], correct:2},
+          opts:['Abstract Art','Expressionism','Surrealism','Cubism']},
          {q:'Which movement draws from advertising, comics, and consumer culture?',
-          opts:['Fauvism','Realism','Impressionism','Pop Art'], correct:3},
+          opts:['Fauvism','Realism','Impressionism','Pop Art']},
          {q:'Which movement shows everyday life truthfully, without idealization?',
-          opts:['Realism','Surrealism','Pop Art','Cubism'], correct:0},
+          opts:['Realism','Surrealism','Pop Art','Cubism']},
          {q:'Which movement uses vivid, non-naturalistic color above all else?',
-          opts:['Cubism','Fauvism','Realism','Impressionism'], correct:1},
+          opts:['Cubism','Fauvism','Realism','Impressionism']},
          {q:'Which movement distorts form to convey inner emotion and angst?',
-          opts:['Pop Art','Realism','Expressionism','Fauvism'], correct:2},
+          opts:['Pop Art','Realism','Expressionism','Fauvism']},
          {q:'Which movement can be entirely non-representational?',
-          opts:['Realism','Impressionism','Cubism','Abstract Art'], correct:3}
+          opts:['Realism','Impressionism','Cubism','Abstract Art']}
        ]},
 
       {t:'continue', id:'cont-m5', req:['m5-flip','m5-kc'], label:'Continue to Lesson 6',
@@ -488,14 +482,10 @@ f: {
        title:'Camera Call', kicker:'Knowledge Check',
        q:'You are shooting a fast-moving basketball game indoors and the photos come out dark and blurry. Based on the exposure triangle, which adjustment set makes the most sense?',
        opts:[
-         {txt:'Slow the shutter to 1/15s and drop ISO to 100.', correct:false,
-          fb:'❌ Incorrect. A slower shutter adds <em>more</em> motion blur, and dropping ISO makes the image even darker. Try again!'},
-         {txt:'Use a fast shutter (1/1000s), widen the aperture (low f-number), and raise the ISO.', correct:true,
-          fb:'✅ Correct! A fast shutter freezes the action, a wide aperture lets in more light, and a higher ISO compensates for the low indoor light — accepting some grain as a trade-off.'},
-         {txt:'Narrow the aperture to f/22 and keep everything else the same.', correct:false,
-          fb:'❌ Incorrect. A narrow aperture lets in <em>less</em> light, making an already-dark photo darker. Try again!'},
-         {txt:'Keep ISO 100 for a clean image and accept the blur.', correct:false,
-          fb:'❌ Incorrect. ISO 100 is for bright light. Indoors you need more sensitivity. Try again!'}
+         {txt:'Slow the shutter to 1/15s and drop ISO to 100.'},
+         {txt:'Use a fast shutter (1/1000s), widen the aperture (low f-number), and raise the ISO.'},
+         {txt:'Narrow the aperture to f/22 and keep everything else the same.'},
+         {txt:'Keep ISO 100 for a clean image and accept the blur.'}
        ]},
 
       {t:'continue', id:'cont-f2', req:['f2-tabs','f2-sim'], label:'Continue to Lesson 3',
@@ -567,25 +557,25 @@ f: {
        time:10,
        questions:[
          {q:'You need to establish a vast desert location before the story begins. Which shot?',
-          opts:['Extreme Long Shot','Extreme Close-Up','Over-the-Shoulder','Insert Shot'], correct:0},
+          opts:['Extreme Long Shot','Extreme Close-Up','Over-the-Shoulder','Insert Shot']},
          {q:'Two characters are arguing. You want to show the listener\'s perspective. Which shot?',
-          opts:['Bird\'s-Eye View','Over-the-Shoulder','Extreme Long Shot','Full Shot'], correct:1},
+          opts:['Bird\'s-Eye View','Over-the-Shoulder','Extreme Long Shot','Full Shot']},
          {q:'You want the villain to look powerful and intimidating. Which angle?',
-          opts:['High Angle','Eye-Level','Low Angle','Bird\'s-Eye View'], correct:2},
+          opts:['High Angle','Eye-Level','Low Angle','Bird\'s-Eye View']},
          {q:'A character reads a threatening text. You must show the phone screen. Which shot?',
-          opts:['Long Shot','Two Shot','Medium Shot','Insert Shot'], correct:3},
+          opts:['Long Shot','Two Shot','Medium Shot','Insert Shot']},
          {q:'You want the audience to feel a character is helpless and small. Which angle?',
-          opts:['High Angle','Low Angle','Dutch Angle','Eye-Level'], correct:0},
+          opts:['High Angle','Low Angle','Dutch Angle','Eye-Level']},
          {q:'A psychological thriller needs a sense of unease and imbalance. Which angle?',
-          opts:['Eye-Level','Dutch Angle','High Angle','Worm\'s-Eye View'], correct:1},
+          opts:['Eye-Level','Dutch Angle','High Angle','Worm\'s-Eye View']},
          {q:'A news anchor delivers the evening report. Which shot is standard?',
-          opts:['Extreme Long Shot','Extreme Close-Up','Medium Close-Up','Bird\'s-Eye View'], correct:2},
+          opts:['Extreme Long Shot','Extreme Close-Up','Medium Close-Up','Bird\'s-Eye View']},
          {q:'You cut away from a tense scene to show rain on a window. That is a…',
-          opts:['POV Shot','Two Shot','Full Shot','Cutaway Shot'], correct:3},
+          opts:['POV Shot','Two Shot','Full Shot','Cutaway Shot']},
          {q:'The audience should see exactly what the character sees. Which shot?',
-          opts:['POV Shot','Over-the-Shoulder','Medium Shot','Insert Shot'], correct:0},
+          opts:['POV Shot','Over-the-Shoulder','Medium Shot','Insert Shot']},
          {q:'A single tear rolls down a cheek — maximum emotional impact. Which shot?',
-          opts:['Long Shot','Extreme Close-Up','Full Shot','Two Shot'], correct:1}
+          opts:['Long Shot','Extreme Close-Up','Full Shot','Two Shot']}
        ]},
 
       {t:'continue', id:'cont-f3', req:['f3-shot','f3-angle'], label:'Continue to Lesson 4',
@@ -622,18 +612,12 @@ f: {
        q:'Which pattern most likely contains a <strong>half note</strong>?',
        mono:true,
        opts:[
-         {txt:'D – D – D – D', correct:false,
-          fb:'❌ Incorrect. This pattern has four quarter notes — each lasts 1 beat. No half note here. Try again!'},
-         {txt:'D (sustained to 4 beats)', correct:false,
-          fb:'❌ Incorrect. This is a <strong>whole note</strong> — it lasts 4 full beats. Try again!'},
-         {txt:'D – DU – DU – D', correct:false,
-          fb:'❌ Incorrect. This pattern does not contain a half note. Try again!'},
-         {txt:'D – DUDU – D – D', correct:false,
-          fb:'❌ Incorrect. This pattern does not contain a half note. Try again!'},
-         {txt:'D – D – DUDU – D', correct:false,
-          fb:'❌ Incorrect. This pattern does not contain a half note. Try again!'},
-         {txt:'DUDU – DUDU – D', correct:true,
-          fb:'✅ Correct! The last note in this pattern is a half note. DUDU (2 beats) + DUDU (2 beats) + D (2 beats) — that final "D" lasts 2 beats, making it a half note that completes the measure.'}
+         {txt:'D – D – D – D'},
+         {txt:'D (sustained to 4 beats)'},
+         {txt:'D – DU – DU – D'},
+         {txt:'D – DUDU – D – D'},
+         {txt:'D – D – DUDU – D'},
+         {txt:'DUDU – DUDU – D'}
        ]},
 
       {t:'heading', lvl:3, text:'Final Term Project: Guitar Performance Video'},

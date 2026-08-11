@@ -252,12 +252,13 @@ const Game = {
     return RANKS.find(x => x.xp > xp) || null;
   },
 
-  awardXP(amount, label, node){
+  /* ── XP is no longer something this file can grant ──
+     The server decides what an activity is worth and how much of it a given
+     submission earned. `S.xp` is a copy of the figure it sent back, and this
+     function only plays the animation for it. Calling it does not change any
+     number that counts. */
+  celebrateXP(amount, label, node){
     if(amount <= 0) return;
-    const before = this.rankFor(S.xp).lvl;
-    S.xp += amount;
-    const after = this.rankFor(S.xp).lvl;
-
     Audio_.play('xp');
     xpPop(node, amount);
     if(label) toast('⚡', `+${amount} XP`, label, 'xp');
@@ -266,10 +267,6 @@ const Game = {
     chip.classList.remove('bump');
     void chip.offsetWidth;
     chip.classList.add('bump');
-
-    this.refreshHUD();
-    if(after > before) this.levelUp(after);
-    save();
   },
 
   levelUp(lvl){
@@ -283,41 +280,24 @@ const Game = {
     setTimeout(()=>$('#sb-player').classList.remove('shine'), 1200);
   },
 
-  giveBadge(id, node){
-    if(S.badges.includes(id)) return;
+  /* Announces a badge the SERVER has awarded. It does not grant one — by the
+     time this runs, `S.badges` has already been replaced with the server's
+     list. Badge ids the server does not recognise never arrive here. */
+  announceBadge(id, node){
     const b = BADGES.find(x => x.id === id);
     if(!b) return;
-    S.badges.push(id);
     Audio_.play('badge');
     toast(b.em, `Badge unlocked: ${b.n}`, b.d, 'badge');
     FX.fromEl(node || $('#btn-badges'), 30);
     const btn = $('#btn-badges');
     btn.classList.add('glow-pulse');
     setTimeout(()=>btn.classList.remove('glow-pulse'), 1500);
-    this.checkScholar();
-    save();
   },
 
-  checkScholar(){
-    if(S.badges.includes('midterm') && S.badges.includes('final') && !S.badges.includes('scholar')){
-      setTimeout(()=>this.giveBadge('scholar'), 900);
-    }
-  },
-
-  hit(){                       // correct answer
-    S.correct++; S.attempts++;
-    S.streak++;
-    if(S.streak > S.bestStreak) S.bestStreak = S.streak;
-    if(S.streak === 5) this.giveBadge('combo5');
-    this.refreshHUD();
-    save();
-  },
-  miss(){                      // wrong answer
-    S.attempts++;
-    S.streak = 0;
-    this.refreshHUD();
-    save();
-  },
+  /* Sound and streak animation for a graded answer. The counters behind them
+     come from the server's reply, not from here. */
+  hit(){ Audio_.play('correct'); this.refreshHUD(); },
+  miss(){ Audio_.play('wrong');  this.refreshHUD(); },
 
   refreshHUD(){
     const rank = this.rankFor(S.xp);
@@ -350,6 +330,69 @@ const Game = {
   }
 };
 
+/* ══════════════════════ SUBMISSION ══════════════════════
+   Every activity in the module funnels through here. The engine sends what the
+   student did and renders whatever comes back — it holds no answer key and no
+   XP figures, so there is nothing in this file worth tampering with.          */
+
+const Grade = {
+  inFlight: new Set(),
+
+  /**
+   * @param {object} o
+   *   gate    activity id
+   *   answer  index | [indices] | {itemId:category} | [{q,a}] | null for a claim
+   *   node    the activity element, for the animation
+   *   claim   true for activities with nothing to check (galleries, decks…)
+   *   label   XP toast wording
+   *   badges  badge ids to request; the server honours only allowlisted ones
+   *   clean   for matches: was it a flawless run
+   * @returns {Promise<object|null>} the server's verdict, or null if it could
+   *          not be reached (the caller should leave the activity replayable).
+   */
+  submit(o){
+    if(!(window.AAPAuth && AAPAuth.grade)){
+      /* No access layer means no authority to grade against. Fail closed. */
+      return Promise.resolve(null);
+    }
+    if(this.inFlight.has(o.gate)) return Promise.resolve(null);
+    this.inFlight.add(o.gate);
+    if(o.node) o.node.classList.add('checking');
+
+    return AAPAuth.grade(o.gate, o.answer === undefined ? null : o.answer, {
+      title: o.title || '', claim: !!o.claim, badges: o.badges || [], clean: o.clean
+    })
+      .then(res => {
+        this.inFlight.delete(o.gate);
+        if(o.node) o.node.classList.remove('checking');
+        if(!res) return null;
+
+        if(!res.ok){
+          if(res.error === 'RATE_LIMIT' || res.error === 'BUSY'){
+            toast('⏳', 'One moment', 'The class database is busy — try that again in a few seconds.', '');
+          }else if(res.error === 'UNKNOWN_ACTIVITY'){
+            toast('⚠️', 'Not recognised', 'This activity is not in the class database. Tell your instructor.', '');
+          }
+          return res;
+        }
+
+        if(res.correct){
+          if(res.xpAwarded > 0){
+            Game.celebrateXP(res.xpAwarded, o.label || 'Activity cleared', o.node);
+          }
+          if(res.firstClear && o.node) FX.fromEl(o.node, o.burst || 32);
+        }
+        return res;
+      })
+      .catch(() => {
+        this.inFlight.delete(o.gate);
+        if(o.node) o.node.classList.remove('checking');
+        toast('📡', 'No connection', 'Could not reach the class database. Check your internet and try again.', '');
+        return null;
+      });
+  }
+};
+
 /* ══════════════════════ GATES ══════════════════════ */
 const CONT_REQS   = {};   // continueId -> [gateIds]
 const CONT_ACTS   = {};   // continueId -> fn
@@ -372,18 +415,33 @@ function registerRequirements(){
   });
 }
 
+/**
+ * Marks an activity complete in the local view.
+ *
+ * This used to BE the completion record: setting `S.gates[gid]` was all it took
+ * to finish an activity, and `S` lives in localStorage, so a student could
+ * complete the whole course from the console. It is now a mirror — the record
+ * is `_ServerGates` in the spreadsheet, and this only repaints the screen to
+ * match what the server has already confirmed.
+ *
+ * @returns {boolean} whether this was a change to the local view
+ */
 function passGate(gid, node){
   if(S.gates[gid]) return false;
   S.gates[gid] = true;
-  Object.keys(CONT_REQS).forEach(cid=>{
-    if(CONT_REQS[cid].includes(gid)) updCont(cid);
-  });
+  refreshAllContinues();
   refreshLessonRail();
   refreshSidebar();
   save();
   return true;
 }
 window.passGate = passGate;   // exposed for the exposure simulator
+
+/** Re-evaluates every "Continue" button against the current gate set. */
+function refreshAllContinues(){
+  Object.keys(CONT_REQS).forEach(cid => updCont(cid));
+}
+window.refreshAllContinues = refreshAllContinues;
 
 function canCont(cid){
   return (CONT_REQS[cid] || []).every(g => S.gates[g]);
@@ -678,7 +736,7 @@ const Blocks = {
       op.innerHTML = `<div class="qz-mark">${mark}</div>
         <div class="qz-body">
           <div class="qz-txt"${b.mono ? ' style="font-family:monospace;font-size:15px"' : ''}>${esc(o.txt)}</div>
-          <div class="qz-resp ${o.correct ? 'good' : 'bad'}">${o.fb}</div>
+          <div class="qz-resp"></div>
         </div>`;
       opts.appendChild(op);
     });
@@ -970,11 +1028,10 @@ const Init = {
     const seen = new Set();
     const items = $$('.pol', node);
     const finish = ()=>{
-      if(passGate(b.gate, node)){
-        Game.awardXP(b.xp, 'Studio wall revealed', node);
-        Game.giveBadge('shutterbug', node);
-        FX.fromEl(node, 36);
-      }
+      if(S.gates[b.gate]) return;
+      Grade.submit({ gate:b.gate, claim:true, node, title:b.title,
+                     label:'Studio wall revealed', burst:36 })
+        .then(res => { if(res && res.correct) passGate(b.gate, node); });
     };
     items.forEach(p=>{
       p.addEventListener('click', ()=>{
@@ -1019,9 +1076,10 @@ const Init = {
         tiles[i].classList.add('found');
         Audio_.play('reveal');
         setFoot(node, found.size, b.items.length, `✓ All ${b.items.length} discovered!`);
-        if(found.size >= b.items.length && passGate(b.gate, node)){
-          Game.awardXP(b.xp, `${b.title} complete`, node);
-          if(b.badgeOnDone) Game.giveBadge(b.badgeOnDone, node);
+        if(found.size >= b.items.length && !S.gates[b.gate]){
+          Grade.submit({ gate:b.gate, claim:true, node, title:b.title,
+                         label:`${b.title} complete` })
+            .then(res => { if(res && res.correct) passGate(b.gate, node); });
           FX.fromEl(node, 34);
         }
       }else{
@@ -1057,10 +1115,10 @@ const Init = {
           flipped.add(i);
           c.classList.add('seen');
           setFoot(node, flipped.size, cards.length, '✓ Every movement revealed!');
-          if(flipped.size >= cards.length && passGate(b.gate, node)){
-            Game.awardXP(b.xp, 'All movement cards flipped', node);
-            if(b.badgeOnDone) Game.giveBadge(b.badgeOnDone, node);
-            FX.fromEl(node, 40);
+          if(flipped.size >= cards.length && !S.gates[b.gate]){
+            Grade.submit({ gate:b.gate, claim:true, node, title:b.title,
+                           label:'All movement cards flipped', burst:40 })
+              .then(res => { if(res && res.correct) passGate(b.gate, node); });
           }
         }
       });
@@ -1094,9 +1152,10 @@ const Init = {
         viewed.add(cur);
         dots[cur].classList.add('visited');
         setFoot(node, viewed.size, cards.length, '✓ Full deck reviewed!');
-        if(viewed.size >= cards.length && passGate(b.gate, node)){
-          Game.awardXP(b.xp, `${b.title} complete`, node);
-          FX.fromEl(node, 34);
+        if(viewed.size >= cards.length && !S.gates[b.gate]){
+          Grade.submit({ gate:b.gate, claim:true, node, title:b.title,
+                         label:`${b.title} complete`, burst:34 })
+            .then(res => { if(res && res.correct) passGate(b.gate, node); });
         }
       }
     }
@@ -1123,8 +1182,8 @@ const Init = {
 
   /* ── sorter ── */
   sorter(node, b){
-    const ansMap = {};
-    b.items.forEach(i => ansMap[i.id] = i.answer);
+    /* No answer map here any more — `b.items[].answer` was removed from
+       content.js and now lives only in AnswerKey.gs. */
     const pool  = $('.so-pool', node);
     const fb    = $('.so-fb', node);
     const check = $('[data-act="check"]', node);
@@ -1182,39 +1241,58 @@ const Init = {
         setTimeout(()=>node.classList.remove('shake'), 500);
         return;
       }
-      attempts++;
-      tries.textContent = attempts;
-      let ok = true;
+      /* Collect where the student put things and let the server mark it.
+         This file no longer knows which category is right. */
+      const answer = {};
       $$('.so-item', node).forEach(item=>{
-        const placed = item.closest('.so-zone')?.dataset.cat;
         item.classList.remove('ok','bad');
-        if(placed === ansMap[item.dataset.id]) item.classList.add('ok');
-        else { item.classList.add('bad'); ok = false; }
+        answer[item.dataset.id] = item.closest('.so-zone')?.dataset.cat || '';
       });
 
-      if(ok){
-        fb.className = 'so-fb ok';
-        fb.textContent = '✅ All items matched correctly! Great job!';
-        check.disabled = true;
-        Audio_.play('correct');
-        Game.hit();
-        if(passGate(b.gate, node)){
-          const bonus = attempts === 1 ? 20 : 0;
-          Game.awardXP(b.xp + bonus, bonus ? 'Perfect first try! (+20 bonus)' : 'Sorting gauntlet cleared', node);
-          if(attempts === 1 && b.badgeOnPerfect) Game.giveBadge(b.badgeOnPerfect, node);
-          FX.fromEl(node, 40);
-        }
-      }else{
-        fb.className = 'so-fb err';
-        fb.textContent = '❌ Some items are in the wrong category. Check the highlighted ones!';
-        Audio_.play('wrong');
-        Game.miss();
-        setTimeout(()=>{
-          $$('.so-item.bad', node).forEach(i=>{ i.classList.remove('bad'); pool.appendChild(i); });
-          fb.className = 'so-fb';
-          fb.textContent = '';
-        }, 2400);
-      }
+      check.disabled = true;
+      fb.className = 'so-fb';
+      fb.textContent = '⏳ Checking your answers…';
+
+      Grade.submit({ gate:b.gate, answer, node, title:b.title,
+                     label:'Sorting gauntlet cleared', burst:40 })
+        .then(res => {
+          if(!res || !res.ok){
+            /* Could not be marked — let them try again, and do not pretend
+               the attempt happened. */
+            check.disabled = false;
+            fb.className = 'so-fb';
+            fb.textContent = '';
+            return;
+          }
+          attempts++;
+          tries.textContent = attempts;
+
+          if(res.correct){
+            $$('.so-item', node).forEach(i => i.classList.add('ok'));
+            fb.className = 'so-fb ok';
+            fb.textContent = '✅ All items matched correctly! Great job!';
+            Game.hit();
+            passGate(b.gate, node);
+          }else{
+            check.disabled = false;
+            /* The server names the tiles that are in the wrong box — which the
+               student can already see — but never which box is right. */
+            const wrong = new Set(res.wrong || []);
+            $$('.so-item', node).forEach(i=>{
+              if(wrong.has(i.dataset.id)) i.classList.add('bad');
+              else i.classList.add('ok');
+            });
+            fb.className = 'so-fb err';
+            fb.textContent = '❌ Some items are in the wrong category. Check the highlighted ones!';
+            Game.miss();
+            setTimeout(()=>{
+              $$('.so-item.bad', node).forEach(i=>{ i.classList.remove('bad'); pool.appendChild(i); });
+              $$('.so-item.ok', node).forEach(i=> i.classList.remove('ok'));
+              fb.className = 'so-fb';
+              fb.textContent = '';
+            }, 2400);
+          }
+        });
     });
 
     if(S.gates[b.gate]){
@@ -1232,108 +1310,130 @@ const Init = {
     const check = $('[data-act="check"]', node);
     const done  = ()=> S.gates[b.gate];
 
-    const finish = ()=>{
-      if(passGate(b.gate, node)){
-        Game.awardXP(b.xp, 'Knowledge check cleared', node);
-        FX.fromEl(node, 32);
-      }
+    /* `b.opts[].correct` and `b.opts[].fb` no longer exist — both were an
+       answer key in plain sight, the second one literally spelling out
+       "✅ Correct!" beside the right options. They live in AnswerKey.gs now,
+       and every verdict and explanation below arrives from the server. */
+    let busy = false;
+
+    /** Fills in the explanation the server sent for one option. */
+    const showResp = (i, good, res)=>{
+      const r = resps[i];
+      if(!r) return;
+      r.textContent = (res && res.fb && res.fb[i]) || '';
+      r.classList.remove('good','bad');
+      r.classList.add(good ? 'good' : 'bad', 'show');
+    };
+    const say = (text, colour)=>{
+      fbEl.className = 'qz-fb show';
+      fbEl.style.color = colour;
+      fbEl.textContent = text;
     };
 
     if(b.mode === 'multi'){
       const sel = new Set();
-      const correctIdx = b.opts.map((o,i)=> o.correct ? i : -1).filter(i => i >= 0);
 
       opts.forEach((op,i)=>{
         op.addEventListener('click', ()=>{
-          if(done()) return;
+          if(done() || busy) return;
           if(sel.has(i)){ sel.delete(i); op.classList.remove('sel'); }
           else { sel.add(i); op.classList.add('sel'); Audio_.play('click'); }
         });
       });
 
       check.addEventListener('click', ()=>{
-        if(done()) return;
+        if(done() || busy) return;
         if(sel.size === 0){
-          fbEl.className = 'qz-fb show';
-          fbEl.style.color = 'var(--warn)';
-          fbEl.textContent = '⚠️ Please select at least one option.';
+          say('⚠️ Please select at least one option.', 'var(--warn)');
           return;
         }
         opts.forEach(o => o.classList.remove('ok','bad'));
         resps.forEach(r => r.classList.remove('show'));
 
-        let allOk = true;
-        const allFound = correctIdx.every(i => sel.has(i));
-        sel.forEach(i=>{
-          const ok = b.opts[i].correct;
-          opts[i].classList.add(ok ? 'ok' : 'bad');
-          resps[i].classList.add('show');
-          if(!ok) allOk = false;
-        });
+        busy = true;
+        check.disabled = true;
+        say('⏳ Checking your answers…', 'var(--muted)');
 
-        if(allOk && allFound && sel.size === correctIdx.length){
-          fbEl.className = 'qz-fb show';
-          fbEl.style.color = 'var(--success)';
-          fbEl.textContent = '✅ Both correct answers identified! You may continue.';
-          check.disabled = true;
-          Audio_.play('correct');
-          Game.hit();
-          Game.giveBadge('sharp-eye', node);
-          finish();
-        }else{
-          let msg = '❌ ';
-          if(!allOk)    msg += 'Some selected statements are TRUE. ';
-          if(!allFound) msg += 'You may have missed a FALSE statement. ';
-          msg += 'Review and try again.';
-          fbEl.className = 'qz-fb show';
-          fbEl.style.color = 'var(--error)';
-          fbEl.textContent = msg;
-          Audio_.play('wrong');
-          Game.miss();
-          node.classList.add('shake');
-          setTimeout(()=>node.classList.remove('shake'), 450);
-          setTimeout(()=>{
-            opts.forEach(o => o.classList.remove('bad'));
-            resps.forEach(r => r.classList.remove('show'));
-          }, 3200);
-        }
+        Grade.submit({ gate:b.gate, answer:Array.from(sel), node, title:b.title,
+                       label:'Knowledge check cleared' })
+          .then(res => {
+            busy = false;
+            if(!res || !res.ok){ check.disabled = false; say('', 'var(--muted)'); fbEl.className = 'qz-fb'; return; }
+
+            if(res.correct){
+              sel.forEach(i => { opts[i].classList.add('ok'); showResp(i, true, res); });
+              say('✅ Both correct answers identified! You may continue.', 'var(--success)');
+              Game.hit();
+              passGate(b.gate, node);
+            }else{
+              check.disabled = false;
+              /* The server tells us which of THEIR OWN picks were wrong and
+                 how many they missed — never which options are right. */
+              const wrong = new Set(res.wrong || []);
+              sel.forEach(i => {
+                opts[i].classList.add(wrong.has(i) ? 'bad' : 'ok');
+                showResp(i, !wrong.has(i), res);
+              });
+              let msg = '❌ ';
+              if(wrong.size)      msg += 'Some selected statements are TRUE. ';
+              if(res.missedCount) msg += 'You may have missed a FALSE statement. ';
+              msg += 'Review and try again.';
+              say(msg, 'var(--error)');
+              Game.miss();
+              node.classList.add('shake');
+              setTimeout(()=>node.classList.remove('shake'), 450);
+              setTimeout(()=>{
+                opts.forEach(o => o.classList.remove('bad','ok'));
+                resps.forEach(r => r.classList.remove('show'));
+              }, 3200);
+            }
+          });
       });
 
     }else{
-      let firstTry = true;
       opts.forEach((op,i)=>{
         op.addEventListener('click', ()=>{
-          if(done()) return;
+          if(done() || busy) return;
           opts.forEach(o => o.classList.remove('sel','ok','bad'));
           resps.forEach(r => r.classList.remove('show'));
           op.classList.add('sel');
-          resps[i].classList.add('show');
 
-          if(b.opts[i].correct){
-            op.classList.add('ok');
-            $('.qz-mark', op).textContent = '✓';
-            Audio_.play('correct');
-            Game.hit();
-            if(firstTry) Game.giveBadge('sharp-eye', node);
-            opts.forEach(o => o.classList.add('locked'));
-            op.classList.remove('locked');
-            finish();
-          }else{
-            op.classList.add('bad');
-            op.classList.add('shake');
-            firstTry = false;
-            Audio_.play('wrong');
-            Game.miss();
-            setTimeout(()=>op.classList.remove('shake'), 450);
-          }
+          busy = true;
+          opts.forEach(o => o.classList.add('locked'));
+          say('⏳ Checking…', 'var(--muted)');
+
+          Grade.submit({ gate:b.gate, answer:i, node, title:b.title,
+                         label:'Knowledge check cleared' })
+            .then(res => {
+              busy = false;
+              opts.forEach(o => o.classList.remove('locked'));
+              if(!res || !res.ok){ op.classList.remove('sel'); fbEl.className = 'qz-fb'; return; }
+
+              showResp(i, !!res.correct, res);
+              if(res.correct){
+                op.classList.add('ok');
+                const mark = $('.qz-mark', op);
+                if(mark) mark.textContent = '✓';
+                fbEl.className = 'qz-fb';
+                Game.hit();
+                opts.forEach(o => o.classList.add('locked'));
+                op.classList.remove('locked');
+                passGate(b.gate, node);
+              }else{
+                op.classList.add('bad','shake');
+                fbEl.className = 'qz-fb';
+                Game.miss();
+                setTimeout(()=>op.classList.remove('shake'), 450);
+              }
+            });
         });
       });
     }
 
     if(S.gates[b.gate]){
       if(check) check.disabled = true;
-      const ci = b.opts.findIndex(o => o.correct);
-      if(b.mode !== 'multi' && ci >= 0){ opts[ci].classList.add('ok'); resps[ci].classList.add('show'); }
+      /* Previously this highlighted the correct option straight from the
+         content file. The engine no longer knows which one that is. */
       if(fbEl){ fbEl.className = 'qz-fb show'; fbEl.style.color = 'var(--success)'; fbEl.textContent = '✅ Already completed.'; }
     }
   },
@@ -1384,11 +1484,17 @@ const Init = {
             fb.textContent = misses === 0
               ? '🏆 Flawless! Every pair matched without a single miss.'
               : `✅ All ${b.pairs.length} pairs matched with ${misses} miss${misses===1?'':'es'}. Well done!`;
-            if(passGate(b.gate, node)){
-              const bonus = misses === 0 ? 30 : Math.max(0, 15 - misses * 3);
-              Game.awardXP(b.xp + bonus, misses === 0 ? 'Perfect match run! (+30 bonus)' : 'Match game cleared', node);
-              if(misses === 0) Game.giveBadge('matchmaker', node);
-              FX.fromEl(node, 44);
+            if(!S.gates[b.gate]){
+              /* A memory match shows both halves of every pair, so there is no
+                 secret for the server to check — but it still decides the XP,
+                 and a clean run only unlocks the bonus and the badge that the
+                 key permits for this activity. */
+              Grade.submit({ gate:b.gate, claim:true, node, title:b.title,
+                             clean: misses === 0,
+                             badges: misses === 0 ? ['matchmaker'] : [],
+                             label: misses === 0 ? 'Perfect match run!' : 'Match game cleared',
+                             burst:44 })
+                .then(res => { if(res && res.correct) passGate(b.gate, node); });
             }
           }
         }else{
@@ -1431,6 +1537,7 @@ const Init = {
     const timeFill = $('.boss-timer-fill', node);
 
     let qi = 0, score = 0, combo = 1, right = 0, timer = null, left = b.time, questions = [];
+    let picks = [];   // {q: original index, a: option index or -1 for timeout}
 
     function tick(){
       left--;
@@ -1462,73 +1569,105 @@ const Init = {
       timer = setInterval(tick, 1000);
     }
 
+    /* The engine no longer knows which option is right, so a speed round is now
+       genuinely a speed round: answers are locked in as they are given and the
+       whole set is marked at the end. That is the one visible change server-side
+       grading forces — per-question feedback mid-round would mean shipping the
+       key to the browser again, which is exactly what we removed. */
     function answer(i){
       clearInterval(timer);
-      const q = questions[qi];
       const btns = $$('.boss-opt', optsEl);
       optsEl.classList.add('locked');
-      btns[q.correct].classList.add('ok');
+      if(i >= 0) btns[i].classList.add('sel');
 
-      if(i === q.correct){
-        right++;
-        score += 100 * combo;
-        combo = Math.min(5, combo + 1);
-        Audio_.play('correct');
-        Game.hit();
-      }else{
-        if(i >= 0) btns[i].classList.add('bad');
-        combo = 1;
-        Audio_.play('wrong');
-        Game.miss();
-      }
-      scoreEl.textContent = score;
-      comboEl.textContent = combo;
-      comboBx.classList.toggle('on', combo > 1);
+      picks.push({ q: questions[qi]._i, a: i });
+      Audio_.play('click');
+
+      scoreEl.textContent = picks.length + '/' + questions.length;
+      comboBx.classList.remove('on');
 
       setTimeout(()=>{
         qi++;
         if(qi < questions.length) render();
         else finish();
-      }, 950);
+      }, 420);
     }
 
     function finish(){
       arena.classList.remove('on');
-      const acc = Math.round(right / questions.length * 100);
-      const perfect = right === questions.length;
-      const won = acc >= 60;
-
-      result.innerHTML = `
-        <span class="boss-res-emoji">${perfect ? '💎' : won ? '🏆' : '💪'}</span>
-        <div class="boss-res-title">${perfect ? 'Flawless Victory!' : won ? 'Speed Round Cleared!' : 'Good Effort!'}</div>
-        <div class="boss-res-sub">${perfect ? 'A perfect run — nothing got past you.'
-          : won ? 'Solid work. Replay for a higher score.' : 'You need 60% to clear. Review the lesson and try again.'}</div>
-        <div class="boss-res-stats">
-          <div class="boss-res-stat"><b>${right}/${questions.length}</b><span>Correct</span></div>
-          <div class="boss-res-stat"><b>${acc}%</b><span>Accuracy</span></div>
-          <div class="boss-res-stat"><b>${score}</b><span>Points</span></div>
-        </div>
-        <button class="btn-boss" data-act="again">↻ Play Again</button>`;
+      result.innerHTML = `<div class="boss-res-sub">⏳ Marking your round…</div>`;
       result.classList.add('on');
-      $('[data-act="again"]', result).addEventListener('click', start);
 
-      if(won){
-        Audio_.play('levelup');
-        FX.rain(perfect ? 120 : 70);
-        const first = passGate(b.gate, node);
-        const xp = Math.round(b.xp * (acc/100));
-        Game.awardXP(first ? xp : Math.round(xp * .35), first ? 'Speed round cleared!' : 'Replay bonus', node);
-        Game.giveBadge('boss', node);
-        if(perfect) Game.giveBadge('perfect-boss', node);
-      }else{
-        Audio_.play('fail');
-      }
+      Grade.submit({ gate:b.gate, answer:picks, node, title:b.title,
+                     label:'Speed round cleared!', burst:0 })
+        .then(res => {
+          if(!res || !res.ok){
+            result.innerHTML = `
+              <span class="boss-res-emoji">📡</span>
+              <div class="boss-res-title">Could not mark this round</div>
+              <div class="boss-res-sub">The class database could not be reached, so this
+                round has not been recorded. Check your connection and play it again —
+                nothing was lost.</div>
+              <button class="btn-boss" data-act="again">↻ Try Again</button>`;
+            $('[data-act="again"]', result).addEventListener('click', start);
+            Audio_.play('fail');
+            return;
+          }
+
+          const won     = !!res.correct;
+          const perfect = !!res.perfect;
+          const acc     = res.accuracy;
+          /* The original combo scoring, replayed over the server's verdict so
+             the Points figure still means what it always did. */
+          let pts = 0, combo2 = 1;
+          const byQ = {};
+          (res.review || []).forEach(r => byQ[r.q] = r);
+          picks.forEach(p => {
+            if(byQ[p.q] && byQ[p.q].ok){ pts += 100 * combo2; combo2 = Math.min(5, combo2 + 1); }
+            else combo2 = 1;
+          });
+
+          /* The round is settled, so showing the answers now gives nothing
+             away that the student has not already been marked on. */
+          const review = (res.review || []).map(r => {
+            const q = b.questions[r.q];
+            if(!q) return '';
+            return `<li class="boss-rev-item ${r.ok ? 'ok' : 'bad'}">
+              <span class="boss-rev-q">${esc(q.q)}</span>
+              <span class="boss-rev-a">${r.ok ? '✓' : '✗'} ${esc(q.opts[r.key])}</span>
+            </li>`;
+          }).join('');
+
+          result.innerHTML = `
+            <span class="boss-res-emoji">${perfect ? '💎' : won ? '🏆' : '💪'}</span>
+            <div class="boss-res-title">${perfect ? 'Flawless Victory!' : won ? 'Speed Round Cleared!' : 'Good Effort!'}</div>
+            <div class="boss-res-sub">${perfect ? 'A perfect run — nothing got past you.'
+              : won ? 'Solid work. Replay for a higher score.' : 'You need 60% to clear. Review the lesson and try again.'}</div>
+            <div class="boss-res-stats">
+              <div class="boss-res-stat"><b>${res.right}/${res.total}</b><span>Correct</span></div>
+              <div class="boss-res-stat"><b>${acc}%</b><span>Accuracy</span></div>
+              <div class="boss-res-stat"><b>${pts}</b><span>Points</span></div>
+            </div>
+            <ul class="boss-review">${review}</ul>
+            <button class="btn-boss" data-act="again">↻ Play Again</button>`;
+          $('[data-act="again"]', result).addEventListener('click', start);
+
+          if(won){
+            Audio_.play('levelup');
+            FX.rain(perfect ? 120 : 70);
+            passGate(b.gate, node);
+          }else{
+            Audio_.play('fail');
+          }
+        });
     }
 
     function start(){
-      questions = shuffle(b.questions);
-      qi = 0; score = 0; combo = 1; right = 0;
-      scoreEl.textContent = '0';
+      /* Tag each question with its position in the content file before
+         shuffling, so the server can match answers to its key. */
+      questions = shuffle(b.questions.map((q, i) => Object.assign({ _i: i }, q)));
+      qi = 0; picks = []; score = 0; combo = 1; right = 0;
+      scoreEl.textContent = '0/' + questions.length;
       comboEl.textContent = '1';
       comboBx.classList.remove('on');
       intro.style.display = 'none';
@@ -1553,9 +1692,10 @@ const Init = {
     function refresh(){
       const done = S.quest[key].length;
       setFoot(node, done, steps.length, '✓ Quest log complete!');
-      if(done >= steps.length && passGate(b.gate, node)){
-        Game.awardXP(b.xp, 'Project quest log complete', node);
-        FX.fromEl(node, 34);
+      if(done >= steps.length && !S.gates[b.gate]){
+        Grade.submit({ gate:b.gate, claim:true, node, title:b.title,
+                       label:'Project quest log complete', burst:34 })
+          .then(res => { if(res && res.correct) passGate(b.gate, node); });
       }
       save();
     }
@@ -1693,10 +1833,10 @@ const Init = {
       if(aperture<=30 && shutter<=25 && iso>=75 && totalLight>=120 && totalLight<=200){
         if(!successMessage.classList.contains('show')) Audio_.play('correct');
         successMessage.classList.add('show');
-        if(passGate(b.gate, node)){
-          Game.awardXP(b.xp, 'Perfect exposure captured!', node);
-          Game.giveBadge(b.badge, node);
-          FX.fromEl(node, 46);
+        if(!S.gates[b.gate]){
+          Grade.submit({ gate:b.gate, claim:true, node, title:'Exposure triangle',
+                         label:'Perfect exposure captured!', burst:46 })
+            .then(res => { if(res && res.correct) passGate(b.gate, node); });
         }
       }else{
         successMessage.classList.remove('show');
@@ -1777,10 +1917,10 @@ const Init = {
       if(!seen.has(name)){
         seen.add(name);
         setFoot(node, seen.size, CHORD_ORDER.length, '✓ All chord shapes explored!');
-        if(seen.size >= CHORD_ORDER.length && passGate(b.gate, node)){
-          Game.awardXP(b.xp, 'Every chord shape explored', node);
-          Game.giveBadge(b.badge, node);
-          FX.fromEl(node, 40);
+        if(seen.size >= CHORD_ORDER.length && !S.gates[b.gate]){
+          Grade.submit({ gate:b.gate, claim:true, node, title:'Chord library',
+                         label:'Every chord shape explored', burst:40 })
+            .then(res => { if(res && res.correct) passGate(b.gate, node); });
         }
       }
     }
@@ -1872,7 +2012,9 @@ function buildCompletePage(mod, modKey){
         }).join('')
       : '<span class="rb">No badges yet — replay the challenges!</span>';
 
-    if(c.badge) Game.giveBadge(c.badge);
+    /* The midterm / final-term badges are decided by the server, from the set
+       of activities it has actually cleared — reaching this page is not what
+       earns them, finishing the module is. It has usually arrived already. */
     Audio_.play('levelup');
     FX.rain(140);
   };
@@ -2107,7 +2249,9 @@ function showPage(pid, isBack){
   updateBC(pid);
   refreshLessonRail();
 
-  if(pid !== 'terminal' && findLesson(pid)) Game.giveBadge('first-steps');
+  /* "First Steps" is awarded server-side on the first activity a student
+     completes — opening a page is not something worth a badge on its own,
+     and it was the one badge a student could earn without doing anything. */
   save();
 }
 
@@ -2320,6 +2464,14 @@ function boot(){
   FX.setup();
   buildSidebar();
   buildSheet();
+
+  /* localStorage got us this far so the module can paint instantly, but the
+     spreadsheet is the record. Overwrite the local view with whatever the
+     server handed over at sign-in; the first sync (a second or two from now)
+     refreshes it again. A student who edited their saved progress watches it
+     revert here. */
+  if(window.AAPAuth && AAPAuth.applyState) AAPAuth.applyState();
+
   Game.refreshHUD();
 
   $('#sb-overlay').addEventListener('click', closeSidebar);

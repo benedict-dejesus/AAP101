@@ -815,6 +815,31 @@ button{font-family:inherit}
 .boss-res-stat b{display:block;font-family:var(--fd);font-size:24px;font-weight:800;color:var(--accent);line-height:1.1}
 .boss-res-stat span{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,247,247,.5);font-weight:700}
 
+/* Speed-round review. The round is marked in one go when it ends, so this is
+   where the student finds out how they did — it replaces the per-question
+   reveal, which needed the answer key in the browser. */
+.boss-review{list-style:none;text-align:left;max-width:560px;margin:0 auto 22px;display:flex;flex-direction:column;gap:8px}
+.boss-rev-item{display:flex;flex-direction:column;gap:3px;padding:10px 13px;border-radius:var(--rsm);
+  border:1px solid rgba(255,247,247,.1);background:rgba(255,247,247,.04)}
+.boss-rev-item.ok{border-color:rgba(16,185,129,.34);background:rgba(16,185,129,.09)}
+.boss-rev-item.bad{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07)}
+.boss-rev-q{font-size:12.5px;line-height:1.5;color:rgba(255,247,247,.72)}
+.boss-rev-a{font-size:13px;font-weight:700;color:rgba(255,247,247,.94)}
+.boss-rev-item.ok .boss-rev-a{color:#6EE7B7}
+.boss-rev-item.bad .boss-rev-a{color:#FCA5A5}
+
+/* An activity waiting on the server's verdict. Marking is a round trip now,
+   so the student gets a clear "this is being checked" state rather than a
+   moment where nothing appears to happen. */
+.block.checking{position:relative}
+.block.checking::after{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:rgba(255,255,255,.35);backdrop-filter:saturate(.7);pointer-events:none;
+  animation:fadeIn .18s ease}
+.block.checking .qz-opt,
+.block.checking .so-item,
+.block.checking .btn-check{pointer-events:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
 /* ══════════════════════════════════════════════════════════════
    BLOCK · timeline (project quest)
    ══════════════════════════════════════════════════════════════ */
