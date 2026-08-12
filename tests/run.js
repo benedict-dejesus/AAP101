@@ -6,7 +6,7 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 let failed = 0;
 
-for (const suite of ['test-backend.js', 'test-frontend.js']) {
+for (const suite of ['test-backend.js', 'test-frontend.js', 'test-progression.js']) {
   try {
     execFileSync(process.execPath, [path.join(__dirname, suite)],
                  { cwd: root, stdio: 'inherit' });

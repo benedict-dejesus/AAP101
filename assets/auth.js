@@ -377,24 +377,52 @@ function applyServerState(state) {
   } catch (e) { dbg('applyServerState failed', e); }
 }
 
-/** Re-derives which lessons are open from the gates the server has cleared. */
+/**
+ * Re-derives which lessons are open from the gates the server has cleared.
+ *
+ * This matters more than it looks: the gate set lives on the server, but the
+ * list of unlocked lessons has only ever lived in localStorage. A new phone, a
+ * cleared cache, a private window, or iOS evicting site storage after a week,
+ * and this function is the only thing standing between a student and the
+ * course they have already paid for in work.
+ *
+ * It replays the module's own rule — a lesson is opened by the Continue button
+ * that names it, once THAT BUTTON's requirements are met. It must not ask for
+ * every gate in the lesson: six activities (the two speed rounds, the bonus
+ * quiz, the bonus match, the quest log, the chord library) are deliberately
+ * optional, and demanding them here quietly turned each one into a
+ * prerequisite — locking students out of Midterm lesson 6 and of the entire
+ * Final term after they had done all the required work.
+ *
+ * Additive on purpose: a lesson already open is never taken back, so a student
+ * part-way through one does not lose access to it.
+ */
 function unlockFromGates() {
   try {
+    const open = {
+      m: new Set(S.unlocked.m || [1]),
+      f: new Set(S.unlocked.f || [1])
+    };
+    open.m.add(1);
+    open.f.add(1);
+
+    ['m', 'f'].forEach(k => (CONTENT[k].lessons || []).forEach(les => {
+      (function walk(blocks) {
+        (blocks || []).forEach(b => {
+          if (b.blocks) walk(b.blocks);
+          if (b.t !== 'continue' || !b.unlock) return;
+          if (!(b.req || []).every(g => S.gates[g])) return;
+          /* The same source of truth the button itself uses — see app.js. */
+          const mod = (typeof lessonMod === 'function' && b.go) ? lessonMod(b.go) : k;
+          if (open[mod]) open[mod].add(b.unlock);
+        });
+      })(les.blocks);
+    }));
+
     ['m', 'f'].forEach(k => {
-      const open = new Set(S.unlocked[k] || [1]);
-      open.add(1);
-      (CONTENT[k].lessons || []).forEach(les => {
-        const gates = [];
-        (function walk(blocks) {
-          (blocks || []).forEach(b => {
-            if (b.blocks) walk(b.blocks);
-            if (b.gate) gates.push(b.gate);
-          });
-        })(les.blocks);
-        if (gates.length && gates.every(g => S.gates[g])) open.add(les.num + 1);
-      });
-      S.unlocked[k] = Array.from(open).filter(n =>
-        n <= (CONTENT[k].lessons || []).length).sort((a, b) => a - b);
+      S.unlocked[k] = Array.from(open[k])
+        .filter(n => n >= 1 && n <= (CONTENT[k].lessons || []).length)
+        .sort((a, b) => a - b);
     });
   } catch (e) { dbg('unlockFromGates failed', e); }
 }
@@ -438,7 +466,17 @@ const Server = {
       sid: Telemetry.sid,
       gate: gate,
       answer: answer,
-      title: (meta && meta.title) || ''
+      title: (meta && meta.title) || '',
+      /* Both of these are REQUESTS, not verdicts. AnswerKey.gs prices `clean`
+         against the two bonuses that activity is allowed to pay, and honours a
+         badge id only if the gate's own `claimBadges` allowlist names it — so
+         sending them cannot buy anything the key does not already offer. What
+         it does buy is the clean-run bonus and the Matchmaker badge a flawless
+         memory match has earned: leaving them out silently paid every match at
+         the messy rate. */
+      clean: (meta && meta.clean) === true,
+      badges: (meta && Array.isArray(meta.badges))
+        ? meta.badges.slice(0, 5).map(String) : []
     }, 25000);
   },
 
