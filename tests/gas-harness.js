@@ -67,7 +67,28 @@ function makeSheet(name) {
           }
           return out;
         },
+        /* Real Sheets REFUSES a setValues whose data does not exactly fill the
+           range, and the message below is Google's own wording.
+
+           This check is not pedantry. Without it the harness silently accepted
+           a row one element too long for its range and wrote that element into
+           the next column along — which is precisely how a write to
+           _ServerTries (column 36) through a range that stopped at column 35
+           passed every test here while throwing on every single request in
+           production, taking XP awarding and telemetry sync down with it. A
+           harness that is more forgiving than the runtime it stands in for is
+           worse than no harness at all. */
         setValues(v) {
+          if (v.length !== nr) {
+            throw new Error('The number of rows in the data does not match the number of ' +
+              'rows in the range. The data has ' + v.length + ' but the range has ' + nr + '.');
+          }
+          for (let i = 0; i < v.length; i++) {
+            if (v[i].length !== nc) {
+              throw new Error('The number of columns in the data does not match the number of ' +
+                'columns in the range. The data has ' + v[i].length + ' but the range has ' + nc + '.');
+            }
+          }
           for (let i = 0; i < v.length; i++) {
             for (let j = 0; j < v[i].length; j++) {
               ensure(r - 1 + i, c - 1 + j);

@@ -167,6 +167,46 @@ head('NOTHING SENSITIVE IS PUBLISHED');
      !/access control disabled/.test(fs.readFileSync('SETUP_GUIDE.md', 'utf8')));
 }
 
+head('THE CLIENT MATCHES THE NEW IDENTITY MODEL');
+{
+  /* The browser is a display and a reporter. It must not assume it owns the
+     account, and it must not decide anything about it. */
+  ok('F-70 the module no longer tells students a code is tied to one device',
+     !/works on one device only/i.test(bundle), (bundle.match(/.{0,60}one device only.{0,40}/i) || [])[0]);
+  ok('F-71 the client still never sends a score of any kind',
+     !/\bxp\s*:\s*(S\.xp|Game|\d)/.test(auth) && !/snapshot\(\)[\s\S]{0,200}xp/.test(auth));
+  ok('F-72 the sync snapshot carries only session minutes and the page',
+     /snapshot\(\)\s*\{\s*return\s*\{\s*sessionMinutes:[^}]*lastPage:[^}]*\}/.test(auth),
+     (auth.match(/snapshot\(\)[\s\S]{0,120}/) || [])[0]);
+
+  /* The offline queue has to carry what the activity earned, or the server
+     prices it as a messy run when it finally arrives. */
+  ok('F-73 queued offline claims carry their clean-run flag and badges',
+     /Claims\.add\(gate,\s*meta\)/.test(auth) &&
+     /clean:\s*!!\(meta && meta\.clean\)/.test(auth) &&
+     /Server\.send\(c\.gate,\s*null,\s*\{[^}]*clean:\s*c\.clean[^}]*badges:\s*c\.badges/.test(auth));
+  ok('F-74 and an older queue of bare gate strings is upgraded, not dropped',
+     /typeof c === 'string'/.test(auth));
+
+  /* A server fault must be visible. The empty else-branch here is what let a
+     total grading outage look like nothing happening at all. */
+  ok('F-75 a submission the server refuses tells the student something',
+     /'Not saved'/.test(app) && /tell your instructor/.test(app) &&
+     /That could not be recorded just now/.test(app));
+
+  /* Resume comes from the record, not from this browser. */
+  ok('F-76 the client accepts a resume position from the server',
+     /state\.lastPage/.test(auth) && /S\.lastPage = state\.lastPage/.test(auth));
+  ok('F-77 and only onto a page that really exists',
+     /findLesson\(state\.lastPage\)/.test(auth));
+
+  /* Server state still wins over anything saved locally. */
+  ok('F-78 server state overwrites the local gate set wholesale',
+     /S\.gates = \{\};/.test(auth) && /\(state\.gates \|\| \[\]\)\.forEach/.test(auth));
+  ok('F-79 progress is still namespaced per access code',
+     /SAVE_KEY \+ '::' \+ AAPAuth\.codeKey\(\)/.test(app));
+}
+
 console.log('\n' + '═'.repeat(66));
 console.log('  ' + pass + ' passed, ' + fail + ' failed');
 if (fail) { console.log('\n  Failing:'); failures.forEach(f => console.log('   • ' + f)); }

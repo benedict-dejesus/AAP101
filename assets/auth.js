@@ -355,6 +355,17 @@ function applyServerState(state) {
     (state.gates || []).forEach(g => { S.gates[g] = true; });
     S.badges = (state.badges || []).slice();
 
+    /* Where they were last working, as the server recorded it.
+       This is the piece that makes a change of device feel like continuing
+       rather than starting over. The gates and the XP already travelled; the
+       position did not, because it lived only in this browser's localStorage —
+       so a student on a new phone arrived with all their progress and no idea
+       where they had got to. Only ever moves forward onto a real lesson: a
+       blank or unrecognised value leaves whatever this browser already knew. */
+    if (state.lastPage && typeof findLesson === 'function' && findLesson(state.lastPage)) {
+      S.lastPage = state.lastPage;
+    }
+
     /* Lessons the student has reached stay unlocked so navigation does not
        jump around, but the gates themselves are now the server's word. */
     unlockFromGates();
@@ -434,19 +445,56 @@ function unlockFromGates() {
    the student is offline and submitted when the connection returns. Quizzes,
    sorters and speed rounds are never queued: they need a real verdict.       */
 const Claims = {
-  read() { try { return JSON.parse(lsGet(K_CLAIMS) || '[]'); } catch (e) { return []; } },
-  write(a) { lsSet(K_CLAIMS, JSON.stringify(a.slice(-60))); },
-  add(gate) {
-    const q = this.read();
-    if (q.indexOf(gate) < 0) { q.push(gate); this.write(q); }
+  /* Entries are { gate, title, clean, badges }.
+     Older builds queued a bare gate string, so anything still sitting in a
+     student's localStorage from before is upgraded on read rather than
+     discarded. */
+  read() {
+    let raw;
+    try { raw = JSON.parse(lsGet(K_CLAIMS) || '[]'); } catch (e) { return []; }
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map(c => (typeof c === 'string')
+        ? { gate: c, title: '', clean: false, badges: [] }
+        : (c && c.gate ? { gate: String(c.gate), title: String(c.title || ''),
+                           clean: c.clean === true,
+                           badges: Array.isArray(c.badges) ? c.badges.slice(0, 5).map(String) : [] }
+                       : null))
+      .filter(Boolean);
   },
+  write(a) { lsSet(K_CLAIMS, JSON.stringify(a.slice(-60))); },
+
+  /**
+   * Queue an activity that could not be submitted because the connection was
+   * down — WITH what the student actually earned.
+   *
+   * The meta travels because it is worth XP. A flawless memory match is worth
+   * its clean-run bonus and the Matchmaker badge, and both are requested
+   * through these two fields; queueing the gate on its own, as this did
+   * before, re-submitted every offline match as a messy one and quietly cost
+   * the student the difference. The server still prices both against the
+   * activity's own allowlist, so carrying them here cannot buy anything that
+   * was not earned.
+   */
+  add(gate, meta) {
+    const q = this.read();
+    if (q.some(c => c.gate === gate)) return;
+    q.push({
+      gate: gate,
+      title: (meta && meta.title) || '',
+      clean: !!(meta && meta.clean),
+      badges: (meta && Array.isArray(meta.badges)) ? meta.badges.slice(0, 5).map(String) : []
+    });
+    this.write(q);
+  },
+
   flush() {
     const q = this.read();
     if (!q.length || !Session.data) return;
-    const gate = q[0];
-    Server.send(gate, null, {}).then(res => {
+    const c = q[0];
+    Server.send(c.gate, null, { title: c.title, clean: c.clean, badges: c.badges }).then(res => {
       if (res && (res.ok || res.error === 'UNKNOWN_ACTIVITY')) {
-        this.write(this.read().filter(g => g !== gate));
+        this.write(this.read().filter(x => x.gate !== c.gate));
         if (res.state) applyServerState(res.state);
         if (this.read().length) this.flush();
       }
@@ -501,8 +549,9 @@ const Server = {
       })
       .catch(err => {
         if (meta.claim) {
-          /* Nothing to verify — record it locally and send it when we can. */
-          Claims.add(gate);
+          /* Nothing to verify — record it locally, with everything it earned,
+             and send it when we can. */
+          Claims.add(gate, meta);
           Banner.show('Working offline — this will be saved when you reconnect.');
           return { ok: true, correct: true, offline: true, xpAwarded: 0 };
         }
@@ -714,7 +763,8 @@ const Gate = {
           <input id="ag-code" name="code" type="text" inputmode="latin"
                  autocapitalize="characters" spellcheck="false"
                  placeholder="AAP-XXXX-XXXX" maxlength="14" required>
-          <p class="ag-hint">Your instructor gave you this code. It works on one device only.</p>
+          <p class="ag-hint">Your instructor gave you this code. It carries your progress —
+             sign in with it on any phone, tablet or computer.</p>
           <button type="submit" class="ag-btn">Continue →</button>
         </form>
 
@@ -824,7 +874,10 @@ const Gate = {
           this.step('name');
           setTimeout(() => this.root.querySelector('#ag-name').focus(), 250);
         } else {
-          this.finishLogin(code, res.name, res.section);
+          /* A returning student. The server does not send the name back here
+             any more — it reads it from the record at sign-in and ignores
+             whatever the client offers — so there is nothing to pass on. */
+          this.finishLogin(code);
         }
       })
       .catch(err => {
@@ -866,6 +919,15 @@ const Gate = {
           at: Date.now()
         });
         this.close();
+        /* One access code drives one live session. If signing in here ended one
+           somewhere else, say so plainly — otherwise the other device simply
+           stops working and the student has no idea why. */
+        if (res.movedDevice) {
+          setTimeout(() => Banner.show(
+            'Welcome back. Your progress is here — and you have been signed out '
+          + 'on the last device you used.'), 900);
+          setTimeout(() => Banner.hide(), 9000);
+        }
       })
       .catch(() => {
         this.step('code');

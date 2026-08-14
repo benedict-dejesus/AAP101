@@ -204,11 +204,27 @@ function rateOk_(code, dev) {
 /**
  * One place where "who is this request from?" is answered.
  *
- * Resolves the caller against the sheet and refuses if anything is off. The
- * caller supplies a code, a device id and a token; NONE of those are believed
- * on their own — the token must carry a signature this script made, for that
- * exact code and device, and the sheet must still agree that the code is
- * active and bound to that device.
+ * THE IDENTITY MODEL (changed 2026-08, second pass)
+ *
+ *   ACCESS CODE  is the student. It names the row, and the row holds every
+ *                figure that counts.
+ *   DEVICE       is a client, not an owner. It is recorded for your logs and
+ *                it scopes a session, but it confers no rights and blocks
+ *                nobody.
+ *   SESSION      is the signed token: this code, from this client, at this
+ *                epoch. One is live at a time.
+ *
+ * What this function requires is a token this script signed, for the code and
+ * device the caller claims, at the epoch the sheet currently holds. It no
+ * longer requires the sheet's Device ID cell to match. That check is what
+ * refused students who had done nothing wrong: assets/auth.js mints a random
+ * device id and keeps it in a cookie plus localStorage, and Safari expires
+ * script-written cookies after seven days while iOS evicts localStorage on a
+ * similar schedule — so the same phone, in the same browser, would come back
+ * with a new id and be locked out of its own record until an instructor
+ * intervened. Signing in elsewhere now moves the session instead of refusing
+ * it (see apiLogin_), which revokes the previous device's token through the
+ * epoch and leaves the student's progress exactly where it was.
  *
  * @return {{ok:boolean, row:number, rec:Array, code:string, dev:string}|Object}
  */
@@ -238,11 +254,11 @@ function authenticate_(b) {
     return { ok: false, error: 'DISABLED', message: 'This access code has been disabled. Please contact your instructor.' };
   }
 
-  if (String(rec[C.DEVICE - 1] || '') !== dev) {
-    logSec_(code, dev, 'auth', 'REJECTED', 'Device mismatch', b.ua);
-    return { ok: false, error: 'DEVICE_LOCKED', message: 'This code is now in use on another device.' };
-  }
-
+  /* The session, and nothing about which hardware is holding it. A token is
+     only ever issued by apiLogin_, only to someone who supplied the access
+     code, and only for the device that asked — and it stops verifying the
+     moment the epoch moves, which is how signing in somewhere else ends this
+     session. */
   var epoch = Number(rec[C.EPOCH - 1] || 1);
   if (!verifyToken_(b.token, code, dev, epoch)) {
     logSec_(code, dev, 'auth', 'REJECTED', 'Bad or expired token', b.ua);
@@ -278,23 +294,30 @@ function apiCheck_(b) {
     return { ok: false, error: 'DISABLED', message: 'This access code has been disabled. Please contact your instructor.' };
   }
 
-  var boundDevice = String(rec[C.DEVICE - 1] || '');
-  var claimed     = !!boundDevice;
+  /* Has anyone signed in with this code before? That, and only that, decides
+     whether we need to ask for a name. WHICH device last used it is recorded
+     for your logs and has no say in the answer — a student on a new phone, in
+     a second browser, or on the same phone after its storage was cleared is a
+     returning student, not an intruder. */
+  var lastDevice = String(rec[C.DEVICE - 1] || '');
+  var registered = !!String(rec[C.NAME - 1] || '').trim() || !!lastDevice;
 
-  if (!claimed) return { ok: true, stage: 'REGISTER' };            // fresh code → ask for name
+  if (!registered) return { ok: true, stage: 'REGISTER' };   // fresh code → ask for name
 
-  if (boundDevice === dev) {                                       // same device → straight in
-    return { ok: true, stage: 'RETURNING', name: rec[C.NAME - 1], section: rec[C.SECTION - 1] };
-  }
-
-  logLogin_(code, rec[C.NAME - 1], rec[C.SECTION - 1], 'CHECK', 'REJECTED — device mismatch', dev, '', b.ua, b.screen);
-  /* Deliberately does not name the student it belongs to. The old wording
-     returned a masked name, which confirmed to anyone holding a guessed code
-     that it was live and leaked a fragment of someone else's identity. */
+  /* Deliberately anonymous.
+     `check` is the cheap probe — one POST, no commitment — so it is the wrong
+     place to hand back a name. Now that holding the code is enough to sign in,
+     naming the student here would turn a guessed code into a free lookup of
+     whose it is. Anyone genuinely signing in learns the name a moment later
+     from `login`, which cannot be done quietly: it moves the session, ends the
+     previous one, and writes a DEVICE_CHANGED line to SecurityLog.
+     The module does not need it here either — apiLogin_ reads the name from
+     the sheet for a returning student and ignores whatever the client sent. */
   return {
-    ok: false, error: 'DEVICE_LOCKED',
-    message: 'This access code is already registered to a different device. ' +
-             'If it is yours and you changed devices, ask your instructor to release it.'
+    ok: true, stage: 'RETURNING',
+    /* Lets the module warn the student, before they commit, that continuing
+       will end the session they left open elsewhere. */
+    movingDevice: !!lastDevice && lastDevice !== dev
   };
 }
 
@@ -328,42 +351,59 @@ function apiLogin_(b) {
       return { ok: false, error: 'DISABLED', message: 'This access code has been disabled.' };
     }
 
-    var bound = String(rec[C.DEVICE - 1] || '');
-    var now   = new Date();
+    var bound    = String(rec[C.DEVICE - 1] || '');
+    var hadName_ = String(rec[C.NAME - 1] || '').trim();
+    var now      = new Date();
+    var switched = false;
     var name, section;
 
-    if (!bound) {
+    if (!bound && !hadName_) {
       /* First ever use — claim the code for this device and this student. */
       name    = safeText_(b.name, 80);
       section = safeText_(b.section, 40);
       if (name.replace(/^'/, '').length < 2) {
         return { ok: false, error: 'NAME_REQUIRED', message: 'Please enter your full name.' };
       }
-      /* Write the name only if we do not already have one. Releasing a device
-         lock used to reopen this branch, which let the next person to use the
-         code rename the student it belongs to. */
-      var hadName = String(rec[C.NAME - 1] || '').trim();
-      if (!hadName) {
-        sh.getRange(row, C.NAME).setValue(name);
-        sh.getRange(row, C.SECTION).setValue(section);
-      } else {
-        name    = hadName;
-        section = String(rec[C.SECTION - 1] || '');
-      }
+      sh.getRange(row, C.NAME).setValue(name);
+      sh.getRange(row, C.SECTION).setValue(section);
       sh.getRange(row, C.DEVICE).setValue(dev);
       sh.getRange(row, C.STATUS).setValue('ACTIVE');
       if (!rec[C.FIRST - 1]) sh.getRange(row, C.FIRST).setValue(now);
       logLogin_(code, name, section, 'REGISTER', 'OK — code claimed', dev, b.sessionId, b.ua, b.screen);
 
     } else if (bound === dev) {
-      /* Returning student on their own device. */
+      /* Returning student on the same client. Nothing moves, and in particular
+         the epoch does not — a token that merely aged out is replaced without
+         disturbing anything. */
       name    = String(rec[C.NAME - 1] || '');
       section = String(rec[C.SECTION - 1] || '');
       logLogin_(code, name, section, 'LOGIN', 'OK', dev, b.sessionId, b.ua, b.screen);
 
     } else {
-      logLogin_(code, rec[C.NAME - 1], rec[C.SECTION - 1], 'LOGIN', 'REJECTED — device mismatch', dev, '', b.ua, b.screen);
-      return { ok: false, error: 'DEVICE_LOCKED', message: 'This access code is registered to another device.' };
+      /* Returning student on a different client — a new phone, a second
+         browser, or the same phone after its storage was cleared. The three
+         are indistinguishable from here and none of them is a reason to
+         refuse: the access code is the identity, and it has been supplied.
+         The session MOVES. Their row, and every figure on it, is untouched.
+
+         The name is never rewritten. Whoever holds the code can start a
+         session with it, but they cannot change whose record it is — which is
+         what stops a code that has been passed around from quietly acquiring
+         a different student's name. */
+      name     = String(rec[C.NAME - 1] || '');
+      section  = String(rec[C.SECTION - 1] || '');
+      switched = true;
+      sh.getRange(row, C.DEVICE).setValue(dev);
+      if (String(rec[C.STATUS - 1] || '').toUpperCase() !== 'ACTIVE') {
+        sh.getRange(row, C.STATUS).setValue('ACTIVE');
+      }
+      logLogin_(code, name, section, 'LOGIN', 'OK — session moved to a new device', dev, b.sessionId, b.ua, b.screen);
+      /* Visible in SecurityLog too. Removing the lock removed a barrier, not
+         the record: a code appearing on device after device is exactly what
+         sharing looks like, and you can still see it. */
+      logSec_(code, dev, 'login', 'DEVICE_CHANGED',
+              'Session moved from ' + (bound || '(none)') + ' to ' + dev +
+              '. Previous session signed out.', b.ua);
     }
 
     sh.getRange(row, C.LAST).setValue(now);
@@ -371,6 +411,16 @@ function apiLogin_(b) {
 
     var epoch = Number(rec[C.EPOCH - 1] || 0);
     if (!epoch) { epoch = 1; sh.getRange(row, C.EPOCH).setValue(1); }
+
+    /* One live session per code. Moving to a new client bumps the epoch, which
+       makes every token issued before this moment stop verifying — so the
+       device that was signed in a second ago is signed out, without anyone
+       having to reach for the menu.
+
+       This is the whole of what replaced the device lock. It is a session
+       control, not an ownership claim: it decides which client is currently
+       driving the account, never which client is allowed to. */
+    if (switched) epoch = bumpEpoch_(row);
 
     /* Remember what the module says its gates are, so auditAnswerKey() can
        tell you when content.js and AnswerKey.gs have drifted apart. */
@@ -387,6 +437,9 @@ function apiLogin_(b) {
       code: String(rec[C.CODE - 1] || code),
       name: name,
       section: section,
+      /* True when this sign-in ended a session somewhere else. The module says
+         so rather than leaving the other device to fail silently. */
+      movedDevice: switched,
       /* The authoritative record. The module renders this instead of whatever
          happens to be sitting in the browser's localStorage, so clearing your
          browser — or editing it — changes nothing that counts. */
@@ -663,7 +716,13 @@ function readState_(rec) {
     run:      Number(rec[C.SRUN - 1] || 0),
     gates:    gates,
     badges:   badges,
-    tries:    tries
+    tries:    tries,
+    /* Where they were last working. Carried in the state so a student who
+       signs in on a different device is offered their place back — that
+       position used to live only in the browser's localStorage, which meant a
+       new phone reliably dropped them at the front of the course with all
+       their progress intact but no way to see where they had got to. */
+    lastPage: String(rec[C.LASTPAGE - 1] || '')
   };
 }
 
@@ -732,14 +791,40 @@ function writeState_(sh, row, st, now, extra) {
   for (k in st.gates) if (st.gates.hasOwnProperty(k)) gateIds.push(k);
   gateIds.sort();
 
-  /* One contiguous write, columns LAST(7) → PREMIG(35). */
-  var width = C.PREMIG - C.LAST + 1;
+  /* One contiguous write, columns LAST(7) → SYNCN(34).
+
+     The block deliberately STOPS at _SyncCount, one short of _PreMigration(35).
+     _PreMigration is the migration's reversibility record; keeping it outside
+     the read-modify-write means no runtime request can ever put it at risk,
+     not even by reading it and writing the same bytes back.
+
+     Anything this function needs to write that falls outside the block —
+     _ServerTries lives at column 36, past _PreMigration — is collected in
+     `spill` and written as its own cell below.
+
+     This is what the previous revision got wrong. It ran the block to
+     _PreMigration(35) and then wrote _ServerTries(36) through put(), which
+     landed one element past the end of the row array. Sheets rejects a
+     setValues whose data is wider than its range, so EVERY call threw:
+     apiGrade_ awarded nothing and apiSync_ recorded nothing, from the moment
+     the hardening pass deployed. Routing out-of-block columns through `spill`
+     rather than widening the range means adding a column in future cannot
+     reintroduce it. */
+  var width = C.SYNCN - C.LAST + 1;
   var out = sh.getRange(row, C.LAST, 1, width).getValues()[0];
-  function put(col, val) { if (val !== undefined && val !== null) out[col - C.LAST] = val; }
+  var spill = {};
+  function put(col, val) {
+    if (val === undefined || val === null) return;
+    var i = col - C.LAST;
+    if (i >= 0 && i < width) out[i] = val;
+    else spill[col] = val;
+  }
 
   put(C.LAST, now);
   if (extra.minutes  !== undefined) put(C.MINUTES, extra.minutes);
-  if (extra.lastPage) put(C.LASTPAGE, extra.lastPage);
+  /* Keep the in-memory state in step with the cell, so the reply this request
+     sends back quotes the position it just recorded rather than the previous one. */
+  if (extra.lastPage) { put(C.LASTPAGE, extra.lastPage); st.lastPage = extra.lastPage; }
   if (extra.sid) { put(C.SESSID, extra.sid); put(C.SESSMIN, round1_(extra.sessMin || 0)); }
 
   /* Derived — the browser has no input into any of these. */
@@ -769,6 +854,9 @@ function writeState_(sh, row, st, now, extra) {
   put(C.SYNCN,     Number(out[C.SYNCN - C.LAST] || 0) + 1);
 
   sh.getRange(row, C.LAST, 1, width).setValues([out]);
+  for (var col in spill) {
+    if (spill.hasOwnProperty(col)) sh.getRange(row, Number(col)).setValue(spill[col]);
+  }
 }
 
 /** The shape the module receives. Read-only as far as the student is concerned. */
@@ -783,7 +871,8 @@ function pubFromState_(st) {
     correct: d.correct, attempts: d.attempts, accuracy: d.accuracy,
     bestStreak: d.streak, run: st.run,
     gates: gateIds.sort(), badges: d.badgeIds,
-    lessonsDone: d.lessons, activitiesDone: d.activities, progressPct: d.progress
+    lessonsDone: d.lessons, activitiesDone: d.activities, progressPct: d.progress,
+    lastPage: String(st.lastPage || '')
   };
 }
 
@@ -964,7 +1053,7 @@ function onOpen() {
     .addSeparator()
     .addItem('Grant activity credit…', 'grantActivityCredit')
     .addSeparator()
-    .addItem('Release a device lock…', 'releaseDevice')
+    .addItem('Sign a student out of every device…', 'releaseDevice')
     .addItem('Disable an access code…', 'disableCode')
     .addItem('Re-enable an access code…', 'enableCode')
     .addSeparator()
@@ -999,7 +1088,7 @@ function setupDatabase() {
   var set = initSheet_(SH_SET, ['Key','Value','Notes']);
   if (set.getLastRow() < 2) {
     set.getRange(2, 1, 2, 3).setValues([
-      ['deviceLock', 'ON',  'Each code works on one device only. Use the menu to release a lock.'],
+      ['deviceLock', 'OFF', 'An access code is the student. It works on any device they sign in from; the newest sign-in ends the previous session.'],
       ['createdOn',  new Date(), 'When this database was set up.']
     ]);
   }
@@ -2962,13 +3051,25 @@ function addMoreCodes() {
   ui.alert('Done', n + ' new access codes were added to the bottom of the AccessCodes tab.', ui.ButtonSet.OK);
 }
 
-/** Clears the device binding so a student can log in from a new phone. */
+/**
+ * Ends whatever session a code currently has, everywhere.
+ *
+ * This used to be the way out of a device lock, and it was needed constantly —
+ * a cleared cookie was enough to strand a student. There is no lock any more:
+ * a student who changes phone or browser simply signs in, and the session
+ * follows them. What remains useful is the ability to cut a session off — a
+ * lost phone, a code you know has been passed around — so that is all this
+ * does now. Progress is untouched; the student can sign in again immediately.
+ */
 function releaseDevice() {
   var ui = SpreadsheetApp.getUi();
-  var res = ui.prompt('Release a device lock',
+  var res = ui.prompt('Sign a student out of every device',
     'Type the student\'s access code (e.g. AAP-7K3M-9RTX).\n\n' +
-    'Their progress is kept — only the device lock is cleared, so they can ' +
-    'log in again on a new device.', ui.ButtonSet.OK_CANCEL);
+    'Any session open on any device is ended immediately. Their progress is ' +
+    'kept in full, and they can sign in again with the same code whenever ' +
+    'they like.\n\n' +
+    'Note: students no longer need this to change device — signing in on a ' +
+    'new phone or browser now just works.', ui.ButtonSet.OK_CANCEL);
   if (res.getSelectedButton() !== ui.Button.OK) return;
 
   var code = normCode_(res.getResponseText());
@@ -2976,13 +3077,14 @@ function releaseDevice() {
   if (!row) { ui.alert('Not found', 'No such access code: ' + code, ui.ButtonSet.OK); return; }
 
   var sh = sheet_(SH_CODES);
-  sh.getRange(row, C.DEVICE).setValue('');
-  bumpEpoch_(row);   // the old device's session stops working straight away
+  bumpEpoch_(row);   // every token issued so far stops verifying, at once
   logLogin_(code, sh.getRange(row, C.NAME).getValue(), sh.getRange(row, C.SECTION).getValue(),
-            'ADMIN', 'Device lock released by instructor', '', '', '', '');
-  ui.alert('Released',
-    code + ' can now be used on a new device.\n\nAll progress was kept, and the ' +
-    'session on the old device has been signed out.', ui.ButtonSet.OK);
+            'ADMIN', 'Signed out of all devices by instructor', '', '', '', '');
+  logSec_(code, '', 'signOutAll', 'REVOKED', 'All sessions ended by instructor', '');
+  ui.alert('Signed out',
+    code + ' has been signed out everywhere.\n\nAll progress was kept. The ' +
+    'student can sign in again with the same access code on any device.',
+    ui.ButtonSet.OK);
 }
 
 function disableCode() { setStatus_('DISABLED', 'Disable an access code', 'blocked from logging in'); }
@@ -3062,7 +3164,11 @@ function selfTest() {
   ck('Sorter needs every tile placed', gradeAnswer_(gateSpec_('m2-dnd'), { sunset: 'nature' }).ok === false);
 
   var chk = apiCheck_({ code: code, deviceId: 'test-device' });
-  ck('check() answers a real code', chk.ok === true || chk.error === 'DEVICE_LOCKED');
+  /* A real code always answers now, from any device — that IS the fix. The old
+     assertion also accepted DEVICE_LOCKED, which meant it passed whether or not
+     a student could actually get in. */
+  ck('check() answers a real code from any device', chk.ok === true);
+  ck('check() never names the student', !chk.name && !chk.section);
   var bad = apiCheck_({ code: 'AAP-ZZZZ-ZZZZ', deviceId: 'test-device' });
   ck('check() refuses a fake code', bad.ok === false && bad.error === 'NOT_FOUND');
 

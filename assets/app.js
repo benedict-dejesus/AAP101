@@ -372,6 +372,19 @@ const Grade = {
             toast('⏳', 'One moment', 'The class database is busy — try that again in a few seconds.', '');
           }else if(res.error === 'UNKNOWN_ACTIVITY'){
             toast('⚠️', 'Not recognised', 'This activity is not in the class database. Tell your instructor.', '');
+          }else if(res.error === 'BAD_TOKEN' || res.error === 'DISABLED' || res.error === 'DEVICE_LOCKED'){
+            /* auth.js is already showing the banner and signing out. Adding a
+               toast on top would just be noise. */
+          }else{
+            /* Anything else is a fault, not a rule. This branch used to be
+               empty, and that silence hid a server error that rejected EVERY
+               submission: the student finished an activity, nothing happened,
+               no XP, no message, and the Continue button stayed grey with
+               nothing on screen to explain why. A failure the student can see
+               is one they can report. */
+            toast('⚠️', 'Not saved',
+                  'That could not be recorded just now. Try it once more — if it keeps '
+                + 'happening, tell your instructor.', '');
           }
           return res;
         }

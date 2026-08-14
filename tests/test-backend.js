@@ -29,6 +29,14 @@ function recOf(g, code) {
 }
 function col(g, code, name) { return recOf(g, code)[g.C[name] - 1]; }
 
+/* Data rows (header dropped) of a log tab, for asserting on what was recorded. */
+function rowsOf(rt, sheetName) {
+  const sh = rt.sheets[sheetName];
+  if (!sh) return [];
+  return sh._cells.slice(1).filter(r => r && r.some(v => v !== '' && v != null));
+}
+function normed(g, v) { return g.normCode_(v); }
+
 /* A logged-in test student. */
 function login(g, code, dev, name) {
   return g.apiLogin_({ code, deviceId: dev, name: name || 'Test Student',
@@ -122,8 +130,12 @@ head('§23 ADVERSARIAL TESTS');
   // 5 / 12 — someone else's student id
   ok('T-05 own token + another student\'s code is refused',
      g.apiGrade_({ code: codeB, token: A.token, deviceId: devA, gate: 'm5-kc', answer: 6 }).ok === false);
+  /* Still refused, and for a better reason than it used to be. This once
+     failed on the device lock; it now fails on the token itself, whose payload
+     names the code it was issued for. That check does not depend on which
+     hardware is asking, so removing the lock did not weaken it. */
   ok('T-12 another student\'s code with own device is refused',
-     g.apiSync_({ code: codeB, token: A.token, deviceId: devA, events: [], snapshot: {} }).error === 'DEVICE_LOCKED');
+     g.apiSync_({ code: codeB, token: A.token, deviceId: devA, events: [], snapshot: {} }).error === 'BAD_TOKEN');
   ok('T-12b a valid token replayed from a different device is refused',
      g.apiGrade_({ code: codeA, token: A.token, deviceId: 'some-other-device', gate: 'm5-kc', answer: 6 }).ok === false);
 
@@ -160,14 +172,45 @@ head('§23 ADVERSARIAL TESTS');
      g.apiGrade_(Object.assign({ gate: 'm1-gal', answer: null }, authA)).xpAwarded === 40 &&
      g.apiGrade_(Object.assign({ gate: 'm1-gal', answer: null }, authA)).xpAwarded === 0);
 
-  // 13 — reading another student's record
-  const leak = JSON.stringify([
-    g.apiCheck_({ code: codeB, deviceId: devA }),
-    g.apiLogin_({ code: codeB, deviceId: devA, name: 'Mallory' })
-  ]);
-  ok('T-13 no endpoint returns another student\'s name', leak.indexOf('Victim Test') < 0, leak.slice(0, 200));
-  ok('T-13b login state is never returned for a code you do not hold',
-     g.apiLogin_({ code: codeB, deviceId: devA, name: 'Mallory' }).state === undefined);
+  /* 13 — reading another student's record.
+
+     The model changed here, on purpose, and these tests changed with it.
+
+     The access code IS the student now: whoever supplies it is treated as
+     them, on any device. So "can someone holding the code see the record?"
+     has to be yes — that is what lets a student sign in from a new phone
+     without an instructor releasing anything. What is still worth enforcing is
+     that the code is the ONLY thing that works, that a guess costs more than
+     one silent request, and that using someone else's code cannot be done
+     without leaving a mark. */
+  const probe = JSON.stringify(g.apiCheck_({ code: codeB, deviceId: devA }));
+  ok('T-13 the probe endpoint never names the student',
+     probe.indexOf('Victim Test') < 0 && probe.indexOf('TEST-1A') < 0, probe);
+
+  const secBefore = rowsOf(rt, 'SecurityLog').length;
+  const takeover  = g.apiLogin_({ code: codeB, deviceId: devA, name: 'Mallory' });
+  const secAfter  = rowsOf(rt, 'SecurityLog');
+
+  ok('T-13b using another student\'s code is recorded, not silent',
+     secAfter.length > secBefore &&
+     secAfter.some(r => String(r[4]) === 'DEVICE_CHANGED' && normed(g, r[1]) === normed(g, codeB)),
+     secAfter.slice(secBefore).map(r => r[4] + ': ' + r[5]));
+
+  ok('T-13c it cannot rename the student it belongs to',
+     String(col(g, codeB, 'NAME')) === 'Victim Test', col(g, codeB, 'NAME'));
+
+  ok('T-13d and it signs the real student out rather than sharing the account',
+     g.apiSync_({ code: codeB, token: B.token, deviceId: devB, events: [], snapshot: {} })
+       .error === 'BAD_TOKEN');
+
+  /* Restore the victim's own session so later tests see a normal account. */
+  const B2 = g.apiLogin_({ code: codeB, deviceId: devB });
+  ok('T-13e the real student signs back in and keeps everything',
+     B2.ok === true && B2.name === 'Victim Test' && !!B2.state, B2.error);
+  rt.resetCache();
+  ok('T-13f and the takeover paid no XP to anyone',
+     Number(col(g, codeB, 'XP')) === 0 && Number(col(g, codeB, 'ACTS')) === 0,
+     { xp: col(g, codeB, 'XP'), acts: col(g, codeB, 'ACTS') });
 
   // 14 — direct backend invocation via GET
   const xpBeforeGet = Number(col(g, codeA, 'XP'));
