@@ -1,0 +1,32 @@
+# GitHub Pages build configuration.
+#
+# THIS FILE IS A SECURITY CONTROL. Do not delete it, and never add a
+# `.nojekyll` file to this repository — that would switch Jekyll off and
+# publish everything listed below.
+#
+# GitHub Pages serves every file in this repository over the public web. That
+# included, until the 2026-08 hardening pass, the Apps Script backend — which
+# now holds the answer key to every quiz, sorter and speed round in the module.
+# Anyone could have read it at:
+#     https://<user>.github.io/AAP101/google-apps-script/AnswerKey.gs
+#
+# Two things keep that from happening now:
+#   1. the folder is named `_apps-script` — Jekyll does not copy anything whose
+#      name begins with an underscore into the built site;
+#   2. it is named explicitly below.
+#
+# After any deployment, confirm it worked. This must return 404:
+#     https://<user>.github.io/AAP101/_apps-script/AnswerKey.gs
+
+exclude:
+  - _apps-script/
+  - tests/
+  - archive/
+  - SETUP_GUIDE.md
+  - README.md
+  - "*.docx"
+  - "*.bak"
+
+# The module is plain HTML/CSS/JS and must be served exactly as written —
+# no Liquid processing, no layouts.
+plugins: []
