@@ -183,7 +183,7 @@ function renderShell() {
         <div class="ad-side-foot">
           <button class="ad-side-link ad-side-search" data-pal><span>⌕ Search &amp; commands</span><kbd>Ctrl K</kbd></button>
           <button class="ad-side-link" data-install ${isStandalone() ? 'hidden' : ''}>⬇ Install on this computer</button>
-          <a class="ad-side-link" href="index.html" target="_blank" rel="noopener">Open student module ↗</a>
+          <button class="ad-side-link" data-openmod>👁 Open module as instructor ↗</button>
           <button class="ad-side-link" data-signout>Sign out</button>
         </div>
       </aside>
@@ -196,6 +196,7 @@ function renderShell() {
   $('[data-signout]').addEventListener('click', () => guardLeave().then(ok => { if (ok) { ss.del(K_TOK); PAL_CACHE = null; renderLogin(); } }));
   $('[data-pal]').addEventListener('click', openPalette);
   $('[data-install]').addEventListener('click', installApp);
+  $('[data-openmod]').addEventListener('click', openPreviewWindow);
   const fromHash = (location.hash || '').slice(1);
   go(VIEWS.some(v => v.id === fromHash) ? fromHash : 'overview');
 }
@@ -1090,11 +1091,7 @@ function viewViewer(box, arg) {
     frame.className = 'vw-frame ' + VW.device;
   }));
   $('[data-reload]', a).addEventListener('click', () => { try { iframe.contentWindow.location.reload(); } catch (e) { iframe.src = iframe.src; } });
-  $('[data-pop]', a).addEventListener('click', () => {
-    /* No "noopener": the new window needs a copy of this tab's Studio session. */
-    const w = window.open('index.html?preview=1', 'aap101preview', 'width=1280,height=860');
-    if (!w) toast('Your browser blocked the new window. Allow pop-ups for this site.', 'bad');
-  });
+  $('[data-pop]', a).addEventListener('click', openPreviewWindow);
   if (arg && arg.page) iframe.addEventListener('load', () => setTimeout(() => vwGo(arg.page), 900), { once: true });
   vwOutline($('[data-outline]', box));
   clearInterval(VW_TIMER);
@@ -1104,6 +1101,13 @@ function viewViewer(box, arg) {
     try { p = iframe.contentWindow.AAPAuth && iframe.contentWindow.AAPAuth.preview ? iframe.contentWindow.AAPAuth.preview.page() : ''; } catch (e) {}
     if (p !== VW.page) { VW.page = p; $$('.vw-item', box).forEach(x => x.classList.toggle('on', x.dataset.pid === p)); }
   }, 700);
+}
+
+/* The module in its own window, signed in as the instructor. No "noopener":
+   the new window needs a copy of this tab's Studio session. */
+function openPreviewWindow() {
+  const w = window.open('index.html?preview=1', 'aap101preview', 'width=1280,height=860');
+  if (!w) toast('Your browser blocked the new window. Allow pop-ups for this site.', 'bad');
 }
 
 function vwGo(pid) {
@@ -1438,7 +1442,7 @@ function paletteItems() {
     { ico: '👁', label: 'Preview the module as a student', run: () => navTo('viewer') },
     { ico: '⬇', label: 'Install the Studio on this computer', run: installApp },
     { ico: '⌨', label: 'Keyboard shortcuts', hint: '?', run: showShortcuts },
-    { ico: '↗', label: 'Open the student module', run: () => window.open('index.html', '_blank', 'noopener') }
+    { ico: '↗', label: 'Open the module as instructor (new window)', run: openPreviewWindow }
   ]);
   const soft = p => p.then(r => r, () => null);
   return Promise.all([soft(api('tests.list')), soft(api('students.list')), soft(api('lessons.list')), soft(api('record.tabs'))]).then(([t, s, l, r]) => {
