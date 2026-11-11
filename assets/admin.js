@@ -33,6 +33,8 @@ function deviceId() {
 
 const TERMS = { MT: 'Midterm', FT: 'Final Term' };
 const SLOTS = ['Quiz 1', 'Quiz 2', 'Quiz 3', 'Exams'];
+/* This semester's planner has one quiz per term: the Midterm/Final Term Quiz goes in the Quiz 1 slot. */
+const SLOT_NAME = { 'Quiz 1': 'Term Quiz (Quiz 1)', 'Quiz 2': 'Quiz 2 (not in the planner)', 'Quiz 3': 'Quiz 3 (not in the planner)', 'Exams': 'Term Exam' };
 const QTYPES = { mc: 'Multiple choice', multi: 'Multiple answers', tf: 'True / False', ident: 'Identification', essay: 'Essay (you grade)' };
 const COLS = { 'MT|Quiz 1': 'E', 'MT|Quiz 2': 'F', 'MT|Quiz 3': 'G', 'MT|Exams': 'T',
                'FT|Quiz 1': 'Y', 'FT|Quiz 2': 'Z', 'FT|Quiz 3': 'AA', 'FT|Exams': 'AN' };
@@ -310,7 +312,7 @@ function viewTests(box) {
       return `<section class="ad-sec"><h3 class="ad-sec-h">${TERMS[term]}</h3>
         <div class="ad-slots">${SLOTS.map(slot => {
           const here = list.filter(t => t.slot === slot);
-          return `<div class="ad-slot"><div class="ad-slot-h"><b>${h(slot)}</b><span>Class record column ${COLS[term + '|' + slot]}</span></div>
+          return `<div class="ad-slot"><div class="ad-slot-h"><b>${h(SLOT_NAME[slot] || slot)}</b><span>Class record column ${COLS[term + '|' + slot]}</span></div>
             ${here.map(t => `
               <article class="ad-test" data-id="${h(t.id)}">
                 <div class="ad-test-top">${statusChip(t)}<span class="ad-muted">${t.questions} q · ${t.minutes ? t.minutes + ' min' : 'untimed'} · ${t.max} pts</span></div>
@@ -1399,9 +1401,9 @@ function viewRecord(box) {
       </div>
       <div class="ad-card"><div class="ad-card-h"><h4>How grades are computed</h4></div>
         <table class="ad-table compact"><tbody>
-          <tr><td>Quizzes (Quiz 1 + 2 + 3)</td><td class="num"><b>30%</b></td><td class="ad-muted">from the module</td></tr>
+          <tr><td>Term quiz (Quiz 1 slot)</td><td class="num"><b>30%</b></td><td class="ad-muted">from the module</td></tr>
           <tr><td>Term exam</td><td class="num"><b>30%</b></td><td class="ad-muted">from the module</td></tr>
-          <tr><td>Performance tasks (PT 1–3)</td><td class="num"><b>30%</b></td><td class="ad-muted">you type them</td></tr>
+          <tr><td>Performance tasks (workshop, activity, project)</td><td class="num"><b>30%</b></td><td class="ad-muted">you type them</td></tr>
           <tr><td>Recitation / Attendance</td><td class="num"><b>10%</b></td><td class="ad-muted">you type them</td></tr>
         </tbody></table>
         <p class="ad-muted">Laid out like the BulSU Class Record template. Final rating = (MT Grade + FT Grade) ÷ 2. MG, FTG and FG: 96.50+ → 1.00, 93.50 → 1.25, 90.50 → 1.50, 87.50 → 1.75, 84.50 → 2.00, 81.50 → 2.25, 78.50 → 2.50, 75.50 → 2.75, 75.00 → 3.00, 74.01–74.99 → 4.00, 74.00 and below → 5.00. Type INC or Dropped in Status to override Remarks.</p>

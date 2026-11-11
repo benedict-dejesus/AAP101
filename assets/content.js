@@ -667,6 +667,18 @@ f: {
          {txt:'Narrow the aperture to f/22 and keep everything else the same.'}
        ]},
 
+      {t:'heading', lvl:3, text:'Composition: Where to Put Your Subject'},
+
+      {t:'text', html:`
+        <p>Good exposure makes a photo readable; good composition makes it worth looking at. Try these on your phone camera:</p>
+        <ul>
+          <li><strong>Rule of thirds</strong>: turn on the grid and place your subject where the lines cross, not dead center.</li>
+          <li><strong>Leading lines</strong>: use roads, rails, fences or shadows to lead the eye to the subject.</li>
+          <li><strong>Framing</strong>: shoot through a doorway, window or branches to frame the subject.</li>
+          <li><strong>Symmetry and pattern</strong>: center the subject when both sides mirror each other, or fill the frame with a repeating pattern.</li>
+          <li><strong>Light and angle</strong>: shoot with soft side light near windows or at golden hour, and try high and low angles instead of only eye level.</li>
+        </ul>`},
+
       {t:'heading', lvl:2, text:'Final Term Activity: Photography Challenge'},
 
       {t:'text', html:`
@@ -762,6 +774,12 @@ f: {
          {q:'A single tear rolls down a cheek — maximum emotional impact. Which shot?',
           opts:['Two Shot','Long Shot','Extreme Close-Up','Full Shot']}
        ]},
+
+      {t:'heading', lvl:3, text:'Planning and Editing a Short Video'},
+
+      {t:'text', html:`
+        <p><strong>Storyboard first.</strong> Before you shoot, sketch each scene in a box and write under it the shot type, the camera angle, and what is said or heard. A one-minute video usually needs only six to ten shots.</p>
+        <p><strong>Edit simply.</strong> In a free phone editor, put the clips in storyboard order, trim the dead seconds at the start and end of each clip, keep the sound clear and steady, and add titles only where they help the viewer.</p>`},
 
       {t:'continue', id:'cont-f3', req:['f3-shot','f3-angle'], label:'Continue to Lesson 4',
        note:'⚠️ Collect all 12 shot types and all 6 camera angles to continue.', go:'f4', unlock:4}
