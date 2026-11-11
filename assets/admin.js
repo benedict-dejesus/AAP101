@@ -808,7 +808,7 @@ function viewLessons(box) {
     const builtins = typeof CONTENT === 'object' ? CONTENT : { m: { lessons: [] }, f: { lessons: [] } };
     box.innerHTML = `<p class="ad-lead">Lock a lesson to keep students out until you're ready, or hide it. <b>Edit</b> opens any lesson to change its text, images, activities and knowledge checks, with a live preview. New lessons you write appear after the built-in ones in the same term.</p>` +
       ['m', 'f'].map(k => {
-        const base = (builtins[k].lessons || []).map(l => ({ id: l.id, num: l.num, title: l.title, desc: l.desc, kind: 'builtin', o: byId[l.id] }));
+        const base = (builtins[k].lessons || []).map(l => ({ id: l.id, num: lessonIcon(l), label: lessonLabel(l), title: l.title, desc: l.desc, kind: 'builtin', o: byId[l.id] }));
         const custom = rows.filter(r => r.kind === 'custom' && r.term === k).sort((x, y) => x.order - y.order);
         return `<section class="ad-sec"><h3 class="ad-sec-h">${k === 'm' ? 'Midterm' : 'Final Term'}</h3><div class="ad-card flush"><ul class="ad-lessons">
           ${base.map(l => lessonRow(l.id, l.num, (l.o && l.o.title) || l.title, (l.o && l.o.desc) || l.desc, (l.o && l.o.status) || 'Open', 'builtin', l.o && l.o.edited)).join('')}
@@ -823,7 +823,7 @@ function viewLessons(box) {
         const payload = Object.assign({}, cur, { status: b.dataset.st, kind });
         if (kind === 'custom') payload.body = cur.body;
         api('lessons.save', { lesson: payload }).then(() => {
-          toast(`${base ? 'Lesson ' + base.num : '“' + cur.title + '”'} is now ${b.dataset.st.toLowerCase()}.`);
+          toast(`${base ? base.label : '“' + cur.title + '”'} is now ${b.dataset.st.toLowerCase()}.`);
           viewLessons(box);
         }).catch(e => toast(e.message, 'bad'));
       }));
@@ -980,7 +980,7 @@ function editBuiltin(id) {
   current = 'lessons';
   $$('.ad-nav-btn').forEach(b => b.classList.toggle('on', b.dataset.view === 'lessons'));
   if (location.hash.slice(1) !== 'lessons') history.replaceState(null, '', '#lessons');
-  $('#ad-title').textContent = 'Lesson ' + base.num + ': ' + base.title;
+  $('#ad-title').textContent = lessonLabel(base) + ': ' + base.title;
   const box = $('#ad-view');
   actions(`<button class="ad-btn ghost" data-back>← Lessons</button>`);
   $('[data-back]').addEventListener('click', () => navTo('lessons'));
@@ -1019,7 +1019,7 @@ function lcRender() {
     <div class="lc-form">
       <div class="ad-card">
         <div class="lc-state">${LC.edited ? `<span class="ad-pill go">Edited${LC.updated ? ' · saved ' + h(new Date(LC.updated).toLocaleString()) : ''}</span>` : '<span class="ad-pill muted">As it ships with the module</span>'}
-          <span class="ad-muted">${base.id.charAt(0) === 'm' ? 'Midterm' : 'Final Term'} · Lesson ${h(base.num)}</span></div>
+          <span class="ad-muted">${base.id.charAt(0) === 'm' ? 'Midterm' : 'Final Term'} · ${h(lessonLabel(base))}</span></div>
         <div class="ad-form">
           <label class="span2">Title<input data-lf="title" maxlength="140" value="${h(LC.title)}" placeholder="${h(base.title)}"><small>Leave blank to keep “${h(base.title)}”.</small></label>
           <label class="span2">Short description<input data-lf="desc" maxlength="400" value="${h(LC.desc)}" placeholder="${h(base.desc || '')}"></label>
@@ -1520,7 +1520,7 @@ function vwOutline(el) {
   const paint = rows => {
     const by = {}; (rows || []).forEach(r => { by[r.id] = r; });
     const term = k => {
-      const base = (typeof CONTENT === 'object' ? CONTENT[k].lessons || [] : []).map(l => item(l.id, String(l.num), (by[l.id] && by[l.id].title) || l.title, '', by[l.id] && by[l.id].status)).join('');
+      const base = (typeof CONTENT === 'object' ? CONTENT[k].lessons || [] : []).map(l => item(l.id, lessonIcon(l), (by[l.id] && by[l.id].title) || l.title, '', by[l.id] && by[l.id].status)).join('');
       const custom = (rows || []).filter(r => r.kind === 'custom' && r.term === k).sort((x, y) => x.order - y.order).map(c => item(c.id, '★', c.title, 'Your lesson', c.status)).join('');
       return `<div class="vw-sec">${k === 'm' ? 'Midterm' : 'Final Term'}</div>${base}${custom}`;
     };
@@ -1845,8 +1845,8 @@ function paletteItems() {
     if (t) t.tests.filter(x => x.submitted || x.inProgress).forEach(x => items.push({ ico: '📊', label: 'Results: ' + x.title, run: () => navTo('results', x.id) }));
     if (l) l.lessons.filter(x => x.kind === 'custom').forEach(x => items.push({ ico: '📚', label: x.title, sub: 'Your lesson', run: () => guardLeave().then(ok => { if (ok) editLesson(x); }) }));
     if (typeof CONTENT === 'object') ['m', 'f'].forEach(k => (CONTENT[k].lessons || []).forEach(x => {
-      items.push({ ico: '✏️', label: 'Edit lesson ' + x.num + ': ' + x.title, sub: (k === 'm' ? 'Midterm' : 'Final Term') + ' · text, activities and knowledge checks', run: () => guardLeave().then(ok => { if (ok) { LC = null; editBuiltin(x.id); } }) });
-      items.push({ ico: '👁', label: 'Lesson ' + x.num + ': ' + x.title, sub: (k === 'm' ? 'Midterm' : 'Final Term') + ' · open in the Module Viewer', run: () => navTo('viewer', { page: x.id }) });
+      items.push({ ico: '✏️', label: 'Edit ' + lessonLabel(x).toLowerCase() + ': ' + x.title, sub: (k === 'm' ? 'Midterm' : 'Final Term') + ' · text, activities and knowledge checks', run: () => guardLeave().then(ok => { if (ok) { LC = null; editBuiltin(x.id); } }) });
+      items.push({ ico: '👁', label: lessonLabel(x) + ': ' + x.title, sub: (k === 'm' ? 'Midterm' : 'Final Term') + ' · open in the Module Viewer', run: () => navTo('viewer', { page: x.id }) });
     }));
     if (s) s.students.forEach(x => items.push({ ico: '👤', label: x.name, sub: x.section + ' · ' + fmtCode(x.code), run: () => openStudent(x.code) }));
     if (r) r.tabs.forEach(x => items.push({ ico: '✏️', label: 'Grade Book: ' + x.tab, sub: x.students + ' students', run: () => navTo('gradebook', { tab: x.tab }) }));
