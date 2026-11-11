@@ -430,6 +430,9 @@ function unlockFromGates() {
       })(les.blocks);
     }));
 
+    /* Instructor preview with "Open every lesson" ticked. */
+    if (PV && PV.on && PV.openAll) ['m', 'f'].forEach(k => (CONTENT[k].lessons || []).forEach(l => open[k].add(l.num)));
+
     ['m', 'f'].forEach(k => {
       S.unlocked[k] = Array.from(open[k])
         .filter(n => n >= 1 && n <= (CONTENT[k].lessons || []).length)
@@ -1061,6 +1064,137 @@ const AAPAuth = {
 if (CFG.DEBUG) {
   AAPAuth._debug = { CFG, Session, Queue, Claims, Telemetry, Clock, deviceId, post, Server };
 }
+
+/* ═════════════════════════ INSTRUCTOR PREVIEW ═════════════════════════
+   The Studio's Module Viewer opens this page as index.html?preview=1 inside
+   itself. If the instructor is signed in to the Studio in this tab, the module
+   starts without an access code: every answer is still checked by the server
+   with the real key, through the instructor's session, but nothing is
+   recorded. Without a valid instructor session the server refuses every
+   preview call and the page falls back to the normal sign-in.               */
+
+const K_PV_STATE = 'aap101.preview.state', K_PV_OPTS = 'aap101.preview.opts';
+const PV = (function () {
+  if (!/[?&]preview=1(&|$)/.test(location.search)) return null;
+  let tok = null, dev = null;
+  try { tok = sessionStorage.getItem('aap101.admin.token'); } catch (e) {}
+  try { dev = localStorage.getItem('aap101.admin.device'); } catch (e) {}
+  if (!tok || !dev) return null;
+  let opts = {};
+  try { opts = JSON.parse(sessionStorage.getItem(K_PV_OPTS) || '{}') || {}; } catch (e) {}
+  return { tok: tok, dev: dev, on: false, openAll: opts.openAll !== false, pstate: null };
+})();
+
+function pvCall(op, data, timeoutMs) {
+  return post({ action: 'admin', op: op, data: data || {}, token: PV.tok, deviceId: PV.dev,
+                ua: (navigator.userAgent || '').slice(0, 160) }, timeoutMs || 25000);
+}
+function pvKeep(res) {
+  if (res && res.pstate) {
+    PV.pstate = res.pstate;
+    try { sessionStorage.setItem(K_PV_STATE, JSON.stringify(res.pstate)); } catch (e) {}
+  }
+  if (res && res.state && Session.data) Session.data.state = res.state;
+  return res;
+}
+function pvSaved() { try { return JSON.parse(sessionStorage.getItem(K_PV_STATE) || 'null'); } catch (e) { return null; } }
+
+/* Locked and hidden lessons open in the preview, labelled with what students see. */
+function pvLessons(res) {
+  if (!res || !res.ok) return res;
+  const tag = st => st === 'Locked' ? '🔒 Locked · ' : st === 'Hidden' ? '🙈 Hidden · ' : '';
+  const builtin = id => { for (const k of ['m', 'f']) { const l = (CONTENT[k].lessons || []).find(x => x.id === id); if (l) return l; } return null; };
+  Object.keys(res.overrides || {}).forEach(id => {
+    const o = res.overrides[id], b = builtin(id);
+    if (o.status !== 'Locked' && o.status !== 'Hidden') return;
+    o.title = tag(o.status) + (o.title || (b ? b.title : id));
+    o.status = 'Open';
+  });
+  (res.custom || []).forEach(c => { c.title = tag(c.status) + c.title; c.status = 'Open'; });
+  return res;
+}
+
+function installPreviewBar() {
+  const bar = document.createElement('div');
+  bar.id = 'aap-preview';
+  let min = true;
+  try { min = sessionStorage.getItem('aap101.preview.bar') !== 'open'; } catch (e) {}
+  if (min) bar.className = 'min';
+  bar.innerHTML = `<b>👁 Instructor preview</b><span>Answers are checked, nothing is recorded.</span>
+    <label><input type="checkbox" data-pv="all" ${PV.openAll ? 'checked' : ''}> Open every lesson</label>
+    <button type="button" data-pv="done">Complete all activities</button>
+    <button type="button" data-pv="reset">Reset progress</button>
+    <button type="button" data-pv="min" aria-label="Preview settings">–</button>`;
+  document.body.appendChild(bar);
+  const reload = () => location.reload();
+  bar.querySelector('[data-pv="all"]').addEventListener('change', e => {
+    try { sessionStorage.setItem(K_PV_OPTS, JSON.stringify({ openAll: e.target.checked })); } catch (er) {}
+    if (!e.target.checked) lsDel('aap101.progress.v3::PREVIEW');
+    reload();
+  });
+  bar.querySelector('[data-pv="reset"]').addEventListener('click', () => {
+    try { sessionStorage.removeItem(K_PV_STATE); } catch (e) {}
+    lsDel('aap101.progress.v3::PREVIEW');
+    reload();
+  });
+  bar.querySelector('[data-pv="done"]').addEventListener('click', e => {
+    e.target.disabled = true;
+    pvCall('preview.state', { all: true }).then(res => { if (res && res.ok) { pvKeep(res); reload(); } else e.target.disabled = false; })
+      .catch(() => { e.target.disabled = false; });
+  });
+  bar.querySelector('[data-pv="min"]').addEventListener('click', () => {
+    bar.classList.toggle('min');
+    try { sessionStorage.setItem('aap101.preview.bar', bar.classList.contains('min') ? 'min' : 'open'); } catch (e) {}
+    bar.querySelector('[data-pv="min"]').textContent = bar.classList.contains('min') ? '⚙' : '–';
+  });
+  bar.querySelector('[data-pv="min"]').textContent = min ? '⚙' : '–';
+}
+
+if (PV) {
+  const realGate = AAPAuth.gate;
+  AAPAuth.gate = function () {
+    return pvCall('preview.state', { pstate: pvSaved() }, 20000).then(res => {
+      if (!res || !res.ok) throw new Error('NO_PREVIEW');
+      PV.on = true;
+      Session.data = { code: 'PREVIEW', token: '', name: 'Instructor preview', section: '', preview: true, state: res.state };
+      pvKeep(res);
+      setTimeout(installPreviewBar, 60);
+    }).catch(() => realGate.call(AAPAuth));
+  };
+  const realGrade = AAPAuth.grade, realApi = AAPAuth.api, realSignOut = AAPAuth.signOut;
+  const MAP = { lessons: 'preview.lessons', tests: 'preview.tests', testStart: 'preview.testStart', testSave: 'preview.testSave',
+                testSubmit: 'preview.testSubmit', testReview: 'preview.testReview', grades: 'preview.grades' };
+  AAPAuth.grade = function (gate, answer, meta) {
+    if (!PV.on) return realGrade.apply(AAPAuth, arguments);
+    meta = meta || {};
+    return pvCall('preview.grade', { gate: gate, answer: answer, pstate: PV.pstate, clean: meta.clean === true,
+                                     badges: Array.isArray(meta.badges) ? meta.badges.slice(0, 5).map(String) : [] })
+      .then(res => {
+        if (!res) throw new Error('BAD_RESPONSE');
+        pvKeep(res);
+        if (res.state) applyServerState(res.state);
+        if (res.error === 'BAD_TOKEN') Banner.show('Your Studio session ended. Sign in to the Studio again, then reload the preview.', true);
+        return res;
+      });
+  };
+  AAPAuth.api = function (action, data, timeoutMs) {
+    if (!PV.on) return realApi.apply(AAPAuth, arguments);
+    const op = MAP[action];
+    if (!op) return Promise.resolve({ ok: false, error: 'PREVIEW', message: 'Not available in the instructor preview.' });
+    return pvCall(op, data, timeoutMs).then(res => action === 'lessons' ? pvLessons(res) : res);
+  };
+  AAPAuth.signOut = function () {
+    if (!PV.on) return realSignOut.apply(AAPAuth, arguments);
+    try { sessionStorage.removeItem(K_PV_STATE); } catch (e) {}
+    location.reload();
+  };
+  /* For the Studio, which drives the preview from outside the frame. */
+  AAPAuth.preview = {
+    go(pid) { if (typeof navigateTo === 'function') navigateTo(pid); },
+    page() { return currentPage(); }
+  };
+}
+AAPAuth.isPreview = () => !!(PV && PV.on);
 
 window.AAPAuth = AAPAuth;
 

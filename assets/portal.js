@@ -884,9 +884,9 @@ function buildGuidePage() {
 window.AAPPortal = {
   /** Runs after sign-in, before the module builds itself. Never blocks boot for long. */
   prefetch() {
-    try { const c = JSON.parse(lsGet(K_LESSONS) || 'null'); if (c) applyLessons(c); } catch (e) {}
+    try { const c = !(AAPAuth.isPreview && AAPAuth.isPreview()) && JSON.parse(lsGet(K_LESSONS) || 'null'); if (c) applyLessons(c); } catch (e) {}
     return withTimeout(AAPAuth.api('lessons', {}, 8000), 6000).then(res => {
-      if (res && res.ok) { applyLessons(res); lsSet(K_LESSONS, JSON.stringify({ overrides: res.overrides, custom: res.custom })); }
+      if (res && res.ok) { applyLessons(res); if (!(AAPAuth.isPreview && AAPAuth.isPreview())) lsSet(K_LESSONS, JSON.stringify({ overrides: res.overrides, custom: res.custom })); }
     }).catch(() => {});
   },
 

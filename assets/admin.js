@@ -166,6 +166,7 @@ const VIEWS = [
   { id: 'tests', ico: '📝', label: 'Quizzes & Exams' },
   { id: 'results', ico: '📊', label: 'Results' },
   { id: 'lessons', ico: '📚', label: 'Lessons' },
+  { id: 'viewer', ico: '👁', label: 'Module Viewer' },
   { id: 'students', ico: '👥', label: 'Students' },
   { id: 'gradebook', ico: '✏️', label: 'Grade Book' },
   { id: 'record', ico: '🧾', label: 'Class Record' }
@@ -207,7 +208,7 @@ function go(view, arg) {
   $('#ad-title').textContent = (VIEWS.find(v => v.id === view) || {}).label || '';
   const box = $('#ad-view');
   box.scrollTop = 0; window.scrollTo(0, 0);
-  ({ overview: viewOverview, tests: viewTests, results: viewResults, lessons: viewLessons, students: viewStudents, gradebook: viewGradebook, record: viewRecord }[view])(box, arg);
+  ({ overview: viewOverview, tests: viewTests, results: viewResults, lessons: viewLessons, viewer: viewViewer, students: viewStudents, gradebook: viewGradebook, record: viewRecord }[view])(box, arg);
 }
 
 /* Anything unsaved on screen: the test editor, the lesson editor or the Grade Book. */
@@ -405,7 +406,8 @@ function editTest(id, preset) {
 function renderEditor(box) {
   const t = ED.test;
   $('#ad-title').textContent = t.id ? 'Edit: ' + t.title : 'New quiz or exam';
-  const a = actions(`<button class="ad-btn ghost" data-back>← All tests</button><button class="ad-btn ghost" data-preview>Preview</button><button class="ad-btn" data-save>Save</button>`);
+  const a = actions(`<button class="ad-btn ghost" data-back>← All tests</button><button class="ad-btn ghost" data-preview>Preview</button>${t.id ? '<button class="ad-btn ghost" data-try title="Take it in the Module Viewer">👁 Try it</button>' : ''}<button class="ad-btn" data-save>Save</button>`);
+  if ($('[data-try]', a)) $('[data-try]', a).addEventListener('click', () => navTo('viewer', { page: 'tests' }));
   $('[data-back]', a).addEventListener('click', () => leaveEditor());
   $('[data-preview]', a).addEventListener('click', previewTest);
   $('[data-save]', a).addEventListener('click', e => saveTest(e.currentTarget));
@@ -823,6 +825,7 @@ function viewLessons(box) {
           viewLessons(box);
         }).catch(e => toast(e.message, 'bad'));
       }));
+      $('[data-view]', row).addEventListener('click', () => navTo('viewer', { page: id }));
       $('[data-edit]', row).addEventListener('click', () => kind === 'custom' ? editLesson(byId[id]) : renameBuiltin(id, byId[id], box));
     });
   }).catch(err => failed(box, err, () => viewLessons(box)));
@@ -838,6 +841,7 @@ function lessonRow(id, num, title, desc, status, kind) {
     <span class="ad-lesson-n ${kind}">${h(num)}</span>
     <div class="ad-lesson-t"><b>${h(title)}</b><small>${h(desc || (kind === 'custom' ? 'Your lesson' : ''))}</small></div>
     <div class="ad-seg" role="group" aria-label="Status">${['Open', 'Locked', 'Hidden'].map(s => `<button data-st="${s}" class="${status === s ? 'on ' + s.toLowerCase() : ''}" aria-pressed="${status === s}">${s === 'Open' ? '🔓' : s === 'Locked' ? '🔒' : '🙈'} ${s}</button>`).join('')}</div>
+    <button class="ad-btn sm ghost" data-view title="See it in the Module Viewer">👁 View</button>
     <button class="ad-btn sm ghost" data-edit>${kind === 'custom' ? 'Edit' : 'Rename'}</button>
   </li>`;
 }
@@ -1057,6 +1061,75 @@ function consultCard(card) {
     $('[data-prev]', card).addEventListener('click', prev);
     $('[data-code]', card).addEventListener('keydown', e => { if (e.key === 'Enter') prev(); });
   }).catch(err => { card.innerHTML = `<div class="ad-card-h"><h4>Online grade consultation</h4></div><p class="bad">${h(err.message)}</p>`; });
+}
+
+/* ═════════════════════════ MODULE VIEWER ═════════════════════════ */
+/* The real student module, running inside the Studio as the instructor:
+   no access code, every lesson open, answers checked by the server with the
+   real key, and nothing recorded. See "INSTRUCTOR PREVIEW" in auth.js. */
+
+const VW = { device: 'desktop', page: '' };
+const DEVICES = { desktop: { label: '🖥 Desktop', w: 0, h: 0 }, tablet: { label: '📱 Tablet', w: 820, h: 1180 }, phone: { label: '📱 Phone', w: 390, h: 844 } };
+let VW_TIMER = null;
+try { const d = localStorage.getItem('aap101.admin.viewer'); if (DEVICES[d]) VW.device = d; } catch (e) {}
+
+function viewViewer(box, arg) {
+  const a = actions(`<div class="ad-seg" role="group" aria-label="Screen size">${Object.keys(DEVICES).map(k => `<button data-dev="${k}" class="${VW.device === k ? 'on open' : ''}" aria-pressed="${VW.device === k}">${DEVICES[k].label}</button>`).join('')}</div>
+    <button class="ad-btn ghost" data-reload title="Reload the module">↻ Reload</button>
+    <button class="ad-btn ghost" data-pop title="Open in a separate window">↗ New window</button>`);
+  box.innerHTML = `<div class="vw">
+    <aside class="vw-out ad-card flush"><div class="vw-out-h"><b>Course outline</b><small>Click to open it in the viewer</small></div><div data-outline><div class="ad-loading"><span class="ad-spin"></span></div></div></aside>
+    <section class="vw-stage"><div class="vw-frame ${VW.device}" data-frame><iframe title="Student module preview" src="index.html?preview=1" data-if></iframe></div>
+      <p class="ad-hint vw-note">This is the live module as students get it. Locked and hidden lessons are open to you and labelled. Answers are checked against the real key; nothing goes to the sheet or the class record. Quizzes &amp; Exams lists drafts too.</p></section>
+  </div>`;
+  const iframe = $('[data-if]', box), frame = $('[data-frame]', box);
+  $$('[data-dev]', a).forEach(b => b.addEventListener('click', () => {
+    VW.device = b.dataset.dev;
+    try { localStorage.setItem('aap101.admin.viewer', VW.device); } catch (e) {}
+    $$('[data-dev]', a).forEach(x => { x.classList.toggle('on', x === b); x.classList.toggle('open', x === b); x.setAttribute('aria-pressed', x === b); });
+    frame.className = 'vw-frame ' + VW.device;
+  }));
+  $('[data-reload]', a).addEventListener('click', () => { try { iframe.contentWindow.location.reload(); } catch (e) { iframe.src = iframe.src; } });
+  $('[data-pop]', a).addEventListener('click', () => {
+    /* No "noopener": the new window needs a copy of this tab's Studio session. */
+    const w = window.open('index.html?preview=1', 'aap101preview', 'width=1280,height=860');
+    if (!w) toast('Your browser blocked the new window. Allow pop-ups for this site.', 'bad');
+  });
+  if (arg && arg.page) iframe.addEventListener('load', () => setTimeout(() => vwGo(arg.page), 900), { once: true });
+  vwOutline($('[data-outline]', box));
+  clearInterval(VW_TIMER);
+  VW_TIMER = setInterval(() => {
+    if (current !== 'viewer' || !document.body.contains(iframe)) { clearInterval(VW_TIMER); return; }
+    let p = '';
+    try { p = iframe.contentWindow.AAPAuth && iframe.contentWindow.AAPAuth.preview ? iframe.contentWindow.AAPAuth.preview.page() : ''; } catch (e) {}
+    if (p !== VW.page) { VW.page = p; $$('.vw-item', box).forEach(x => x.classList.toggle('on', x.dataset.pid === p)); }
+  }, 700);
+}
+
+function vwGo(pid) {
+  const iframe = $('[data-if]');
+  if (!iframe) return navTo('viewer', { page: pid });
+  try {
+    const w = iframe.contentWindow;
+    if (w.AAPAuth && w.AAPAuth.preview) { w.AAPAuth.preview.go(pid); return; }
+  } catch (e) {}
+  toast('The module is still loading.', 'bad');
+}
+
+function vwOutline(el) {
+  const pill = st => st && st !== 'Open' ? `<span class="ad-pill ${st === 'Locked' ? 'warn' : 'muted'}">${h(st)}</span>` : '';
+  const item = (pid, ico, label, sub, st) => `<button class="vw-item" data-pid="${h(pid)}"><span class="vw-ico">${h(ico)}</span><span class="vw-t"><b>${h(label)}</b>${sub ? `<small>${h(sub)}</small>` : ''}</span>${pill(st)}</button>`;
+  const paint = rows => {
+    const by = {}; (rows || []).forEach(r => { by[r.id] = r; });
+    const term = k => {
+      const base = (typeof CONTENT === 'object' ? CONTENT[k].lessons || [] : []).map(l => item(l.id, String(l.num), (by[l.id] && by[l.id].title) || l.title, '', by[l.id] && by[l.id].status)).join('');
+      const custom = (rows || []).filter(r => r.kind === 'custom' && r.term === k).sort((x, y) => x.order - y.order).map(c => item(c.id, '★', c.title, 'Your lesson', c.status)).join('');
+      return `<div class="vw-sec">${k === 'm' ? 'Midterm' : 'Final Term'}</div>${base}${custom}`;
+    };
+    el.innerHTML = item('terminal', '⌂', 'Home', '', '') + item('tests', '📝', 'Quizzes & Exams', 'Drafts included', '') + item('grades', '🎓', 'My Grades', '', '') + item('guide', '📘', 'Course Guide', '', '') + term('m') + term('f');
+    $$('.vw-item', el).forEach(b => b.addEventListener('click', () => vwGo(b.dataset.pid)));
+  };
+  api('lessons.list').then(r => paint(r.lessons)).catch(() => paint([]));
 }
 
 /* ═════════════════════════ STUDENT PROFILE ═════════════════════════ */
@@ -1362,6 +1435,7 @@ function paletteItems() {
     { ico: '＋', label: 'New quiz or exam', run: () => guardLeave().then(ok => ok && editTest(null)) },
     { ico: '＋', label: 'New lesson', run: () => guardLeave().then(ok => { if (ok) editLesson(null); }) },
     { ico: '🧾', label: 'Build / refresh class record', run: () => navTo('record') },
+    { ico: '👁', label: 'Preview the module as a student', run: () => navTo('viewer') },
     { ico: '⬇', label: 'Install the Studio on this computer', run: installApp },
     { ico: '⌨', label: 'Keyboard shortcuts', hint: '?', run: showShortcuts },
     { ico: '↗', label: 'Open the student module', run: () => window.open('index.html', '_blank', 'noopener') }
@@ -1372,7 +1446,7 @@ function paletteItems() {
     if (t) t.tests.forEach(x => items.push({ ico: '📝', label: x.title, sub: TERMS[x.term] + ' · ' + x.slot, run: () => guardLeave().then(ok => ok && editTest(x.id)) }));
     if (t) t.tests.filter(x => x.submitted || x.inProgress).forEach(x => items.push({ ico: '📊', label: 'Results: ' + x.title, run: () => navTo('results', x.id) }));
     if (l) l.lessons.filter(x => x.kind === 'custom').forEach(x => items.push({ ico: '📚', label: x.title, sub: 'Your lesson', run: () => guardLeave().then(ok => { if (ok) editLesson(x); }) }));
-    if (typeof CONTENT === 'object') ['m', 'f'].forEach(k => (CONTENT[k].lessons || []).forEach(x => items.push({ ico: '📚', label: 'Lesson ' + x.num + ': ' + x.title, sub: k === 'm' ? 'Midterm' : 'Final Term', run: () => navTo('lessons') })));
+    if (typeof CONTENT === 'object') ['m', 'f'].forEach(k => (CONTENT[k].lessons || []).forEach(x => items.push({ ico: '👁', label: 'Lesson ' + x.num + ': ' + x.title, sub: (k === 'm' ? 'Midterm' : 'Final Term') + ' · open in the Module Viewer', run: () => navTo('viewer', { page: x.id }) })));
     if (s) s.students.forEach(x => items.push({ ico: '👤', label: x.name, sub: x.section + ' · ' + fmtCode(x.code), run: () => openStudent(x.code) }));
     if (r) r.tabs.forEach(x => items.push({ ico: '✏️', label: 'Grade Book: ' + x.tab, sub: x.students + ' students', run: () => navTo('gradebook', { tab: x.tab }) }));
     PAL_CACHE = { at: Date.now(), items };
