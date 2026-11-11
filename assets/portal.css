@@ -318,3 +318,6 @@ body.px-running{overflow:hidden}
 .px-g-pol dt:first-child{margin-top:0}
 .px-g-pol dd{margin:0;font:400 14px/1.6 var(--fb);color:#24434D}
 .px-ready span b{color:var(--deep)}
+
+/* Studio lesson editor: the block being edited, briefly outlined in the preview. */
+.px-flash{outline:3px solid rgba(0,193,142,.7);outline-offset:4px;border-radius:14px;transition:outline-color 1.2s}

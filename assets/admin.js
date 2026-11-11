@@ -203,6 +203,7 @@ function renderShell() {
 
 function go(view, arg) {
   current = view;
+  LC = null; ss.del(K_DRAFT);
   if (location.hash.slice(1) !== view) history.replaceState(null, '', '#' + view);
   $$('.ad-nav-btn').forEach(b => b.classList.toggle('on', b.dataset.view === view));
   $('#ad-actions').innerHTML = '';
@@ -213,11 +214,11 @@ function go(view, arg) {
 }
 
 /* Anything unsaved on screen: the test editor, the lesson editor or the Grade Book. */
-function unsaved() { return (ED && ED.dirty) || (LE && LE.dirty) || (current === 'gradebook' && gbDirty()); }
+function unsaved() { return (ED && ED.dirty) || (LE && LE.dirty) || (LC && LC.dirty) || (current === 'gradebook' && gbDirty()); }
 function guardLeave() {
   if (!unsaved()) return Promise.resolve(true);
   return confirmBox('Leave without saving?', 'You have unsaved changes on this page. They will be lost.', 'Leave', true).then(ok => {
-    if (ok) { ED = null; LE = null; if (GB) { GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {}; } }
+    if (ok) { ED = null; LE = null; LC = null; if (GB) { GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {}; } }
     return ok;
   });
 }
@@ -805,12 +806,12 @@ function viewLessons(box) {
     const rows = res.lessons, byId = {};
     rows.forEach(r => { byId[r.id] = r; });
     const builtins = typeof CONTENT === 'object' ? CONTENT : { m: { lessons: [] }, f: { lessons: [] } };
-    box.innerHTML = `<p class="ad-lead">Lock a lesson to keep students out until you're ready, hide it, or rename it. Built-in lessons keep their activities. New lessons you write appear after them in the same term.</p>` +
+    box.innerHTML = `<p class="ad-lead">Lock a lesson to keep students out until you're ready, or hide it. <b>Edit</b> opens any lesson to change its text, images, activities and knowledge checks, with a live preview. New lessons you write appear after the built-in ones in the same term.</p>` +
       ['m', 'f'].map(k => {
         const base = (builtins[k].lessons || []).map(l => ({ id: l.id, num: l.num, title: l.title, desc: l.desc, kind: 'builtin', o: byId[l.id] }));
         const custom = rows.filter(r => r.kind === 'custom' && r.term === k).sort((x, y) => x.order - y.order);
         return `<section class="ad-sec"><h3 class="ad-sec-h">${k === 'm' ? 'Midterm' : 'Final Term'}</h3><div class="ad-card flush"><ul class="ad-lessons">
-          ${base.map(l => lessonRow(l.id, l.num, (l.o && l.o.title) || l.title, (l.o && l.o.desc) || l.desc, (l.o && l.o.status) || 'Open', 'builtin')).join('')}
+          ${base.map(l => lessonRow(l.id, l.num, (l.o && l.o.title) || l.title, (l.o && l.o.desc) || l.desc, (l.o && l.o.status) || 'Open', 'builtin', l.o && l.o.edited)).join('')}
           ${custom.map(c => lessonRow(c.id, '★', c.title, c.desc, c.status, 'custom')).join('')}
         </ul></div></section>`;
       }).join('');
@@ -827,7 +828,7 @@ function viewLessons(box) {
         }).catch(e => toast(e.message, 'bad'));
       }));
       $('[data-view]', row).addEventListener('click', () => navTo('viewer', { page: id }));
-      $('[data-edit]', row).addEventListener('click', () => kind === 'custom' ? editLesson(byId[id]) : renameBuiltin(id, byId[id], box));
+      $('[data-edit]', row).addEventListener('click', () => kind === 'custom' ? editLesson(byId[id]) : editBuiltin(id));
     });
   }).catch(err => failed(box, err, () => viewLessons(box)));
 }
@@ -837,26 +838,14 @@ function findBuiltin(id) {
   return null;
 }
 
-function lessonRow(id, num, title, desc, status, kind) {
+function lessonRow(id, num, title, desc, status, kind, edited) {
   return `<li class="ad-lesson ${status.toLowerCase()}" data-id="${h(id)}" data-kind="${kind}">
     <span class="ad-lesson-n ${kind}">${h(num)}</span>
-    <div class="ad-lesson-t"><b>${h(title)}</b><small>${h(desc || (kind === 'custom' ? 'Your lesson' : ''))}</small></div>
+    <div class="ad-lesson-t"><b>${h(title)}${edited ? ' <span class="lc-tag">Edited</span>' : ''}</b><small>${h(desc || (kind === 'custom' ? 'Your lesson' : ''))}</small></div>
     <div class="ad-seg" role="group" aria-label="Status">${['Open', 'Locked', 'Hidden'].map(s => `<button data-st="${s}" class="${status === s ? 'on ' + s.toLowerCase() : ''}" aria-pressed="${status === s}">${s === 'Open' ? '🔓' : s === 'Locked' ? '🔒' : '🙈'} ${s}</button>`).join('')}</div>
     <button class="ad-btn sm ghost" data-view title="See it in the Module Viewer">👁 View</button>
-    <button class="ad-btn sm ghost" data-edit>${kind === 'custom' ? 'Edit' : 'Rename'}</button>
+    <button class="ad-btn sm ghost" data-edit title="Edit the text, images, activities and knowledge checks">✏️ Edit</button>
   </li>`;
-}
-
-function renameBuiltin(id, row, box) {
-  const base = findBuiltin(id);
-  dialog({ title: 'Lesson ' + base.num, ok: 'Save', body: `
-    <label class="ad-lbl">Title<input data-t maxlength="140" value="${h((row && row.title) || '')}" placeholder="${h(base.title)}"></label>
-    <label class="ad-lbl">Short description<textarea data-d rows="3" maxlength="400" placeholder="${h(base.desc || '')}">${h((row && row.desc) || '')}</textarea></label>
-    <p class="ad-muted">Leave a field blank to keep the original wording.</p>` }).then(d => {
-    if (!d) return;
-    api('lessons.save', { lesson: { id, kind: 'builtin', status: (row && row.status) || 'Open', title: $('[data-t]', d).value, desc: $('[data-d]', d).value } })
-      .then(() => { toast('Saved.'); viewLessons(box); }).catch(e => toast(e.message, 'bad'));
-  });
 }
 
 const BLOCKS = { heading: 'Heading', text: 'Text', callout: 'Callout', image: 'Image', video: 'Video', divider: 'Divider' };
@@ -943,6 +932,411 @@ function lessonPreview() {
       if (b.t === 'video') return /^https:\/\//.test(b.url) ? `<div class="pv-ph">▶ ${h(b.url)}</div>` : '<div class="pv-ph">Video (needs an https link)</div>';
       return '';
     }).join('')}</div>`;
+}
+
+/* ═════════════════════════ BUILT-IN LESSON EDITOR ═════════════════════════ */
+/* Everything in a built-in lesson can be changed here: wording, images,
+   cards, sorting items, knowledge-check choices and their answers. The live
+   preview on the right is the real student module, showing the unsaved copy.
+   The activities themselves (their ids, XP and what each one unlocks) stay
+   fixed so progress and the class record keep working; the server and the
+   module both check that. */
+
+const K_DRAFT = 'aap101.preview.draft';
+const LC_TYPES = {
+  heading: ['🔠', 'Heading'], text: ['¶', 'Text'], quote: ['❝', 'Quote'], warn: ['⚠️', 'Note box'], video: ['▶', 'Video'],
+  compare: ['⚖️', 'Comparison'], polaroids: ['📸', 'Photo reveal'], discover: ['🔍', 'Discovery grid'], deck: ['🃏', 'Card deck'],
+  flipdeck: ['🔄', 'Flip cards'], match: ['🧩', 'Memory match'], timeline: ['🗺', 'Quest steps'], quiz: ['✅', 'Knowledge check'],
+  sorter: ['🗂', 'Sorting game'], boss: ['⚔️', 'Speed round'], continue: ['➡️', 'Continue button'], reveal: ['🔓', 'Section opened by Continue'],
+  strum: ['🎸', 'Strum trainer'], 'sim-exposure': ['📷', 'Exposure simulator'], 'sim-guitar': ['🎸', 'Guitar chord simulator']
+};
+const LC_FREE = { heading: { t: 'heading', lvl: 2, text: '' }, text: { t: 'text', html: '<p></p>' }, quote: { t: 'quote', img: '', alt: '', html: '', attr: '' }, warn: { t: 'warn', title: '', html: '' } };
+const LC_STRUCT = new Set(['t', 'gate', 'xp', 'id', 'req', 'go', 'unlock', 'reveal', 'mode', 'optional', 'mono', 'cols', 'badgeOnPerfect', 'badgeOnDone', 'badgeOnClean', 'badgeOnClear', 'blocks']);
+const LC_RICH = new Set(['html', 'instr', 'q', 'def']);
+const LC_IMG = new Set(['img', 'src']);
+const LC_LABEL = {
+  title: 'Title', kicker: 'Small label above the title', instr: 'Instructions', html: 'Text', text: 'Text', q: 'Question', img: 'Image',
+  alt: 'Image description (for screen readers)', imgAlt: 'Image description', attr: 'Attribution', label: 'Label', note: 'Message shown until the activities are done',
+  cap: 'Caption', ico: 'Icon (emoji)', def: 'Definition', badge: 'Tag', h: 'Heading', a: 'Term', b: 'Matches', txt: 'Choice', desc: 'Description',
+  emoji: 'Emoji', time: 'Seconds per question', badgeText: 'Hint chip', lvl: 'Size', src: 'Video file'
+};
+const LC_LIST = { items: ['Items', 'item'], opts: ['Choices', 'choice'], pairs: ['Pairs', 'pair'], steps: ['Steps', 'step'], questions: ['Questions', 'question'], cats: ['Boxes', 'box'] };
+let LC = null, LC_BINDS = [], LC_TIMER = null;
+const LC_OPEN = new WeakSet();
+
+function lcDeep(x) { return JSON.parse(JSON.stringify(x)); }
+function lcStrip(x) {
+  if (Array.isArray(x)) return x.map(lcStrip);
+  if (x && typeof x === 'object') { const o = {}; Object.keys(x).forEach(k => { if (k.charAt(0) !== '_') o[k] = lcStrip(x[k]); }); return o; }
+  return x;
+}
+function lcWalk(list, fn) { (list || []).forEach(b => { fn(b); if (b.t === 'reveal') lcWalk(b.blocks, fn); }); }
+const lcText = s => String(s || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const lcId = p => p + '-' + Math.random().toString(36).slice(2, 7);
+
+function editBuiltin(id) {
+  const base = findBuiltin(id);
+  if (!base) return toast('That lesson was not found.', 'bad');
+  current = 'lessons';
+  $$('.ad-nav-btn').forEach(b => b.classList.toggle('on', b.dataset.view === 'lessons'));
+  if (location.hash.slice(1) !== 'lessons') history.replaceState(null, '', '#lessons');
+  $('#ad-title').textContent = 'Lesson ' + base.num + ': ' + base.title;
+  const box = $('#ad-view');
+  actions(`<button class="ad-btn ghost" data-back>← Lessons</button>`);
+  $('[data-back]').addEventListener('click', () => navTo('lessons'));
+  loading(box);
+  Promise.all([api('lessons.content', { id }), api('lessons.list')]).then(([c, l]) => {
+    const row = (l.lessons || []).find(x => x.id === id) || {};
+    LC = { id, base, num: base.num, title: row.title || '', desc: row.desc || '', status: row.status || 'Open', edited: !!c.blocks,
+           updated: c.updated, keys: c.keys || {}, keysLive: c.keysLive !== false, blocks: lcDeep(c.blocks || base.blocks), dirty: false };
+    /* The answer key goes onto the choices themselves, so it follows them when they move. */
+    lcWalk(LC.blocks, b => {
+      const k = b.gate && LC.keys[b.gate];
+      if (!k) return;
+      b._graded = true;
+      if (b.t === 'quiz') (b.opts || []).forEach((o, i) => { o._ok = b.mode === 'multi' ? (k.correct || []).indexOf(i) >= 0 : k.correct === i; o._fb = (k.feedback || [])[i] || ''; });
+      if (b.t === 'sorter') (b.items || []).forEach(it => { it._cat = (k.answers || {})[it.id] || ''; });
+      if (b.t === 'boss') (b.questions || []).forEach((q, i) => { q._ok = (k.correct || [])[i] || 0; });
+    });
+    lcRender();
+  }).catch(err => {
+    if (/not supported/i.test(err.message)) {
+      box.innerHTML = `<div class="ad-card"><h4>One more step in Apps Script</h4><p>Editing the built-in lessons needs the new <b>Admin.gs</b> and <b>AnswerKey.gs</b>. Paste both into the Apps Script project, then <b>Deploy ▸ Manage deployments ▸ Edit ▸ New version</b>, and open this lesson again.</p></div>`;
+    } else failed(box, err, () => editBuiltin(id));
+  });
+}
+
+function lcRender() {
+  const box = $('#ad-view'), base = LC.base;
+  const a = actions(`<button class="ad-btn ghost" data-back>← Lessons</button>
+    ${LC.edited ? '<button class="ad-btn ghost danger-text" data-restore title="Go back to the lesson as it ships with the module">Restore original</button>' : ''}
+    <button class="ad-btn" data-save>Save lesson</button>`);
+  $('[data-back]', a).addEventListener('click', () => navTo('lessons'));
+  $('[data-save]', a).addEventListener('click', e => lcSave(e.currentTarget));
+  if ($('[data-restore]', a)) $('[data-restore]', a).addEventListener('click', lcRestore);
+  const hasKeys = Object.keys(LC.keys).length > 0;
+  box.innerHTML = `<div class="lc">
+    <div class="lc-form">
+      <div class="ad-card">
+        <div class="lc-state">${LC.edited ? `<span class="ad-pill go">Edited${LC.updated ? ' · saved ' + h(new Date(LC.updated).toLocaleString()) : ''}</span>` : '<span class="ad-pill muted">As it ships with the module</span>'}
+          <span class="ad-muted">${base.id.charAt(0) === 'm' ? 'Midterm' : 'Final Term'} · Lesson ${h(base.num)}</span></div>
+        <div class="ad-form">
+          <label class="span2">Title<input data-lf="title" maxlength="140" value="${h(LC.title)}" placeholder="${h(base.title)}"><small>Leave blank to keep “${h(base.title)}”.</small></label>
+          <label class="span2">Short description<input data-lf="desc" maxlength="400" value="${h(LC.desc)}" placeholder="${h(base.desc || '')}"></label>
+          <label class="span2">Status<select data-lf="status">${['Open', 'Locked', 'Hidden'].map(s => `<option ${LC.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select><small>Locked: students see it with a lock. Hidden: not listed.</small></label>
+        </div>
+        ${hasKeys && !LC.keysLive ? '<p class="lc-warn">⚠️ This lesson has knowledge checks. Update <b>AnswerKey.gs</b> in Apps Script before saving, so the server grades the edited choices.</p>' : ''}
+      </div>
+      <div class="lc-bar"><span class="ad-muted">Click a block to open it. Activities can be reworded and reordered; text blocks can also be added or removed.</span>
+        <span><button class="ad-btn sm ghost" data-all="1">Open all</button> <button class="ad-btn sm ghost" data-all="0">Close all</button></span></div>
+      <div data-lc-root></div>
+    </div>
+    <aside class="lc-pv">
+      <div class="lc-pv-bar"><b>Live preview</b><div class="ad-seg" role="group" aria-label="Screen size">
+        <button data-pvw="desktop" class="on open">🖥</button><button data-pvw="phone">📱</button></div>
+        <button class="ad-icon" data-pvr title="Reload the preview">↻</button></div>
+      <div class="lc-pv-frame desktop" data-pvf><iframe title="Lesson preview" data-lcif></iframe></div>
+      <p class="ad-hint">The real student module, showing your unsaved changes. Knowledge checks are graded with the saved answers until you save.</p>
+    </aside>
+  </div>`;
+  $$('[data-lf]', box).forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { LC[inp.dataset.lf] = inp.value; lcDirty(); }));
+  $$('[data-all]', box).forEach(b => b.addEventListener('click', () => { lcWalk(LC.blocks, x => { if (b.dataset.all === '1') LC_OPEN.add(x); else LC_OPEN.delete(x); }); lcPaint(); }));
+  $$('[data-pvw]', box).forEach(b => b.addEventListener('click', () => {
+    $$('[data-pvw]', box).forEach(x => { x.classList.toggle('on', x === b); x.classList.toggle('open', x === b); });
+    $('[data-pvf]', box).className = 'lc-pv-frame ' + b.dataset.pvw;
+  }));
+  $('[data-pvr]', box).addEventListener('click', () => lcPreviewLoad());
+  lcPaint();
+  lcPreviewLoad();
+}
+
+function lcDirty() { LC.dirty = true; clearTimeout(LC_TIMER); LC_TIMER = setTimeout(lcPush, 700); }
+
+function lcDraft() { return { id: LC.id, title: LC.title, desc: LC.desc, blocks: lcStrip(LC.blocks) }; }
+
+function lcPreviewLoad() {
+  const f = $('[data-lcif]');
+  if (!f) return;
+  ss.set(K_DRAFT, JSON.stringify(lcDraft()));
+  f.src = 'index.html?preview=1&r=' + Date.now();
+  const id = LC.id, start = Date.now();
+  const wait = () => {
+    if (!LC || LC.id !== id || !document.body.contains(f)) return;
+    let w = null;
+    try { w = f.contentWindow; } catch (e) {}
+    if (w && w.AAPAuth && w.AAPAuth.isPreview && w.AAPAuth.isPreview() && w.AAPPortal && typeof w.navigateTo === 'function' && w.document.getElementById('pages')) {
+      setTimeout(() => { try { w.AAPPortal.showDraft(lcDraft()); } catch (e) {} }, 250);
+      return;
+    }
+    if (Date.now() - start < 30000) setTimeout(wait, 400);
+  };
+  setTimeout(wait, 600);
+}
+
+function lcPush() {
+  if (!LC) return;
+  const d = lcDraft();
+  ss.set(K_DRAFT, JSON.stringify(d));
+  const f = $('[data-lcif]');
+  try { if (f && f.contentWindow.AAPPortal && f.contentWindow.AAPAuth.isPreview()) f.contentWindow.AAPPortal.showDraft(d); } catch (e) {}
+}
+
+/** Scrolls the preview to the block being edited. */
+function lcFocus(path) {
+  const f = $('[data-lcif]');
+  try { if (f && f.contentWindow.AAPPortal && f.contentWindow.AAPPortal.focusBlock) f.contentWindow.AAPPortal.focusBlock(LC.id, String(path).split('.').map(Number)); } catch (e) {}
+}
+
+/* ── block list ── */
+
+function lcPaint() {
+  const root = $('[data-lc-root]');
+  if (!root) return;
+  LC_BINDS = [];
+  root.innerHTML = lcList(LC.blocks);
+  lcWire(root);
+}
+
+function lcBind(obj, key, list) { LC_BINDS.push({ obj, key, list }); return LC_BINDS.length - 1; }
+
+function lcList(list, pre) {
+  const li = lcBind(list, null, list);
+  pre = pre || '';
+  return `<div class="lc-list">${list.map((b, i) => lcBlock(b, i, list, li, pre + i)).join('')}
+    <div class="lc-add"><span>＋ Add</span>${Object.keys(LC_FREE).map(t => `<button class="ad-btn sm ghost" data-addb="${t}" data-l="${li}">${LC_TYPES[t][0]} ${LC_TYPES[t][1]}</button>`).join('')}</div></div>`;
+}
+
+function lcBlock(b, i, list, li, path) {
+  const ty = LC_TYPES[b.t] || ['◆', b.t], open = LC_OPEN.has(b), free = !!LC_FREE[b.t];
+  const sum = b.t === 'reveal' ? (b.blocks || []).length + ' blocks, shown after the Continue button above'
+    : lcText(b.title || b.text || b.html || b.q || b.label || b.desc || '').slice(0, 90);
+  const tags = [];
+  if (b.gate) tags.push(`<span class="lc-tag">${b.xp ? b.xp + ' XP' : 'Activity'}${b.optional ? ' · optional' : ''}</span>`);
+  if (b._graded) tags.push('<span class="lc-tag key">Graded</span>');
+  const bi = lcBind(b, null, list);
+  return `<div class="lc-b ${open ? 'open' : ''} ${b.gate ? 'act' : ''}" data-b="${bi}">
+    <div class="lc-b-h" data-tog="${bi}" data-path="${path}" role="button" tabindex="0" aria-expanded="${open}">
+      <span class="lc-ico">${ty[0]}</span><span class="lc-b-t"><b>${h(ty[1])}</b><small>${h(sum) || '<i>empty</i>'}</small></span>${tags.join('')}
+      <span class="lc-tools"><button class="ad-icon" data-mv="-1" data-i="${i}" data-l="${li}" ${i === 0 ? 'disabled' : ''} title="Move up">↑</button><button class="ad-icon" data-mv="1" data-i="${i}" data-l="${li}" ${i === list.length - 1 ? 'disabled' : ''} title="Move down">↓</button>${free ? `<button class="ad-icon" data-rm data-i="${i}" data-l="${li}" title="Remove">🗑</button>` : ''}</span>
+    </div>
+    ${open ? `<div class="lc-b-bd">${lcFields(b, true)}${b.t === 'reveal' ? `<div class="lc-nest">${lcList(b.blocks, path + '.')}</div>` : ''}${lcFixedNote(b)}</div>` : ''}
+  </div>`;
+}
+
+function lcFixedNote(b) {
+  if (b.t === 'continue') return `<p class="ad-hint">Opens ${b.go ? 'the next lesson' : 'the section below'} once the activities above it are done. What it waits for stays fixed.</p>`;
+  if (/^sim-/.test(b.t) || b.t === 'strum') return '<p class="ad-hint">This interactive tool is built into the module. Its settings are fixed.</p>';
+  if (b.t === 'reveal') return '';
+  return '';
+}
+
+function lcFields(o, top, ctx) {
+  const parts = [];
+  Object.keys(o).forEach(k => {
+    if (k.charAt(0) === '_' || (top && LC_STRUCT.has(k)) || (!top && k === 'id')) return;
+    if (top && k === 'badge' && /^sim-/.test(o.t)) return;
+    const v = o[k];
+    if (typeof v === 'string') parts.push(lcField(o, k, v));
+    else if (typeof v === 'number') {
+      if (k === 'lvl') parts.push(`<label class="lc-f">${LC_LABEL.lvl}<select data-bn="${lcBind(o, k)}"><option value="2" ${v !== 3 ? 'selected' : ''}>Section heading</option><option value="3" ${v === 3 ? 'selected' : ''}>Sub-heading</option></select></label>`);
+      if (k === 'time') parts.push(`<label class="lc-f">${LC_LABEL.time}<input type="number" min="3" max="120" value="${h(v)}" data-bn="${lcBind(o, k)}"></label>`);
+    } else if (Array.isArray(v) && v.every(x => typeof x === 'string')) {
+      parts.push(`<div class="lc-f">${h(LC_LABEL[k] || 'Choices')}${v.map((x, i) => `<div class="lc-opt">${ctx && ctx.boss ? `<label class="lc-ok" title="Correct answer"><input type="radio" name="bq${ctx.bi}" data-boss="${ctx.bi}" value="${i}" ${ctx.q._ok === i ? 'checked' : ''}> ✓</label>` : ''}<input value="${h(x)}" data-ba="${lcBind(v, i)}"></div>`).join('')}</div>`);
+    } else if (Array.isArray(v) && v.every(x => x && typeof x === 'object')) parts.push(lcItems(o, k, v));
+  });
+  return parts.join('');
+}
+
+function lcField(o, k, v) {
+  const label = h(LC_LABEL[k] || k), bi = lcBind(o, k);
+  if (LC_IMG.has(k)) {
+    const ok = /^(images\/|https:\/\/)/.test(v);
+    return `<div class="lc-f">${label}<div class="lc-img">${ok ? `<img src="${h(v)}" alt="">` : '<span>No image</span>'}<div><input value="${h(v)}" data-bs="${bi}" placeholder="images/… or https://…"><button class="ad-btn sm ghost" data-pick="${bi}">Choose image…</button></div></div></div>`;
+  }
+  if (LC_RICH.has(k) || (k === 'desc' && v.length > 80) || (k === 'title' && /<[a-z]/i.test(v))) {
+    return `<div class="lc-f">${label}<div class="lc-rt"><div class="lc-rt-bar">
+      <button data-cmd="bold" title="Bold"><b>B</b></button><button data-cmd="italic" title="Italic"><i>I</i></button><button data-cmd="underline" title="Underline"><u>U</u></button>
+      <button data-cmd="insertUnorderedList" title="Bulleted list">• List</button><button data-cmd="createLink" title="Link">🔗</button><button data-cmd="removeFormat" title="Clear formatting">⌫</button></div>
+      <div class="lc-rich" contenteditable="true" data-bh="${bi}">${lcSafe(v)}</div></div></div>`;
+  }
+  if (v.length > 90) return `<label class="lc-f">${label}<textarea rows="3" data-bs="${bi}">${h(v)}</textarea></label>`;
+  return `<label class="lc-f ${k === 'ico' || k === 'emoji' ? 'short' : ''}">${label}<input value="${h(v)}" data-bs="${bi}"></label>`;
+}
+
+/* What the editor shows in a rich-text box: formatting only, never script. */
+function lcSafe(s) {
+  const t = document.createElement('template');
+  t.innerHTML = String(s || '');
+  t.content.querySelectorAll('script,style,iframe,object,embed,link,meta,form,img,svg').forEach(n => n.parentNode.removeChild(n));
+  t.content.querySelectorAll('*').forEach(n => Array.from(n.attributes).forEach(a => { if (!(n.tagName === 'A' && a.name === 'href' && /^(https?:|mailto:)/i.test(a.value))) n.removeAttribute(a.name); }));
+  return t.innerHTML;
+}
+
+function lcItems(o, k, arr) {
+  const [title, one] = LC_LIST[k] || [k, 'item'];
+  const fixed = o.t === 'compare' && k === 'items';
+  const min = k === 'opts' || k === 'cats' ? 2 : 1;
+  const li = lcBind(arr, null, arr);
+  const quiz = o.t === 'quiz' && k === 'opts' && o._graded, sorter = o.t === 'sorter' && k === 'items' && o._graded, boss = o.t === 'boss' && k === 'questions';
+  return `<div class="lc-items"><div class="lc-items-h">${h(title)} <small>${arr.length}</small></div>
+    ${quiz ? `<p class="ad-hint">${o.mode === 'multi' ? 'Tick every correct choice.' : 'Pick the one correct choice.'} The note under each choice is the feedback a student sees after choosing it.</p>` : ''}
+    ${sorter ? '<p class="ad-hint">Choose the right box for every item.</p>' : ''}
+    ${boss ? '<p class="ad-hint">Every question has exactly four choices. Mark the right one with ✓.</p>' : ''}
+    ${arr.map((it, i) => {
+      const ib = lcBind(it, null, arr);
+      const key = quiz ? `<label class="lc-ok">${o.mode === 'multi' ? `<input type="checkbox" data-qok="${ib}" ${it._ok ? 'checked' : ''}>` : `<input type="radio" name="q${li}" data-qok="${ib}" data-one="${li}" ${it._ok ? 'checked' : ''}>`} Correct</label>`
+        : sorter ? `<label class="lc-f lc-cat">Right box<select data-cat="${ib}"><option value="">Choose…</option>${(o.cats || []).map(c => `<option value="${h(c.id)}" ${it._cat === c.id ? 'selected' : ''}>${h(lcText(c.label))}</option>`).join('')}</select></label>` : '';
+      return `<div class="lc-item ${quiz && it._ok ? 'right' : ''}"><div class="lc-item-h"><span>${h(one.charAt(0).toUpperCase() + one.slice(1))} ${i + 1}</span>
+        <span class="lc-tools">${fixed ? '' : `<button class="ad-icon" data-imv="-1" data-i="${i}" data-l="${li}" ${i === 0 ? 'disabled' : ''}>↑</button><button class="ad-icon" data-imv="1" data-i="${i}" data-l="${li}" ${i === arr.length - 1 ? 'disabled' : ''}>↓</button><button class="ad-icon" data-irm data-i="${i}" data-l="${li}" ${arr.length <= min ? 'disabled' : ''}>🗑</button>`}</span></div>
+        ${sorter ? '' : key}${lcFields(it, false, boss ? { boss: true, bi: ib, q: it } : null)}${sorter ? key : ''}
+        ${quiz ? `<label class="lc-f">Feedback for this choice<input value="${h(lcText(it._fb))}" data-fb="${ib}" placeholder="${it._ok ? '✅ Correct! …' : '❌ Not quite. …'}"></label>` : ''}</div>`;
+    }).join('')}
+    ${fixed || arr.length >= 30 ? '' : `<button class="ad-btn sm ghost" data-iadd="${li}" data-k="${k}" data-o="${lcBind(o, k)}">＋ Add ${h(one)}</button>`}
+  </div>`;
+}
+
+function lcNewItem(o, k, arr) {
+  if (k === 'questions') return { q: '', opts: ['', '', '', ''], _ok: 0 };
+  const proto = arr[arr.length - 1] || arr[0] || {};
+  const it = {};
+  Object.keys(proto).forEach(x => { if (x.charAt(0) !== '_') it[x] = typeof proto[x] === 'string' ? '' : Array.isArray(proto[x]) ? proto[x].map(() => '') : proto[x]; });
+  if ('id' in proto || k === 'cats' || (o.t === 'sorter' && k === 'items')) it.id = lcId(k === 'cats' ? 'c' : 'i');
+  if (o.t === 'quiz' && k === 'opts') { it.txt = it.txt || ''; it._ok = false; it._fb = ''; }
+  if (o.t === 'sorter' && k === 'items') it._cat = '';
+  return it;
+}
+
+function lcWire(root) {
+  const B = el => LC_BINDS[Number(el)];
+  const rerender = () => { lcPaint(); lcDirty(); };
+  $$('[data-tog]', root).forEach(t => {
+    const fn = () => {
+      const b = B(t.dataset.tog).obj, opening = !LC_OPEN.has(b);
+      if (opening) LC_OPEN.add(b); else LC_OPEN.delete(b);
+      lcPaint();
+      if (opening) lcFocus(t.dataset.path);
+    };
+    t.addEventListener('click', e => { if (!e.target.closest('.lc-tools')) fn(); });
+    t.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === t) { e.preventDefault(); fn(); } });
+  });
+  $$('[data-mv],[data-imv]', root).forEach(x => x.addEventListener('click', e => {
+    e.stopPropagation();
+    const list = B(x.dataset.l).list, i = Number(x.dataset.i), j = i + Number(x.dataset.mv || x.dataset.imv);
+    [list[i], list[j]] = [list[j], list[i]]; rerender();
+  }));
+  $$('[data-rm],[data-irm]', root).forEach(x => x.addEventListener('click', e => {
+    e.stopPropagation();
+    B(x.dataset.l).list.splice(Number(x.dataset.i), 1); rerender();
+  }));
+  $$('[data-addb]', root).forEach(x => x.addEventListener('click', () => {
+    const b = lcDeep(LC_FREE[x.dataset.addb]); B(x.dataset.l).list.push(b); LC_OPEN.add(b); rerender();
+  }));
+  $$('[data-iadd]', root).forEach(x => x.addEventListener('click', () => {
+    const arr = B(x.dataset.iadd).list, o = B(x.dataset.o).obj; arr.push(lcNewItem(o, x.dataset.k, arr)); rerender();
+  }));
+  $$('[data-bs]', root).forEach(inp => inp.addEventListener('input', () => {
+    const bd = B(inp.dataset.bs); bd.obj[bd.key] = inp.value; lcDirty();
+    if (LC_IMG.has(bd.key)) { const box = inp.closest('.lc-img'); const ok = /^(images\/|https:\/\/)/.test(inp.value); box.firstElementChild.outerHTML = ok ? `<img src="${h(inp.value)}" alt="">` : '<span>No image</span>'; }
+  }));
+  $$('[data-bn]', root).forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { const bd = B(inp.dataset.bn); bd.obj[bd.key] = Number(inp.value) || 0; lcDirty(); }));
+  $$('[data-ba]', root).forEach(inp => inp.addEventListener('input', () => { const bd = B(inp.dataset.ba); bd.obj[bd.key] = inp.value; lcDirty(); }));
+  $$('[data-bh]', root).forEach(ed => {
+    ed.addEventListener('input', () => { const bd = B(ed.dataset.bh); bd.obj[bd.key] = lcSafe(ed.innerHTML); lcDirty(); });
+    ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
+  });
+  $$('[data-cmd]', root).forEach(btn => {
+    btn.addEventListener('mousedown', e => e.preventDefault());
+    btn.addEventListener('click', () => {
+      const ed = btn.closest('.lc-rt').querySelector('.lc-rich'); ed.focus();
+      if (btn.dataset.cmd === 'createLink') {
+        const u = prompt('Link address (https://…)');
+        if (u && /^https?:\/\//i.test(u.trim())) document.execCommand('createLink', false, u.trim());
+      } else document.execCommand(btn.dataset.cmd, false, null);
+      ed.dispatchEvent(new Event('input'));
+    });
+  });
+  $$('[data-qok]', root).forEach(inp => inp.addEventListener('change', () => {
+    const it = B(inp.dataset.qok).obj, arr = B(inp.dataset.qok).list;
+    if (inp.type === 'radio') arr.forEach(x => { x._ok = x === it; }); else it._ok = inp.checked;
+    $$('.lc-item', inp.closest('.lc-items')).forEach((n, i) => n.classList.toggle('right', !!arr[i]._ok));
+    lcDirty();
+  }));
+  $$('[data-fb]', root).forEach(inp => inp.addEventListener('input', () => { B(inp.dataset.fb).obj._fb = inp.value; LC.dirty = true; }));
+  $$('[data-cat]', root).forEach(sel => sel.addEventListener('change', () => { B(sel.dataset.cat).obj._cat = sel.value; LC.dirty = true; }));
+  $$('[data-boss]', root).forEach(r => r.addEventListener('change', () => { B(r.dataset.boss).obj._ok = Number(r.value); LC.dirty = true; }));
+  $$('[data-pick]', root).forEach(btn => btn.addEventListener('click', () => lcPickImage(B(btn.dataset.pick), btn.closest('.lc-img'))));
+}
+
+function lcPickImage(bd, box) {
+  const seen = new Set();
+  const walk = v => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') Object.keys(v).forEach(k => { if (LC_IMG.has(k) && /^images\//.test(v[k])) seen.add(v[k]); else walk(v[k]); }); };
+  ['m', 'f'].forEach(k => walk(CONTENT[k].lessons));
+  const imgs = Array.from(seen).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  dialog({ title: 'Choose an image', ok: 'Use link', wide: true, body: `
+    <div class="lc-gal">${imgs.map(s => `<button type="button" data-src="${h(s)}" title="${h(s)}"><img src="${h(s)}" alt="" loading="lazy"></button>`).join('')}</div>
+    <label class="ad-lbl">Or paste an image link<input data-u placeholder="https://…" value="${/^https:/.test(bd.obj[bd.key]) ? h(bd.obj[bd.key]) : ''}"><small class="ad-muted">Use a direct link to the picture itself (ending in .jpg, .png or .webp). A Google Drive share page will not work. To use a new picture of your own, add it to the images folder of the site.</small></label>` })
+    .then(d => {
+      if (!d) return;
+      const u = $('[data-u]', d).value.trim();
+      if (u && !/^https:\/\//.test(u)) return toast('Image links must start with https://', 'bad');
+      if (u) lcSetImg(bd, box, u);
+    });
+  setTimeout(() => $$('.lc-gal [data-src]').forEach(b => b.addEventListener('click', () => {
+    lcSetImg(bd, box, b.dataset.src);
+    const dlg = b.closest('.ad-dialog'); if (dlg) $('[data-c]', dlg).click();
+  })), 50);
+}
+function lcSetImg(bd, box, src) {
+  bd.obj[bd.key] = src;
+  $('input', box).value = src;
+  box.firstElementChild.outerHTML = `<img src="${h(src)}" alt="">`;
+  lcDirty();
+}
+
+/* ── save ── */
+
+function lcKeys() {
+  const keys = {}, problems = [];
+  lcWalk(LC.blocks, b => {
+    if (!b._graded) return;
+    const name = '“' + (lcText(b.title) || LC_TYPES[b.t][1]) + '”';
+    if (b.t === 'quiz') {
+      const opts = b.opts || [], marked = opts.map((o, i) => o._ok ? i : -1).filter(i => i >= 0);
+      if (opts.some(o => !lcText(o.txt))) problems.push(name + ': one of the choices is empty.');
+      if (b.mode === 'multi') { if (!marked.length) problems.push(name + ': tick at least one correct choice.'); keys[b.gate] = { correct: marked, feedback: opts.map(o => o._fb || '') }; }
+      else { if (marked.length !== 1) problems.push(name + ': pick the correct choice.'); keys[b.gate] = { correct: marked[0], feedback: opts.map(o => o._fb || '') }; }
+    } else if (b.t === 'sorter') {
+      const ans = {};
+      (b.items || []).forEach(it => { ans[it.id] = it._cat; if (!(b.cats || []).some(c => c.id === it._cat)) problems.push(name + ': choose the right box for “' + lcText(it.label) + '”.'); });
+      keys[b.gate] = { answers: ans };
+    } else if (b.t === 'boss') {
+      if ((b.questions || []).some(q => !lcText(q.q) || q.opts.some(x => !String(x).trim()))) problems.push(name + ': every question needs its text and four choices.');
+      keys[b.gate] = { correct: (b.questions || []).map(q => Number(q._ok) || 0) };
+    }
+  });
+  return { keys, problems };
+}
+
+function lcSave(btn) {
+  const { keys, problems } = lcKeys();
+  if (problems.length) return dialog({ title: 'Almost there', cancel: '', ok: 'OK', body: `<ul class="lc-probs">${problems.map(p => `<li>${h(p)}</li>`).join('')}</ul>` });
+  busy(btn, true, 'Saving…');
+  api('lessons.save', { lesson: { id: LC.id, kind: 'builtin', status: LC.status, title: LC.title, desc: LC.desc, content: { blocks: lcStrip(LC.blocks), keys } } })
+    .then(() => {
+      LC.dirty = false; LC.edited = true; LC.updated = Date.now(); PAL_CACHE = null;
+      toast('Lesson saved. Students see it the next time they open the module.');
+      lcRender();
+    })
+    .catch(err => { busy(btn, false); toast(err.message, 'bad'); });
+}
+
+function lcRestore() {
+  confirmBox('Restore the original lesson?', 'Your edits to this lesson, including any changed knowledge-check answers, are removed. The title, description and status stay as they are.', 'Restore', true).then(ok => {
+    if (!ok) return;
+    api('lessons.save', { lesson: { id: LC.id, kind: 'builtin', status: LC.status, title: LC.title, desc: LC.desc, content: null } })
+      .then(() => { toast('Original lesson restored.'); LC.dirty = false; editBuiltin(LC.id); })
+      .catch(err => toast(err.message, 'bad'));
+  });
 }
 
 /* ═════════════════════════ STUDENTS ═════════════════════════ */
@@ -1450,7 +1844,10 @@ function paletteItems() {
     if (t) t.tests.forEach(x => items.push({ ico: '📝', label: x.title, sub: TERMS[x.term] + ' · ' + x.slot, run: () => guardLeave().then(ok => ok && editTest(x.id)) }));
     if (t) t.tests.filter(x => x.submitted || x.inProgress).forEach(x => items.push({ ico: '📊', label: 'Results: ' + x.title, run: () => navTo('results', x.id) }));
     if (l) l.lessons.filter(x => x.kind === 'custom').forEach(x => items.push({ ico: '📚', label: x.title, sub: 'Your lesson', run: () => guardLeave().then(ok => { if (ok) editLesson(x); }) }));
-    if (typeof CONTENT === 'object') ['m', 'f'].forEach(k => (CONTENT[k].lessons || []).forEach(x => items.push({ ico: '👁', label: 'Lesson ' + x.num + ': ' + x.title, sub: (k === 'm' ? 'Midterm' : 'Final Term') + ' · open in the Module Viewer', run: () => navTo('viewer', { page: x.id }) })));
+    if (typeof CONTENT === 'object') ['m', 'f'].forEach(k => (CONTENT[k].lessons || []).forEach(x => {
+      items.push({ ico: '✏️', label: 'Edit lesson ' + x.num + ': ' + x.title, sub: (k === 'm' ? 'Midterm' : 'Final Term') + ' · text, activities and knowledge checks', run: () => guardLeave().then(ok => { if (ok) { LC = null; editBuiltin(x.id); } }) });
+      items.push({ ico: '👁', label: 'Lesson ' + x.num + ': ' + x.title, sub: (k === 'm' ? 'Midterm' : 'Final Term') + ' · open in the Module Viewer', run: () => navTo('viewer', { page: x.id }) });
+    }));
     if (s) s.students.forEach(x => items.push({ ico: '👤', label: x.name, sub: x.section + ' · ' + fmtCode(x.code), run: () => openStudent(x.code) }));
     if (r) r.tabs.forEach(x => items.push({ ico: '✏️', label: 'Grade Book: ' + x.tab, sub: x.students + ' students', run: () => navTo('gradebook', { tab: x.tab }) }));
     PAL_CACHE = { at: Date.now(), items };

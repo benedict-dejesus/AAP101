@@ -99,15 +99,121 @@ function videoEmbed(url) {
 /* ═════════════════════════ LESSONS ═════════════════════════ */
 
 function applyLessons(d) {
+  P.last = d;
   P.overrides = (d && d.overrides) || {};
   P.custom = ((d && d.custom) || []).filter(c => c && /^x-[A-Z0-9]{6,12}$/.test(c.id));
   if (d && typeof d.openTests === 'number') P.openTests = d.openTests;
+  const draft = previewDraft();
   ['m', 'f'].forEach(k => (CONTENT[k].lessons || []).forEach(les => {
-    if (!les._orig) les._orig = { title: les.title, desc: les.desc };
+    if (!les._orig) les._orig = { title: les.title, desc: les.desc, blocks: les.blocks };
     const o = P.overrides[les.id];
-    les.title = (o && o.title) || les._orig.title;
-    les.desc  = (o && o.desc)  || les._orig.desc;
+    const dr = draft && draft.id === les.id ? draft : null;
+    les.title = (dr && dr.title) || (o && o.title) || les._orig.title;
+    les.desc  = (dr && dr.desc)  || (o && o.desc)  || les._orig.desc;
+    const edited = dr ? dr.blocks : o && o.blocks;
+    les.blocks = Array.isArray(edited) && edited.length ? mergeBlocks(les._orig.blocks, edited, les.id) : les._orig.blocks;
   }));
+}
+
+/* ── Built-in lessons edited in the Studio ──
+   The edited copy replaces the lesson's blocks, with two rules that keep the
+   course working whatever arrives: every activity, "Continue" button and
+   hidden section of the original must still be there (or the original is
+   used), and the fields that drive progress (activity ids, XP, unlocks) are
+   always taken from the original. Every text is cleaned to simple
+   formatting before it is shown. */
+const STRUCT = ['t', 'gate', 'xp', 'id', 'req', 'go', 'unlock', 'reveal', 'mode', 'optional', 'mono', 'cols',
+                'badgeOnPerfect', 'badgeOnDone', 'badgeOnClean', 'badge', 'badgeOnClear'];
+const FREE_TYPES = ['heading', 'text', 'quote', 'warn', 'compare', 'strum'];
+const anchorOf = b => b.gate ? 'g:' + b.gate : (b.t === 'continue' || b.t === 'reveal') && b.id ? b.t + ':' + b.id : /^sim-/.test(b.t) ? 's:' + b.t : '';
+
+function anchors(blocks, map) {
+  (blocks || []).forEach(b => {
+    if (!b || typeof b !== 'object') return;
+    const a = anchorOf(b);
+    if (a) map[a] = b;
+    if (b.t === 'reveal') anchors(b.blocks, map);
+  });
+  return map;
+}
+
+function mergeBlocks(orig, edited, id) {
+  const base = anchors(orig, {}), mine = anchors(edited, {});
+  const same = Object.keys(base).length === Object.keys(mine).length && Object.keys(base).every(k => mine[k] && mine[k].t === base[k].t);
+  if (!same) { try { console.warn('[AAP] The edited copy of ' + id + ' does not match its activities; showing the original.'); } catch (e) {} return orig; }
+  const walk = list => (list || []).map(b => {
+    if (!b || typeof b !== 'object') return null;
+    const a = anchorOf(b), src = a ? base[a] : null;
+    if (!src && FREE_TYPES.indexOf(b.t) < 0) return null;
+    const out = cleanVal(b, '');
+    if (src) {
+      STRUCT.forEach(k => { if (k in src) out[k] = src[k]; else delete out[k]; });
+      if (b.t === 'reveal') out.blocks = walk(b.blocks);
+    } else {
+      out.t = b.t;
+      if (b.t === 'heading') out.lvl = b.lvl === 3 ? 3 : 2;
+    }
+    return out;
+  }).filter(Boolean);
+  return walk(edited);
+}
+
+const IMG_KEYS = { img: 1, src: 1 };
+function cleanVal(v, key) {
+  if (typeof v === 'string') return IMG_KEYS[key] ? (/^(images\/[\w.\- ]+|https:\/\/[^\s"'<>]+)$/.test(v) ? v : '') : cleanHtml(v);
+  if (typeof v === 'number' || typeof v === 'boolean') return v;
+  if (Array.isArray(v)) return v.slice(0, 200).map(x => cleanVal(x, key));
+  if (v && typeof v === 'object') {
+    const o = {};
+    Object.keys(v).forEach(k => { if (/^[A-Za-z][\w-]{0,30}$/.test(k)) o[k] = cleanVal(v[k], k); });
+    return o;
+  }
+  return '';
+}
+
+const OK_TAGS = /^(P|BR|STRONG|B|EM|I|U|S|UL|OL|LI|A|SPAN|SMALL|SUP|SUB|H3|H4|BLOCKQUOTE|CODE|MARK)$/;
+const DROP_TAGS = /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|LINK|META|BASE|FORM|INPUT|TEXTAREA|BUTTON|SELECT|SVG|MATH|TEMPLATE|NOSCRIPT|VIDEO|AUDIO|IMG)$/;
+function cleanHtml(s) {
+  s = String(s).slice(0, 20000);
+  if (s.indexOf('<') < 0) return s;
+  const t = document.createElement('template');
+  t.innerHTML = s;
+  (function scrub(node) {
+    Array.from(node.childNodes).forEach(c => {
+      if (c.nodeType === 3) return;
+      if (c.nodeType !== 1) { c.remove(); return; }
+      if (DROP_TAGS.test(c.tagName)) { c.remove(); return; }
+      scrub(c);
+      if (!OK_TAGS.test(c.tagName)) { c.replaceWith(...Array.from(c.childNodes)); return; }
+      const href = c.tagName === 'A' ? c.getAttribute('href') : null;
+      Array.from(c.attributes).forEach(at => c.removeAttribute(at.name));
+      if (c.tagName === 'A') {
+        if (href && /^(https?:|mailto:)/i.test(href.trim())) { c.setAttribute('href', href.trim()); c.setAttribute('target', '_blank'); c.setAttribute('rel', 'noopener noreferrer'); }
+      }
+    });
+  })(t.content);
+  return t.innerHTML;
+}
+
+/* The Studio's lesson editor shows unsaved changes in the instructor preview. */
+const K_DRAFT = 'aap101.preview.draft';
+function previewDraft() {
+  if (!(AAPAuth.isPreview && AAPAuth.isPreview()) && !/[?&]preview=1(&|$)/.test(location.search)) return null;
+  try { const d = JSON.parse(sessionStorage.getItem(K_DRAFT) || 'null'); return d && /^[mf]\d{1,2}$/.test(d.id) && Array.isArray(d.blocks) ? d : null; } catch (e) { return null; }
+}
+
+/** Rebuilds one lesson page in place, keeping the scroll position. Preview only. */
+function redraft(id) {
+  if (!(AAPAuth.isPreview && AAPAuth.isPreview())) return false;
+  applyLessons(P.last);
+  if (typeof S !== 'object' || typeof showPage !== 'function') return false;
+  const wrap = document.getElementById('wrap'), top = wrap ? wrap.scrollTop : 0, here = S.page === id;
+  const old = document.getElementById('page-' + id);
+  if (old) { Array.from(old.querySelectorAll('.block')).forEach(b => { if (b._cleanup) try { b._cleanup(); } catch (e) {} }); old.remove(); }
+  S.built.delete(id); S.inited.delete(id);
+  if (here) { S.page = ''; showPage(id); if (wrap) wrap.scrollTop = top; }
+  else if (typeof navigateTo === 'function') navigateTo(id);
+  return true;
 }
 
 function findCustom(pid) { return P.custom.find(c => c.id === pid) || null; }
@@ -895,6 +1001,26 @@ window.AAPPortal = {
     if (c) return c.status;
     const o = P.overrides[pid];
     return (o && o.status) || 'Open';
+  },
+
+  /** Studio lesson editor: show this unsaved copy of a built-in lesson. */
+  showDraft(d) {
+    try { if (d) sessionStorage.setItem(K_DRAFT, JSON.stringify(d)); else sessionStorage.removeItem(K_DRAFT); } catch (e) {}
+    return d ? redraft(d.id) : (applyLessons(P.last), true);
+  },
+
+  /** Studio lesson editor: scroll the preview to block <path> of lesson <id>. */
+  focusBlock(id, path) {
+    const les = typeof findLesson === 'function' ? findLesson(id) : null, page = document.getElementById('page-' + id);
+    if (!les || !page) return false;
+    let list = les.blocks, b = null;
+    for (const i of path) { b = list && list[i]; list = b && b.blocks; }
+    const node = b && Array.from(page.querySelectorAll('.block, .reveal-sec')).find(n => n._block === b);
+    if (!node || !node.offsetParent) return false;
+    node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    node.classList.add('px-flash');
+    setTimeout(() => node.classList.remove('px-flash'), 1400);
+    return true;
   },
 
   owns(pid) { return pid === 'tests' || pid === 'grades' || pid === 'guide' || /^x-/.test(pid); },
