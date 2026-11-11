@@ -167,6 +167,7 @@ const VIEWS = [
   { id: 'results', ico: '📊', label: 'Results' },
   { id: 'lessons', ico: '📚', label: 'Lessons' },
   { id: 'students', ico: '👥', label: 'Students' },
+  { id: 'gradebook', ico: '✏️', label: 'Grade Book' },
   { id: 'record', ico: '🧾', label: 'Class Record' }
 ];
 let current = 'overview';
@@ -179,6 +180,8 @@ function renderShell() {
         <div class="ad-brand"><span class="ad-brand-mark">🎨</span><div><b>AAP101</b><small>Instructor Studio</small></div></div>
         <nav class="ad-nav">${VIEWS.map(v => `<button class="ad-nav-btn" data-view="${v.id}"><span>${v.ico}</span>${h(v.label)}</button>`).join('')}</nav>
         <div class="ad-side-foot">
+          <button class="ad-side-link ad-side-search" data-pal><span>⌕ Search &amp; commands</span><kbd>Ctrl K</kbd></button>
+          <button class="ad-side-link" data-install ${isStandalone() ? 'hidden' : ''}>⬇ Install on this computer</button>
           <a class="ad-side-link" href="index.html" target="_blank" rel="noopener">Open student module ↗</a>
           <button class="ad-side-link" data-signout>Sign out</button>
         </div>
@@ -188,8 +191,10 @@ function renderShell() {
         <section class="ad-view" id="ad-view"></section>
       </div>
     </div>`;
-  $$('.ad-nav-btn').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
-  $('[data-signout]').addEventListener('click', () => { ss.del(K_TOK); renderLogin(); });
+  $$('.ad-nav-btn').forEach(b => b.addEventListener('click', () => navTo(b.dataset.view)));
+  $('[data-signout]').addEventListener('click', () => guardLeave().then(ok => { if (ok) { ss.del(K_TOK); PAL_CACHE = null; renderLogin(); } }));
+  $('[data-pal]').addEventListener('click', openPalette);
+  $('[data-install]').addEventListener('click', installApp);
   const fromHash = (location.hash || '').slice(1);
   go(VIEWS.some(v => v.id === fromHash) ? fromHash : 'overview');
 }
@@ -202,8 +207,35 @@ function go(view, arg) {
   $('#ad-title').textContent = (VIEWS.find(v => v.id === view) || {}).label || '';
   const box = $('#ad-view');
   box.scrollTop = 0; window.scrollTo(0, 0);
-  ({ overview: viewOverview, tests: viewTests, results: viewResults, lessons: viewLessons, students: viewStudents, record: viewRecord }[view])(box, arg);
+  ({ overview: viewOverview, tests: viewTests, results: viewResults, lessons: viewLessons, students: viewStudents, gradebook: viewGradebook, record: viewRecord }[view])(box, arg);
 }
+
+/* Anything unsaved on screen: the test editor, the lesson editor or the Grade Book. */
+function unsaved() { return (ED && ED.dirty) || (LE && LE.dirty) || (current === 'gradebook' && gbDirty()); }
+function guardLeave() {
+  if (!unsaved()) return Promise.resolve(true);
+  return confirmBox('Leave without saving?', 'You have unsaved changes on this page. They will be lost.', 'Leave', true).then(ok => {
+    if (ok) { ED = null; LE = null; if (GB) { GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {}; } }
+    return ok;
+  });
+}
+function navTo(view, arg) { return guardLeave().then(ok => { if (ok) go(view, arg); }); }
+
+document.addEventListener('keydown', e => {
+  if (!$('.ad-shell')) return;
+  const mod = e.ctrlKey || e.metaKey, typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') || (e.target && e.target.isContentEditable);
+  if (mod && !e.shiftKey && (e.key === 'k' || e.key === 'K' || e.key === 'p' || e.key === 'P')) { e.preventDefault(); openPalette(); return; }
+  if (mod && (e.key === 's' || e.key === 'S')) {
+    e.preventDefault();
+    if ($('.ad-dialog')) return;
+    const b = $('#ad-actions [data-save]');
+    if (b && !b.disabled) b.click(); else toast('Nothing to save on this page.');
+    return;
+  }
+  if ($('.ad-dialog') || $('.ad-drawer')) return;
+  if (e.altKey && !mod && /^[1-9]$/.test(e.key) && VIEWS[Number(e.key) - 1]) { e.preventDefault(); navTo(VIEWS[Number(e.key) - 1].id); return; }
+  if (e.key === '?' && !typing) { e.preventDefault(); showShortcuts(); }
+});
 function actions(html) { $('#ad-actions').innerHTML = html; return $('#ad-actions'); }
 
 /* ═════════════════════════ OVERVIEW ═════════════════════════ */
@@ -235,7 +267,10 @@ function viewOverview(box) {
             : '<p class="ad-muted">Nothing submitted yet.</p>'}
         </div>
       </div>
+      ${isStandalone() ? '' : `<div class="ad-card ad-install"><div><h4>Put the Studio on your desktop</h4><p class="ad-muted">Install it as an app: it opens in its own window from a desktop shortcut, like any program. Press <kbd>Ctrl</kbd>+<kbd>K</kbd> anywhere to jump to a test, lesson, student or section.</p></div>
+        <button class="ad-btn" data-inst>⬇ Install on this computer</button></div>`}
       `;
+    if ($('[data-inst]', box)) $('[data-inst]', box).addEventListener('click', installApp);
     $$('[data-go]', box).forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
   }).catch(err => failed(box, err, () => viewOverview(box)));
 }
@@ -617,7 +652,7 @@ function previewTest() {
     </div>`).join('') || '<p>No questions yet.</p>'}</div>` });
 }
 
-window.addEventListener('beforeunload', e => { if (ED && ED.dirty && current === 'tests') { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => { if (unsaved()) { e.preventDefault(); e.returnValue = ''; } });
 
 /* ═════════════════════════ RESULTS ═════════════════════════ */
 
@@ -824,16 +859,21 @@ let LE = null;
 
 function editLesson(row) {
   LE = row ? JSON.parse(JSON.stringify(row)) : { id: '', kind: 'custom', term: 'm', order: 0, title: '', desc: '', status: 'Locked', body: [{ t: 'heading', text: '' }, { t: 'text', text: '' }] };
+  LE.dirty = false;
+  current = 'lessons';
+  $$('.ad-nav-btn').forEach(b => b.classList.toggle('on', b.dataset.view === 'lessons'));
+  if (location.hash.slice(1) !== 'lessons') history.replaceState(null, '', '#lessons');
   const box = $('#ad-view');
   $('#ad-title').textContent = LE.id ? 'Edit lesson' : 'New lesson';
   const a = actions(`<button class="ad-btn ghost" data-back>← Lessons</button>${LE.id ? '<button class="ad-btn ghost danger-text" data-del>Delete</button>' : ''}<button class="ad-btn" data-save>Save lesson</button>`);
-  $('[data-back]', a).addEventListener('click', () => go('lessons'));
+  $('[data-back]', a).addEventListener('click', () => navTo('lessons'));
   if ($('[data-del]', a)) $('[data-del]', a).addEventListener('click', () => confirmBox('Delete this lesson?', 'Students will no longer see it. This cannot be undone.', 'Delete', true)
-    .then(ok => { if (ok) api('lessons.delete', { id: LE.id }).then(() => { toast('Lesson deleted.'); go('lessons'); }).catch(e => toast(e.message, 'bad')); }));
+    .then(ok => { if (ok) api('lessons.delete', { id: LE.id }).then(() => { toast('Lesson deleted.'); LE = null; go('lessons'); }).catch(e => toast(e.message, 'bad')); }));
   $('[data-save]', a).addEventListener('click', e => {
     if (!LE.title.trim()) return toast('Give the lesson a title.', 'bad');
     busy(e.currentTarget, true, 'Saving…');
-    api('lessons.save', { lesson: LE }).then(r => { LE.id = r.id; toast('Lesson saved.'); go('lessons'); }).catch(er => { busy(e.currentTarget, false); toast(er.message, 'bad'); });
+    const out = Object.assign({}, LE); delete out.dirty;
+    api('lessons.save', { lesson: out }).then(() => { LE = null; toast('Lesson saved.'); go('lessons'); }).catch(er => { busy(e.currentTarget, false); toast(er.message, 'bad'); });
   });
   box.innerHTML = `<div class="ad-lesson-ed">
     <div class="ad-lesson-form">
@@ -849,8 +889,8 @@ function editLesson(row) {
     </div>
     <aside class="ad-lesson-pv"><div class="ad-pv-label">Live preview</div><div class="ad-pv-page" data-pv></div></aside>
   </div>`;
-  $$('[data-l]', box).forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { LE[inp.dataset.l] = inp.type === 'number' ? Number(inp.value) : inp.value; lessonPreview(); }));
-  $$('[data-addb]', box).forEach(b => b.addEventListener('click', () => { LE.body.push({ t: b.dataset.addb, text: '', url: '', caption: '', tone: 'info' }); paintBlocks(); }));
+  $$('[data-l]', box).forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { LE[inp.dataset.l] = inp.type === 'number' ? Number(inp.value) : inp.value; LE.dirty = true; lessonPreview(); }));
+  $$('[data-addb]', box).forEach(b => b.addEventListener('click', () => { LE.body.push({ t: b.dataset.addb, text: '', url: '', caption: '', tone: 'info' }); LE.dirty = true; paintBlocks(); }));
   paintBlocks();
 }
 
@@ -869,9 +909,9 @@ function paintBlocks() {
   </div>`).join('');
   $$('.ad-block', list).forEach(n => {
     const i = Number(n.dataset.i), b = LE.body[i];
-    $$('[data-b]', n).forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { b[inp.dataset.b] = inp.value; lessonPreview(); }));
-    $$('[data-mv]', n).forEach(x => x.addEventListener('click', () => { const j = i + Number(x.dataset.mv); [LE.body[i], LE.body[j]] = [LE.body[j], LE.body[i]]; paintBlocks(); }));
-    $('[data-rm]', n).addEventListener('click', () => { LE.body.splice(i, 1); paintBlocks(); });
+    $$('[data-b]', n).forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { b[inp.dataset.b] = inp.value; LE.dirty = true; lessonPreview(); }));
+    $$('[data-mv]', n).forEach(x => x.addEventListener('click', () => { const j = i + Number(x.dataset.mv); [LE.body[i], LE.body[j]] = [LE.body[j], LE.body[i]]; LE.dirty = true; paintBlocks(); }));
+    $('[data-rm]', n).addEventListener('click', () => { LE.body.splice(i, 1); LE.dirty = true; paintBlocks(); });
   });
   lessonPreview();
 }
@@ -904,8 +944,14 @@ function lessonPreview() {
 
 function viewStudents(box) {
   loading(box);
+  const a = actions(`<button class="ad-btn ghost" data-csv>⬇ Export CSV</button>`);
   api('students.list').then(res => {
     const all = res.students, secs = Array.from(new Set(all.map(s => s.section))).sort();
+    $('[data-csv]', a).onclick = () => {
+      const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      download([['Name', 'Section', 'Access Code', 'Status', 'Last Seen', 'Sign-ins', 'Minutes', 'Lessons Done', 'Progress %', 'XP'].map(q).join(',')]
+        .concat(all.map(s => [s.name, s.section, fmtCode(s.code), s.status, s.lastSeen ? new Date(s.lastSeen).toLocaleString() : '', s.logins, s.minutes, s.lessons, s.progress, s.xp].map(q).join(','))).join('\r\n'), 'AAP101 students.csv');
+    };
     box.innerHTML = `<div class="ad-row ad-filter">
         <input class="ad-search" type="search" placeholder="Search name or code…" data-q>
         <select class="ad-select" data-sec><option value="">All sections (${all.length})</option>${secs.map(s => `<option>${h(s)}</option>`).join('')}</select>
@@ -915,7 +961,7 @@ function viewStudents(box) {
       const q = $('[data-q]', box).value.trim().toLowerCase(), sec = $('[data-sec]', box).value;
       const rows = all.filter(s => (!sec || s.section === sec) && (!q || (s.name + ' ' + s.code).toLowerCase().includes(q)));
       $('[data-rows]', box).innerHTML = rows.length ? rows.map(s => `<tr data-code="${h(s.code)}">
-        <td><b>${h(s.name)}</b><small>${h(s.section)}</small></td>
+        <td><button class="ad-link ad-name-link" data-prof>${h(s.name)}</button><small>${h(s.section)}</small></td>
         <td><code class="ad-code">${h(s.code.replace(/^(.{3})(.{4})(.{4})$/, '$1-$2-$3'))}</code></td>
         <td>${s.status === 'DISABLED' ? '<span class="ad-pill bad">Disabled</span>' : '<span class="ad-pill ok">Active</span>'}</td>
         <td class="ad-muted">${fmtAgo(s.lastSeen)}</td>
@@ -924,6 +970,7 @@ function viewStudents(box) {
         <td class="ad-row-end"><button class="ad-btn sm ghost" data-sa="signout">Sign out</button>
           ${s.status === 'DISABLED' ? '<button class="ad-btn sm" data-sa="enable">Enable</button>' : '<button class="ad-btn sm ghost danger-text" data-sa="disable">Disable</button>'}</td></tr>`).join('')
         : '<tr><td colspan="7" class="ad-muted center">No students match.</td></tr>';
+      $$('[data-prof]', box).forEach(b => b.addEventListener('click', () => openStudent(b.closest('tr').dataset.code, () => viewStudents(box))));
       $$('[data-sa]', box).forEach(b => b.addEventListener('click', () => {
         const code = b.closest('tr').dataset.code, s = all.find(x => x.code === code), act = b.dataset.sa;
         const msg = act === 'signout' ? `${s.name} will be signed out on every device. Their progress is kept.`
@@ -1010,6 +1057,401 @@ function consultCard(card) {
     $('[data-prev]', card).addEventListener('click', prev);
     $('[data-code]', card).addEventListener('keydown', e => { if (e.key === 'Enter') prev(); });
   }).catch(err => { card.innerHTML = `<div class="ad-card-h"><h4>Online grade consultation</h4></div><p class="bad">${h(err.message)}</p>`; });
+}
+
+/* ═════════════════════════ STUDENT PROFILE ═════════════════════════ */
+
+function drawer() {
+  const d = document.createElement('div');
+  d.className = 'ad-drawer';
+  d.innerHTML = `<div class="ad-drawer-card"><div class="ad-loading"><span class="ad-spin big"></span></div></div>`;
+  document.body.appendChild(d);
+  const close = () => { d.classList.add('out'); setTimeout(() => d.remove(), 250); document.removeEventListener('keydown', key); };
+  const key = e => { if (e.key === 'Escape' && !$('.ad-dialog')) close(); };
+  document.addEventListener('keydown', key);
+  d.addEventListener('click', e => { if (e.target === d) close(); });
+  return { el: d, card: $('.ad-drawer-card', d), close };
+}
+const fmtCode = c => String(c || '').replace(/^(.{3})(.{4})(.{4})$/, '$1-$2-$3');
+const fmtNum = n => n === '' || n == null ? '—' : String(Math.round(Number(n) * 100) / 100);
+const fmtEq = n => n === '' || n == null ? '—' : Number(n).toFixed(2);
+
+function openStudent(code, onChange) {
+  const dr = drawer(), card = dr.card;
+  const changed = () => { if (onChange) onChange(); };
+  const paint = res => {
+    const s = res.student, rec = res.record;
+    card.innerHTML = `
+      <header class="ad-drawer-h"><div><span class="ad-kicker">${h(s.section || 'No section')}</span><h3 data-nm>${h(s.name)}</h3>
+        <p class="ad-muted"><code class="ad-code">${h(fmtCode(s.code))}</code> · ${s.status === 'DISABLED' ? '<span class="ad-pill bad">Disabled</span>' : '<span class="ad-pill ok">Active</span>'}</p></div>
+        <button class="ad-icon" data-x aria-label="Close">✕</button></header>
+      <div class="ad-drawer-bd">
+        <div class="ad-mini-kpis">
+          ${miniKpi('Progress', s.progress + '%')}${miniKpi('XP', s.xp)}${miniKpi('Lessons done', s.lessons)}
+          ${miniKpi('Time in module', s.minutes >= 60 ? Math.floor(s.minutes / 60) + ' h ' + (s.minutes % 60) + ' m' : s.minutes + ' m')}
+          ${miniKpi('Sign-ins', s.logins)}${miniKpi('Last seen', fmtAgo(s.lastSeen))}
+        </div>
+        <h4 class="ad-sub-h">Class record</h4>
+        ${rec ? recordBlock(rec) : '<p class="ad-muted">Not on a class record tab yet. Build or refresh the class record to add them.</p>'}
+        <h4 class="ad-sub-h">Quizzes &amp; exams</h4>
+        ${res.attempts.length ? `<table class="ad-table compact"><tbody>${res.attempts.map(a => `<tr class="${a.status === 'VOID' ? 'void' : ''}">
+          <td><b>${h(a.title)}</b><small>${h(TERMS[a.term] || '')} · ${h(a.slot)} · ${fmtDate(a.submittedAt || a.startedAt)}</small></td>
+          <td class="num">${a.score == null ? `<span class="ad-pill muted">${a.status === 'IN_PROGRESS' ? 'Taking' : a.status === 'VOID' ? 'Reset' : 'Pending'}</span>` : `${h(a.score)}<small>/ ${h(a.max)}</small>`}</td>
+          <td class="nowrap"><button class="ad-btn sm ghost" data-att="${h(a.id)}">Open</button></td></tr>`).join('')}</tbody></table>`
+          : '<p class="ad-muted">No attempts yet.</p>'}
+      </div>
+      <footer class="ad-drawer-f">
+        <button class="ad-btn ghost" data-rename>Correct name</button>
+        <button class="ad-btn ghost" data-signout>Sign out everywhere</button>
+        ${s.status === 'DISABLED' ? '<button class="ad-btn" data-enable>Enable</button>' : '<button class="ad-btn ghost danger-text" data-disable>Disable</button>'}
+        ${rec ? '<button class="ad-btn" data-gb>Edit grades</button>' : ''}
+      </footer>`;
+    $('[data-x]', card).addEventListener('click', dr.close);
+    $$('[data-att]', card).forEach(b => b.addEventListener('click', () => openAttempt(b.dataset.att, () => api('students.get', { code }).then(paint))));
+    if ($('[data-gb]', card)) $('[data-gb]', card).addEventListener('click', () => { dr.close(); navTo('gradebook', { tab: rec.tab, code: s.code }); });
+    $('[data-rename]', card).addEventListener('click', () => dialog({ title: 'Correct the name', ok: 'Save', body: `
+        <label class="ad-lbl">Full name<input data-n maxlength="80" value="${h(s.name)}"></label>
+        <p class="ad-muted">Write it as Surname, Given Name (for example: Dela Cruz, Juan) so the class record splits it correctly. Their class record row is updated too.</p>` })
+      .then(d => {
+        if (!d) return;
+        api('students.rename', { code: s.code, name: $('[data-n]', d).value }).then(() => { toast('Name updated.'); changed(); return api('students.get', { code }).then(paint); })
+          .catch(e => toast(e.message, 'bad'));
+      }));
+    $('[data-signout]', card).addEventListener('click', () => confirmBox('Sign out ' + s.name + '?', 'They will be signed out on every device. Their progress is kept.', 'Sign out')
+      .then(ok => { if (ok) api('students.signout', { code: s.code }).then(() => toast('Signed out.')).catch(e => toast(e.message, 'bad')); }));
+    const setSt = st => api('students.status', { code: s.code, status: st }).then(() => { toast('Done.'); changed(); return api('students.get', { code }).then(paint); }).catch(e => toast(e.message, 'bad'));
+    if ($('[data-disable]', card)) $('[data-disable]', card).addEventListener('click', () => confirmBox('Disable ' + s.name + '?', 'They will be blocked immediately until you enable them again.', 'Disable', true).then(ok => { if (ok) setSt('DISABLED'); }));
+    if ($('[data-enable]', card)) $('[data-enable]', card).addEventListener('click', () => setSt('ACTIVE'));
+  };
+  api('students.get', { code }).then(paint).catch(e => {
+    card.innerHTML = `<div class="ad-empty"><p>${h(needsUpdate(e) || e.message)}</p><button class="ad-btn ghost" data-x>Close</button></div>`;
+    $('[data-x]', card).addEventListener('click', dr.close);
+  });
+}
+function miniKpi(label, val) { return `<div class="ad-mini"><span>${h(label)}</span><b>${h(val)}</b></div>`; }
+function recordBlock(rec) {
+  const term = t => {
+    const x = rec.terms[t];
+    return `<div class="ad-rec-term"><div class="ad-rec-th"><b>${t === 'MT' ? 'Midterm' : 'Final Term'}</b><span>${fmtNum(x.grade)} · ${fmtEq(x.eq)}</span></div>
+      <ul>${x.items.map(i => `<li class="${i.red ? 'miss' : ''}"><span>${h(i.label)}</span><b>${i.score == null ? (i.red ? 'Missing' : '—') : h(fmtNum(i.score))}<small>/ ${h(i.max)}</small></b></li>`).join('')}</ul></div>`;
+  };
+  return `<div class="ad-rec">${term('MT')}${term('FT')}</div>
+    <p class="ad-rec-final">Final rating <b>${fmtNum(rec.final)}</b> · FG <b>${fmtEq(rec.fg)}</b>${rec.remarks ? ` · <span class="ad-pill ${/Passed/.test(rec.remarks) ? 'ok' : /Failed/.test(rec.remarks) ? 'bad' : 'warn'}">${h(rec.remarks)}</span>` : ''}</p>`;
+}
+
+/* An Apps Script that predates this Studio answers new actions with UNKNOWN_OP. */
+function needsUpdate(err) {
+  return err && err.res && err.res.error === 'UNKNOWN_OP'
+    ? 'This part of the Studio needs the latest Apps Script. Paste the updated Admin.gs into the script editor and deploy a new version (Deploy ▸ Manage deployments ▸ Edit ▸ New version).' : '';
+}
+
+/* ═════════════════════════ GRADE BOOK ═════════════════════════ */
+/* A spreadsheet-style editor for one section's class record tab. Typing a
+   score updates the grade at once (same rules as the sheet's formulas);
+   Save writes only the cells you changed. */
+
+const GB_KEYS = ['q1', 'q2', 'q3', 'rec', 'att', 'pt1', 'pt2', 'pt3', 'exam'];
+const GB_W = { quiz: 30, ra: 10, pt: 30, exam: 30 };
+const GB_SCALE = [[96.5, 1], [93.5, 1.25], [90.5, 1.5], [87.5, 1.75], [84.5, 2], [81.5, 2.25], [78.5, 2.5], [75.5, 2.75], [75, 3], [74.01, 4]];
+let GB = null;
+const r2 = n => Math.round(n * 100) / 100;
+const gbEq = v => { if (v === '' || v == null) return ''; const x = r2(v); for (const [m, e] of GB_SCALE) if (x >= m) return e; return 5; };
+function gbTerm(cells, max, t) {
+  const v = k => cells[t + '.' + k], n = k => (v(k) === '' || v(k) == null ? 0 : Number(v(k))), M = k => max[t + '.' + k];
+  if (GB_KEYS.every(k => v(k) === '' || v(k) == null)) return '';
+  const q = r2((n('q1') + n('q2') + n('q3')) / (M('q1') + M('q2') + M('q3')) * 100);
+  const ra = r2((n('rec') / M('rec') + n('att') / M('att')) / 2 * 100);
+  const pt = r2((n('pt1') / M('pt1') + n('pt2') / M('pt2') + n('pt3') / M('pt3')) / 3 * 100);
+  const ex = r2(n('exam') / M('exam') * 100);
+  return r2(r2(q * GB_W.quiz / 100) + r2(ra * GB_W.ra / 100) + r2(pt * GB_W.pt / 100) + r2(ex * GB_W.exam / 100));
+}
+function gbCalc(row) {
+  const max = {}; GB.cols.forEach(c => { max[c.key] = GB.max[c.key]; });
+  const cells = Object.assign({}, row.cells);
+  Object.keys(GB.edits).forEach(k => { const [code, key] = k.split('|'); if (code === row.code && key !== 'status') cells[key] = GB.edits[k].value; });
+  const mt = gbTerm(cells, max, 'MT'), ft = gbTerm(cells, max, 'FT');
+  const fin = mt === '' || ft === '' ? '' : r2((mt + ft) / 2), fg = gbEq(fin);
+  const st = String(gbVal(row, 'status')).toUpperCase();
+  const remarks = st === 'INC' ? 'Incomplete' : st === 'DROPPED' ? 'Dropped' : fg === '' ? '' : fg <= 3 ? 'Passed' : fg === 4 ? 'Conditional' : 'Failed';
+  return { mt, mg: gbEq(mt), ft, ftg: gbEq(ft), final: fin, fg, remarks };
+}
+function gbVal(row, key) { const e = GB.edits[row.code + '|' + key]; return e ? e.value : key === 'status' ? row.status : row.cells[key]; }
+function gbMiss(row, key) { const e = GB.edits[row.code + '|' + key]; return e ? !!e.missing : !!row.missing[key]; }
+const gbDirty = () => !!GB && (Object.keys(GB.edits).length + Object.keys(GB.maxEdits).length + Object.keys(GB.hdrEdits).length) > 0;
+
+function viewGradebook(box, arg) {
+  loading(box);
+  api('record.tabs').then(res => {
+    if (!res.tabs.length) {
+      box.innerHTML = `<div class="ad-empty"><div class="ad-empty-ico">✏️</div><h3>No class record yet</h3><p>Build the class record first. It makes one tab per section from the students who registered.</p>
+        <button class="ad-btn" data-go>Go to Class Record</button></div>`;
+      $('[data-go]', box).addEventListener('click', () => go('record'));
+      return;
+    }
+    const want = arg && arg.tab && res.tabs.some(t => t.tab === arg.tab) ? arg.tab : (GB && res.tabs.some(t => t.tab === GB.tab) ? GB.tab : res.tabs[0].tab);
+    loadGradebook(box, res.tabs, want, (arg && arg.term) || (GB && GB.term) || 'MT', arg && arg.code);
+  }).catch(err => {
+    const up = needsUpdate(err);
+    if (up) { box.innerHTML = `<div class="ad-empty"><div class="ad-empty-ico">🔧</div><h3>One more step</h3><p>${h(up)}</p></div>`; return; }
+    failed(box, err, () => viewGradebook(box, arg));
+  });
+}
+
+function loadGradebook(box, tabs, tab, term, focusCode) {
+  loading(box);
+  api('record.get', { tab }).then(res => {
+    GB = { tab, tabs, term, cols: res.cols, rows: res.rows, max: {}, labels: {}, edits: {}, maxEdits: {}, hdrEdits: {}, q: GB && GB.tab === tab ? GB.q : '' };
+    res.cols.forEach(c => { GB.max[c.key] = c.max; GB.labels[c.key] = c.label; });
+    paintGradebook(box);
+    if (focusCode) {
+      const tr = $(`tr[data-code="${CSS.escape(focusCode)}"]`, box);
+      if (tr) { tr.classList.add('flash'); tr.scrollIntoView({ block: 'center' }); const inp = $('input', tr); if (inp) inp.focus(); }
+    }
+  }).catch(err => failed(box, err, () => loadGradebook(box, tabs, tab, term, focusCode)));
+}
+
+function paintGradebook(box) {
+  const a = actions(`<button class="ad-btn ghost" data-csv>⬇ Export CSV</button><button class="ad-btn ghost" data-reload>↻ Reload</button><button class="ad-btn" data-save>Save changes</button>`);
+  $('[data-csv]', a).addEventListener('click', gbCsv);
+  $('[data-reload]', a).addEventListener('click', () => (gbDirty() ? confirmBox('Discard your changes?', 'Unsaved scores on this tab will be lost.', 'Discard', true) : Promise.resolve(true))
+    .then(ok => { if (ok) { GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {}; loadGradebook(box, GB.tabs, GB.tab, GB.term); } }));
+  $('[data-save]', a).addEventListener('click', e => gbSave(e.currentTarget, box));
+
+  const T = GB.term, keys = T === 'ALL' ? [] : GB_KEYS.map(k => T + '.' + k);
+  const head2 = keys.map(k => `<th class="gb-max"><input data-max="${k}" value="${h(GB.max[k])}" inputmode="decimal" aria-label="Maximum for ${h(GB.labels[k])}" title="Maximum score"></th>`).join('');
+  box.innerHTML = `
+    <div class="gb-bar">
+      <select class="ad-select" data-tab aria-label="Section">${GB.tabs.map(t => `<option value="${h(t.tab)}" ${t.tab === GB.tab ? 'selected' : ''}>${h(t.tab)} (${t.students})</option>`).join('')}</select>
+      <div class="ad-seg" role="group" aria-label="Term">${[['MT', 'Midterm'], ['FT', 'Final Term'], ['ALL', 'Summary']].map(([k, l]) => `<button data-term="${k}" class="${GB.term === k ? 'on open' : ''}" aria-pressed="${GB.term === k}">${l}</button>`).join('')}</div>
+      <input class="ad-search" type="search" placeholder="Find a student…" data-q value="${h(GB.q)}">
+      <span class="ad-muted gb-dirty" data-dirty></span>
+    </div>
+    <p class="ad-hint gb-help">Type a score and press <kbd>Enter</kbd> or the arrow keys to move. Type <kbd>x</kbd> to mark it <b>not submitted</b> (red in the sheet). Row 2 holds each maximum. Click a performance task's name to rename it. <kbd>Ctrl</kbd>+<kbd>S</kbd> saves.</p>
+    <div class="ad-card flush"><div class="gb-wrap"><table class="gb">
+      <thead><tr><th class="gb-n">#</th><th class="gb-name">Student</th>
+        ${T === 'ALL' ? '<th>MT Grade</th><th>MG</th><th>FT Grade</th><th>FTG</th><th>Final</th><th>FG</th><th>Status</th><th>Remarks</th>'
+          : keys.map(k => `<th class="gb-h ${/pt\d$/.test(k) ? 'pt' : ''}" ${/pt\d$/.test(k) ? `data-hdr="${k}" title="Rename this performance task"` : ''}>${h(GB.labels[k])}</th>`).join('') + `<th class="gb-calc">${T} Grade</th><th class="gb-calc">${T === 'MT' ? 'MG' : 'FTG'}</th><th>Status</th>`}
+      </tr>${T === 'ALL' ? '' : `<tr class="gb-maxrow"><th class="gb-n"></th><th class="gb-name"><small>Maximum</small></th>${head2}<th class="gb-calc"></th><th class="gb-calc"></th><th></th></tr>`}</thead>
+      <tbody data-rows></tbody></table></div></div>`;
+
+  $('[data-tab]', box).addEventListener('change', e => {
+    const to = e.target.value;
+    (gbDirty() ? confirmBox('Leave this section?', 'You have unsaved scores here. Save first, or they will be lost.', 'Leave', true) : Promise.resolve(true))
+      .then(ok => { if (ok) loadGradebook(box, GB.tabs, to, GB.term); else e.target.value = GB.tab; });
+  });
+  $$('[data-term]', box).forEach(b => b.addEventListener('click', () => { GB.term = b.dataset.term; paintGradebook(box); }));
+  $('[data-q]', box).addEventListener('input', e => { GB.q = e.target.value; gbRows(box); });
+  $$('[data-max]', box).forEach(inp => inp.addEventListener('change', () => {
+    const k = inp.dataset.max, n = Number(inp.value);
+    if (!(n > 0 && n <= 1000)) { toast('A maximum must be between 1 and 1000.', 'bad'); inp.value = GB.max[k]; return; }
+    GB.max[k] = n; GB.maxEdits[k] = n; inp.classList.add('dirty'); gbRows(box);
+  }));
+  $$('[data-hdr]', box).forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.hdr;
+    dialog({ title: 'Name this performance task', ok: 'Set name', body: `<label class="ad-lbl">Task name<input data-n maxlength="60" value="${h(/^PT \d$/.test(GB.labels[k]) ? '' : GB.labels[k])}" placeholder="e.g. Coffee Painting"></label><p class="ad-muted">Students see this name under My Grades. Leave blank for “${h(k.split('.')[1].toUpperCase().replace('PT', 'PT '))}”.</p>` })
+      .then(d => { if (!d) return; const v = $('[data-n]', d).value.trim(); GB.hdrEdits[k] = v; GB.labels[k] = v || k.split('.')[1].toUpperCase().replace('PT', 'PT '); paintGradebook(box); });
+  }));
+  gbRows(box);
+}
+
+function gbRows(box) {
+  const T = GB.term, keys = T === 'ALL' ? [] : GB_KEYS.map(k => T + '.' + k);
+  const q = GB.q.trim().toLowerCase();
+  const rows = GB.rows.filter(r => !q || (r.surname + ' ' + r.given + ' ' + r.studno + ' ' + r.code).toLowerCase().includes(q));
+  const remPill = t => t ? `<span class="ad-pill ${t === 'Passed' ? 'ok' : t === 'Failed' ? 'bad' : 'warn'}">${h(t)}</span>` : '';
+  $('[data-rows]', box).innerHTML = rows.length ? rows.map((r, i) => {
+    const c = gbCalc(r), st = gbVal(r, 'status');
+    const name = `<td class="gb-n">${GB.rows.indexOf(r) + 1}</td><td class="gb-name"><button class="ad-link" data-prof="${h(r.code)}">${h(r.surname)}, ${h(r.given)}</button>${r.studno ? `<small>${h(r.studno)}</small>` : ''}</td>`;
+    if (T === 'ALL') return `<tr data-code="${h(r.code)}">${name}<td class="num">${fmtNum(c.mt)}</td><td class="num">${fmtEq(c.mg)}</td><td class="num">${fmtNum(c.ft)}</td><td class="num">${fmtEq(c.ftg)}</td>
+      <td class="num"><b>${fmtNum(c.final)}</b></td><td class="num"><b>${fmtEq(c.fg)}</b></td><td>${h(st || '')}</td><td>${remPill(c.remarks)}</td></tr>`;
+    return `<tr data-code="${h(r.code)}">${name}${keys.map((k, j) => {
+      const v = gbVal(r, k), miss = gbMiss(r, k), dirty = GB.edits[r.code + '|' + k];
+      return `<td class="gb-c ${miss ? 'miss' : ''} ${dirty ? 'dirty' : ''}"><input data-k="${k}" data-r="${i}" data-c="${j}" value="${miss && (v === '' || v == null) ? '' : h(v)}" placeholder="${miss ? 'x' : ''}" inputmode="decimal" autocomplete="off" aria-label="${h(r.surname)} ${h(GB.labels[k])}"></td>`;
+    }).join('')}<td class="num gb-calc" data-g>${fmtNum(T === 'MT' ? c.mt : c.ft)}</td><td class="num gb-calc" data-e>${fmtEq(T === 'MT' ? c.mg : c.ftg)}</td>
+      <td class="gb-st ${GB.edits[r.code + '|status'] ? 'dirty' : ''}"><select data-st aria-label="Status"><option value="" ${!st ? 'selected' : ''}>—</option><option ${String(st).toUpperCase() === 'INC' ? 'selected' : ''}>INC</option><option ${String(st).toUpperCase() === 'DROPPED' ? 'selected' : ''}>Dropped</option></select></td></tr>`;
+  }).join('') : `<tr><td colspan="14" class="ad-muted center">No students match.</td></tr>`;
+
+  $$('[data-prof]', box).forEach(b => b.addEventListener('click', () => openStudent(b.dataset.prof)));
+  $$('input[data-k]', box).forEach(inp => {
+    const tr = inp.closest('tr'), row = GB.rows.find(r => r.code === tr.dataset.code), k = inp.dataset.k;
+    inp.addEventListener('focus', () => inp.select());
+    inp.addEventListener('input', () => {
+      const raw = inp.value.trim(), td = inp.parentNode, id = row.code + '|' + k;
+      let e;
+      if (/^x$/i.test(raw)) { e = { value: '', missing: true }; inp.value = ''; inp.placeholder = 'x'; }
+      else if (raw === '') e = { value: '', missing: false };
+      else if (!isNaN(Number(raw))) e = { value: Number(raw), missing: false };
+      else { td.classList.add('bad'); return; }
+      const over = e.value !== '' && (e.value < 0 || e.value > GB.max[k]);
+      td.classList.toggle('bad', over);
+      const orig = row.cells[k], origMiss = !!row.missing[k];
+      if (e.value === orig && e.missing === origMiss) delete GB.edits[id]; else GB.edits[id] = e;
+      td.classList.toggle('dirty', !!GB.edits[id]);
+      td.classList.toggle('miss', e.missing);
+      if (!e.missing) inp.placeholder = '';
+      const c = gbCalc(row);
+      $('[data-g]', tr).textContent = fmtNum(GB.term === 'MT' ? c.mt : c.ft);
+      $('[data-e]', tr).textContent = fmtEq(GB.term === 'MT' ? c.mg : c.ftg);
+      gbDirtyLabel(box);
+    });
+    inp.addEventListener('keydown', e => {
+      const r = Number(inp.dataset.r), c = Number(inp.dataset.c);
+      const mv = { ArrowUp: [-1, 0], ArrowDown: [1, 0], Enter: [e.shiftKey ? -1 : 1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+      if (!mv) return;
+      if ((e.key === 'ArrowLeft' && inp.selectionStart > 0) || (e.key === 'ArrowRight' && inp.selectionEnd < inp.value.length)) return;
+      e.preventDefault();
+      const nx = $(`input[data-r="${r + mv[0]}"][data-c="${c + mv[1]}"]`, box);
+      if (nx) nx.focus();
+    });
+  });
+  $$('select[data-st]', box).forEach(sel => sel.addEventListener('change', () => {
+    const tr = sel.closest('tr'), row = GB.rows.find(r => r.code === tr.dataset.code), id = row.code + '|status';
+    if (sel.value === (row.status || '')) delete GB.edits[id]; else GB.edits[id] = { value: sel.value };
+    sel.parentNode.classList.toggle('dirty', !!GB.edits[id]);
+    gbDirtyLabel(box);
+  }));
+  gbDirtyLabel(box);
+}
+
+function gbDirtyLabel(box) {
+  const n = Object.keys(GB.edits).length + Object.keys(GB.maxEdits).length + Object.keys(GB.hdrEdits).length;
+  const el = $('[data-dirty]', box);
+  if (el) el.innerHTML = n ? `<b>${n}</b> unsaved change${n === 1 ? '' : 's'}` : 'All changes saved';
+}
+
+function gbSave(btn, box) {
+  if (!gbDirty()) return toast('Nothing to save.');
+  const bad = Object.keys(GB.edits).filter(id => { const [, k] = id.split('|'); const v = GB.edits[id].value; return k !== 'status' && v !== '' && (v < 0 || v > GB.max[k]); });
+  if (bad.length) return toast(bad.length + ' score' + (bad.length > 1 ? 's are' : ' is') + ' above the maximum. Fix the red cells first.', 'bad');
+  const cells = Object.keys(GB.edits).map(id => { const [code, key] = id.split('|'); return Object.assign({ code, key }, GB.edits[id]); });
+  const maxes = Object.keys(GB.maxEdits).map(key => ({ key, value: GB.maxEdits[key] }));
+  const headers = Object.keys(GB.hdrEdits).map(key => ({ key, name: GB.hdrEdits[key] }));
+  busy(btn, true, 'Saving…');
+  api('record.save', { tab: GB.tab, cells, maxes, headers }).then(res => {
+    busy(btn, false);
+    GB.cols = res.cols; GB.rows = res.rows; GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {};
+    res.cols.forEach(c => { GB.max[c.key] = c.max; GB.labels[c.key] = c.label; });
+    if (res.errors && res.errors.length) toast('Saved ' + res.written + '. Not saved: ' + res.errors.join(' '), 'bad');
+    else toast('Saved ' + res.written + ' change' + (res.written === 1 ? '' : 's') + ' to ' + GB.tab + '.');
+    paintGradebook(box);
+  }).catch(err => { busy(btn, false); toast(err.message, 'bad'); });
+}
+
+function gbCsv() {
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const keys = ['MT', 'FT'].reduce((a, t) => a.concat(GB_KEYS.map(k => t + '.' + k)), []);
+  const lines = [['Surname', 'Given Name', 'Student Number'].concat(keys.map(k => k.split('.')[0] + ' ' + GB.labels[k]), ['MT Grade', 'MG', 'FT Grade', 'FTG', 'Final', 'FG', 'Status', 'Remarks']).map(q).join(',')]
+    .concat(GB.rows.map(r => { const c = gbCalc(r); return [r.surname, r.given, r.studno].concat(keys.map(k => gbMiss(r, k) ? 'x' : gbVal(r, k)), [c.mt, c.mg, c.ft, c.ftg, c.final, c.fg, gbVal(r, 'status'), c.remarks]).map(q).join(','); }));
+  download(lines.join('\r\n'), GB.tab.replace(/[^\w\- ]+/g, '') + ' - class record.csv');
+}
+function download(text, name) {
+  const blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* ═════════════════════════ COMMAND PALETTE ═════════════════════════ */
+/* Ctrl+K: jump to any view, test, lesson, student or section, or run an action. */
+
+let PAL_CACHE = null;
+function paletteItems() {
+  if (PAL_CACHE && Date.now() - PAL_CACHE.at < 60000) return Promise.resolve(PAL_CACHE.items);
+  const base = VIEWS.map((v, i) => ({ ico: v.ico, label: 'Go to ' + v.label, hint: 'Alt+' + (i + 1), run: () => navTo(v.id) })).concat([
+    { ico: '＋', label: 'New quiz or exam', run: () => guardLeave().then(ok => ok && editTest(null)) },
+    { ico: '＋', label: 'New lesson', run: () => guardLeave().then(ok => { if (ok) editLesson(null); }) },
+    { ico: '🧾', label: 'Build / refresh class record', run: () => navTo('record') },
+    { ico: '⬇', label: 'Install the Studio on this computer', run: installApp },
+    { ico: '⌨', label: 'Keyboard shortcuts', hint: '?', run: showShortcuts },
+    { ico: '↗', label: 'Open the student module', run: () => window.open('index.html', '_blank', 'noopener') }
+  ]);
+  const soft = p => p.then(r => r, () => null);
+  return Promise.all([soft(api('tests.list')), soft(api('students.list')), soft(api('lessons.list')), soft(api('record.tabs'))]).then(([t, s, l, r]) => {
+    const items = base.slice();
+    if (t) t.tests.forEach(x => items.push({ ico: '📝', label: x.title, sub: TERMS[x.term] + ' · ' + x.slot, run: () => guardLeave().then(ok => ok && editTest(x.id)) }));
+    if (t) t.tests.filter(x => x.submitted || x.inProgress).forEach(x => items.push({ ico: '📊', label: 'Results: ' + x.title, run: () => navTo('results', x.id) }));
+    if (l) l.lessons.filter(x => x.kind === 'custom').forEach(x => items.push({ ico: '📚', label: x.title, sub: 'Your lesson', run: () => guardLeave().then(ok => { if (ok) editLesson(x); }) }));
+    if (typeof CONTENT === 'object') ['m', 'f'].forEach(k => (CONTENT[k].lessons || []).forEach(x => items.push({ ico: '📚', label: 'Lesson ' + x.num + ': ' + x.title, sub: k === 'm' ? 'Midterm' : 'Final Term', run: () => navTo('lessons') })));
+    if (s) s.students.forEach(x => items.push({ ico: '👤', label: x.name, sub: x.section + ' · ' + fmtCode(x.code), run: () => openStudent(x.code) }));
+    if (r) r.tabs.forEach(x => items.push({ ico: '✏️', label: 'Grade Book: ' + x.tab, sub: x.students + ' students', run: () => navTo('gradebook', { tab: x.tab }) }));
+    PAL_CACHE = { at: Date.now(), items };
+    return items;
+  });
+}
+
+function openPalette() {
+  if ($('.ad-pal') || !ss.get(K_TOK) || !$('.ad-shell')) return;
+  const d = document.createElement('div');
+  d.className = 'ad-dialog ad-pal';
+  d.innerHTML = `<div class="ad-pal-card" role="dialog" aria-modal="true" aria-label="Command palette">
+    <input class="ad-pal-in" placeholder="Search tests, lessons, students, sections or actions…" aria-label="Search" autocomplete="off">
+    <ul class="ad-pal-list" role="listbox"><li class="ad-pal-empty"><span class="ad-spin"></span></li></ul>
+    <div class="ad-pal-f"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div></div>`;
+  document.body.appendChild(d);
+  const inp = $('.ad-pal-in', d), list = $('.ad-pal-list', d);
+  let items = [], shown = [], sel = 0;
+  const close = () => { d.remove(); document.removeEventListener('keydown', key, true); };
+  const run = it => { close(); it.run(); };
+  const paint = () => {
+    const words = inp.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    shown = items.filter(it => { const s = (it.label + ' ' + (it.sub || '')).toLowerCase(); return words.every(w => s.includes(w)); }).slice(0, 40);
+    sel = Math.min(sel, Math.max(0, shown.length - 1));
+    list.innerHTML = shown.length ? shown.map((it, i) => `<li role="option" class="${i === sel ? 'on' : ''}" data-i="${i}" aria-selected="${i === sel}"><span class="ad-pal-ico">${h(it.ico)}</span>
+      <span class="ad-pal-t"><b>${h(it.label)}</b>${it.sub ? `<small>${h(it.sub)}</small>` : ''}</span>${it.hint ? `<kbd>${h(it.hint)}</kbd>` : ''}</li>`).join('') : '<li class="ad-pal-empty">Nothing matches.</li>';
+    const on = $('li.on', list); if (on) on.scrollIntoView({ block: 'nearest' });
+  };
+  const key = e => {
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, shown.length - 1); paint(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); paint(); }
+    else if (e.key === 'Enter' && shown[sel]) { e.preventDefault(); run(shown[sel]); }
+  };
+  document.addEventListener('keydown', key, true);
+  d.addEventListener('click', e => { if (e.target === d) close(); const li = e.target.closest('li[data-i]'); if (li) run(shown[Number(li.dataset.i)]); });
+  inp.addEventListener('input', () => { sel = 0; paint(); });
+  inp.focus();
+  paletteItems().then(x => { items = x; paint(); }).catch(() => { items = []; paint(); });
+}
+
+function showShortcuts() {
+  const row = (k, t) => `<tr><td class="nowrap">${k.split(' ').map(x => `<kbd>${h(x)}</kbd>`).join(' ')}</td><td>${h(t)}</td></tr>`;
+  dialog({ title: 'Keyboard shortcuts', ok: 'Got it', cancel: '', body: `<table class="ad-table compact ad-keys"><tbody>
+    ${row('Ctrl K', 'Command palette: jump to anything')}
+    ${row('Ctrl S', 'Save the quiz, lesson or grade book you are editing')}
+    ${row('Alt 1 … Alt ' + VIEWS.length, 'Switch section (Overview … Class Record)')}
+    ${row('?', 'This list')}
+    ${row('Enter ↑ ↓ ← →', 'Move between cells in the Grade Book')}
+    ${row('x', 'In the Grade Book: mark a requirement not submitted')}
+    ${row('Esc', 'Close a dialog or panel')}</tbody></table>` });
+}
+
+/* ═════════════════════════ DESKTOP APP ═════════════════════════ */
+/* The Studio is an installable web app: Chrome or Edge put it in its own
+   window with a desktop and Start menu shortcut. */
+
+let INSTALL_EVT = null;
+const isStandalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); INSTALL_EVT = e; $$('[data-install]').forEach(b => { b.hidden = false; }); });
+window.addEventListener('appinstalled', () => { INSTALL_EVT = null; $$('[data-install]').forEach(b => { b.hidden = true; }); toast('Installed. Open “AAP101 Studio” from your desktop or Start menu.'); });
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('studio-sw.js', { scope: './admin.html' }).catch(() => {}); });
+}
+
+function installApp() {
+  if (isStandalone()) return toast('You are already using the desktop app.');
+  if (INSTALL_EVT) {
+    const ev = INSTALL_EVT; INSTALL_EVT = null;
+    ev.prompt();
+    return ev.userChoice.then(c => { if (c && c.outcome !== 'accepted') INSTALL_EVT = ev; }).catch(() => {});
+  }
+  dialog({ title: 'Put the Studio on your desktop', ok: 'Got it', cancel: '', wide: true, body: `
+    <ol class="ad-steps">
+      <li><b>Google Chrome:</b> click the install icon <span class="ad-code">⊕</span> at the right end of the address bar, or open the <b>⋮</b> menu ▸ <b>Cast, save and share</b> ▸ <b>Install page as app…</b> Press <b>Install</b>.</li>
+      <li><b>Microsoft Edge:</b> open the <b>⋯</b> menu ▸ <b>Apps</b> ▸ <b>Install this site as an app</b>. Tick <b>Create desktop shortcut</b> if Edge asks.</li>
+      <li>The Studio opens in its own window. On Windows it is added to the Start menu; to add a desktop icon, open <span class="ad-code">chrome://apps</span>, right-click <b>AAP101 Studio</b> ▸ <b>Create shortcuts…</b> ▸ tick <b>Desktop</b>.</li>
+    </ol>
+    <p class="ad-muted">It always loads the latest version of the Studio, so nothing needs updating on your computer. For safety you sign in each time you open it.</p>` });
 }
 
 /* ═════════════════════════ BOOT ═════════════════════════ */

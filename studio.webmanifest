@@ -1,0 +1,21 @@
+{
+  "id": "./admin.html",
+  "name": "AAP101 Instructor Studio",
+  "short_name": "AAP101 Studio",
+  "description": "Edit lessons, quizzes and exams, grade students and manage the class record for AAP101.",
+  "start_url": "./admin.html",
+  "scope": "./admin.html",
+  "display": "standalone",
+  "background_color": "#F3F7F7",
+  "theme_color": "#002C39",
+  "icons": [
+    { "src": "assets/icons/studio-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/studio-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/studio-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Grade Book", "url": "./admin.html#gradebook", "icons": [{ "src": "assets/icons/studio-192.png", "sizes": "192x192" }] },
+    { "name": "Quizzes & Exams", "url": "./admin.html#tests", "icons": [{ "src": "assets/icons/studio-192.png", "sizes": "192x192" }] },
+    { "name": "Students", "url": "./admin.html#students", "icons": [{ "src": "assets/icons/studio-192.png", "sizes": "192x192" }] }
+  ]
+}
