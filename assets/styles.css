@@ -1988,3 +1988,110 @@ body.no-scroll{overflow:hidden}
   #mobilenav .mn-btn.on .mn-ico{transform:translateY(-1px) scale(1.08);transition:transform var(--spring)}
   #mobilenav{box-shadow:0 -6px 26px rgba(0,20,26,.34),inset 0 1px 0 rgba(255,255,255,.06)}
 }
+
+/* ══════════════════════════════════════════════════════════════
+   2026–27 REFRESH · "quiet gallery"
+   Same four brand colours, calmer surfaces, the artwork as the loudest
+   thing on screen. Everything below overrides the layers above it, so
+   the original rules stay readable as a record of the first design.
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  /* Mint (#00C18E) reads at only 2.2:1 on the blush wall, so on light
+     surfaces text uses a darker mint (4.7:1). Mint stays for fills and
+     for text on teal. */
+  --accent-ink:#00805E;
+  --accent-deep:#00805E;
+  --muted:#4F6F79;          /* 5.1:1 on blush (was 4.1:1) */
+  --faint:#62808A;          /* helper text only */
+  --sh-glow:0 2px 6px rgba(0,44,57,.08),0 8px 22px rgba(0,44,57,.12);
+  --sb-w:256px;
+  --r:14px; --rlg:18px;
+  --fd:var(--fb);           /* two families: Playfair for headings, Inter for the rest */
+}
+body{font-size:17px;font-feature-settings:'tnum' 0}
+.ico{width:20px;height:20px;display:block}
+
+/* ── Ambient effects off: one focal point per screen ── */
+.l-hdr::before,.l-hdr::after,.t-hero::before,.t-hero::after,.mod-card-top::after{display:none!important}
+.l-rail-fill{box-shadow:none;background:var(--accent)}
+
+/* ── Top bar HUD ── */
+.hud-chip,.hud-xp,.hud-streak{font-variant-numeric:tabular-nums}
+.hud-ico{display:inline-flex}
+.hud-ico .ico{width:15px;height:15px}
+.hud-btn{align-items:center;justify-content:center;color:var(--deep);background:transparent}
+@media(min-width:769px){.hud-btn{display:inline-flex}}
+.hud-btn .ico{width:19px;height:19px}
+
+/* ── Mobile bottom nav icons ── */
+.mn-ico{display:inline-flex;align-items:center;justify-content:center;filter:none!important}
+.mn-ico .ico{width:22px;height:22px}
+
+/* ── Home ── */
+.t-hero{padding:44px 32px 40px}
+.t-hero h1{font-size:44px}
+.t-sub{color:rgba(255,247,247,.78);font-size:15px}
+.t-about{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);padding:22px 24px;border:1px solid rgba(0,44,57,.06)}
+.t-about-h{font-family:var(--fh);font-size:22px;color:var(--deep);font-weight:700;margin-bottom:6px}
+.t-about .b-text{box-shadow:none;border:0;padding:0 0 16px;background:none}
+.t-video{max-width:400px;margin:0 auto;box-shadow:var(--sh)!important;border-radius:var(--rsm)!important}
+.t-video video{aspect-ratio:auto;object-fit:contain}   /* the source is 400×400: show it at its real size */
+.mc-tag,.t-hero-tag,.l-tag{letter-spacing:1.6px}
+.dash-card{transition:none}
+
+/* ── Lesson banner ── */
+.l-hdr{padding:32px 32px 28px}
+.l-hdr-desc{color:rgba(255,247,247,.78);font-size:15px}
+.l-rail-txt{color:rgba(255,247,247,.75);font-variant-numeric:tabular-nums}
+
+/* ── Reading column ── */
+.b-text{font-size:17px;line-height:1.7}
+.b-text p,.b-text li{max-width:68ch}
+.b-heading .hd-kicker{color:var(--accent-ink)}
+.act-prog-txt,.dash-lbl{color:var(--muted)}
+
+/* ── Museum labels ── */
+.art-label{display:flex;flex-direction:column;gap:1px;margin-top:10px;padding-left:10px;border-left:2px solid var(--accent);font-size:13.5px;line-height:1.45;color:var(--muted)}
+.art-label .al-title{font-family:var(--fh);font-style:italic;font-size:15px;color:var(--deep)}
+.art-label .al-med{font-size:12.5px}
+.art-label.compact{margin-top:auto;padding-top:6px;font-size:11.5px}
+.art-label.compact .al-title{font-size:12.5px}
+.art-label.on-dark{color:rgba(255,247,247,.75);border-color:var(--accent)}
+.art-label.on-dark .al-title{color:var(--light)}
+
+/* ── Zoomable images ── */
+.dg-panel-img img,.dk-img img,.qz-img img,.cmp-img img,.bq-img-wrap img,.art-zoom img{cursor:zoom-in}
+.qz-img{max-height:none;overflow:visible;box-shadow:none;border-radius:0}
+.qz-img img{max-height:340px;object-fit:contain;background:var(--deep-06);border-radius:var(--rsm)}
+.dg-panel-img{box-shadow:none;overflow:visible}
+.dg-panel-img img{border-radius:var(--rsm)}
+
+.lb{position:fixed;inset:0;z-index:950;background:rgba(0,20,26,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 16px calc(24px + env(safe-area-inset-bottom));opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s}
+.lb.on{opacity:1;visibility:visible}
+.lb-stage{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;overflow:auto;touch-action:pinch-zoom}
+.lb-stage img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.lb-cap{max-width:640px;width:100%;margin-top:14px}
+.lb-x{position:absolute;top:calc(10px + env(safe-area-inset-top));right:10px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,247,247,.12);color:var(--light);display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+/* ── Touch targets: 44px minimum ── */
+.mn-btn,.dk-btn{min-height:44px}
+.hud-btn{min-width:40px;min-height:40px}
+.qz-opt{min-height:52px}
+
+@media(max-width:768px){
+  body{font-size:17px}
+  .t-hero{padding:28px 18px 24px}
+  .t-hero h1{font-size:30px}
+  .l-hdr{padding:22px 18px 20px}
+  .t-about{padding:18px}
+  .dg-panel-img{width:100%}
+}
+
+/* ── Contrast fixes found by the automated audit ── */
+.act-gate,.cont-note{color:#92400E}
+.act-gate.done{color:#047857}
+.btn-cont:disabled{background:rgba(0,44,57,.08);color:var(--muted)}
+.btn-cont.ready{animation:none}
+.tl-chev{color:var(--muted)}
+.panel-left h2{color:var(--light)}
+.control-header span:last-child{color:#7EF0CC}

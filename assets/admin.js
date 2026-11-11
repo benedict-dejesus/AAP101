@@ -32,9 +32,14 @@ function deviceId() {
 }
 
 const TERMS = { MT: 'Midterm', FT: 'Final Term' };
-const SLOTS = ['Quiz 1', 'Quiz 2', 'Exams'];
+const SLOTS = ['Quiz 1', 'Quiz 2', 'Quiz 3', 'Exams'];
 const QTYPES = { mc: 'Multiple choice', multi: 'Multiple answers', tf: 'True / False', ident: 'Identification', essay: 'Essay (you grade)' };
-const COLS = { 'MT|Quiz 1': 'E', 'MT|Quiz 2': 'F', 'MT|Exams': 'I', 'FT|Quiz 1': 'L', 'FT|Quiz 2': 'M', 'FT|Exams': 'P' };
+const COLS = { 'MT|Quiz 1': 'E', 'MT|Quiz 2': 'F', 'MT|Quiz 3': 'G', 'MT|Exams': 'T',
+               'FT|Quiz 1': 'Y', 'FT|Quiz 2': 'Z', 'FT|Quiz 3': 'AA', 'FT|Exams': 'AN' };
+/* Default maximums, matching row 2 of a new class record tab. */
+const MAXES = { 'MT|Quiz 1': 40, 'MT|Quiz 2': 20, 'MT|Quiz 3': 20, 'MT|Exams': 50,
+                'FT|Quiz 1': 20, 'FT|Quiz 2': 20, 'FT|Quiz 3': 20, 'FT|Exams': 50 };
+const maxFor = t => MAXES[(t.term || 'MT') + '|' + (t.slot || 'Quiz 1')] || 20;
 
 const fmtDate = ms => ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
 const fmtAgo = ms => {
@@ -250,13 +255,14 @@ function statusChip(t) {
 
 function viewTests(box) {
   loading(box);
-  const a = actions(`<button class="ad-btn" data-new>＋ New quiz or exam</button>`);
+  const a = actions(`<button class="ad-btn ghost" data-banks>📚 Question banks</button><button class="ad-btn" data-new>＋ New quiz or exam</button>`);
   $('[data-new]', a).addEventListener('click', () => editTest(null));
+  $('[data-banks]', a).addEventListener('click', () => openBanks(box));
   api('tests.list').then(res => {
     const tests = res.tests;
     if (!tests.length) {
       box.innerHTML = `<div class="ad-empty"><div class="ad-empty-ico">📝</div><h3>No quizzes or exams yet</h3>
-        <p>Create Quiz 1, Quiz 2 and the term exam for the Midterm and Final Term. Scores go straight into the class record.</p>
+        <p>Create Quiz 1, Quiz 2, Quiz 3 and the term exam for the Midterm and Final Term, or load the ready-made question banks. Scores go straight into the class record.</p>
         <button class="ad-btn" data-new2>＋ Create the first one</button></div>`;
       $('[data-new2]', box).addEventListener('click', () => editTest(null));
       return;
@@ -289,6 +295,27 @@ function viewTests(box) {
       $$('[data-act]', card).forEach(b => b.addEventListener('click', () => testAction(t, b.dataset.act, b, box)));
     });
   }).catch(err => failed(box, err, () => viewTests(box)));
+}
+
+/* Ready-made, TOS-aligned question banks. Each loads as a DRAFT test you review before opening. */
+function openBanks(box) {
+  api('banks.list').then(res => {
+    const rows = res.banks.map(b => `<tr><td><b>${h(b.title)}</b><div class="ad-muted">${h(TERMS[b.term])} · ${h(b.slot)} · ${b.items} items · ${b.minutes} min</div>
+        <div class="ad-muted">${Object.keys(b.topics).map(k => h(k) + ' ' + b.topics[k]).join(' · ')}</div></td>
+      <td class="ad-row-end">${b.loaded ? `<span class="ad-pill muted">${h(b.loaded.status === 'DRAFT' ? 'Loaded as draft' : 'In your tests')}</span>`
+        : `<button class="ad-btn sm" data-load="${h(b.key)}">Load as draft</button>`}</td></tr>`).join('');
+    const d = dialog({ title: 'Question banks · ' + (res.semester || ''), ok: 'Done', cancel: '', wide: true,
+      body: `<p class="ad-muted">Built from last semester's quizzes and exams and aligned to the syllabus TOS. Each bank loads as a <b>draft</b> with shuffled questions and choices. Review it, set the dates, then press Open.</p>
+        <table class="ad-table compact"><tbody>${rows}</tbody></table>` });
+    setTimeout(() => $$('[data-load]').forEach(btn => btn.addEventListener('click', () => {
+      busy(btn, true, 'Loading…');
+      api('banks.import', { key: btn.dataset.load }).then(r => {
+        btn.outerHTML = '<span class="ad-pill ok">Loaded as draft</span>';
+        toast('"' + r.test.title + '" is in your tests as a draft.');
+      }).catch(e => { busy(btn, false); toast(e.message, 'bad'); });
+    })), 0);
+    d.then(() => viewTests(box));
+  }).catch(e => toast(e.message, 'bad'));
 }
 
 function testAction(t, act, btn, box) {
@@ -335,7 +362,7 @@ function editTest(id, preset) {
   });
   load.then(res => {
     ED = { test: Object.assign({}, res.test), qs: res.questions.map(q => Object.assign({ _k: uid() }, q)), dirty: false };
-    if (!id && preset && preset.slot === 'Exams') ED.test.max = 50;
+    if (!id) ED.test.max = maxFor(ED.test);
     renderEditor(box);
   }).catch(err => failed(box, err, () => editTest(id, preset)));
 }
@@ -386,7 +413,7 @@ function renderEditor(box) {
   $$('[data-f]', box).forEach(inp => inp.addEventListener(inp.type === 'checkbox' || inp.tagName === 'SELECT' ? 'change' : 'input', () => {
     const f = inp.dataset.f;
     ED.test[f] = inp.type === 'checkbox' ? inp.checked : inp.type === 'number' ? Number(inp.value) : inp.type === 'datetime-local' ? fromLocal(inp.value) : inp.value;
-    if (f === 'slot' && !ED.test.id) { ED.test.max = ED.test.slot === 'Exams' ? 50 : 40; $('[data-f="max"]', box).value = ED.test.max; }
+    if ((f === 'slot' || f === 'term') && !ED.test.id) { ED.test.max = maxFor(ED.test); $('[data-f="max"]', box).value = ED.test.max; }
     ED.dirty = true;
     colHint();
   }));
@@ -926,14 +953,14 @@ function viewRecord(box) {
       </div>
       <div class="ad-card"><div class="ad-card-h"><h4>How grades are computed</h4></div>
         <table class="ad-table compact"><tbody>
-          <tr><td>Exams</td><td class="num"><b>30%</b></td><td class="ad-muted">from the module</td></tr>
-          <tr><td>Quiz 1 + Quiz 2</td><td class="num"><b>20%</b></td><td class="ad-muted">10% each, from the module</td></tr>
-          <tr><td>Project</td><td class="num"><b>20%</b></td><td class="ad-muted">you type it</td></tr>
-          <tr><td>Activity</td><td class="num"><b>20%</b></td><td class="ad-muted">you type it</td></tr>
-          <tr><td>Attendance</td><td class="num"><b>10%</b></td><td class="ad-muted">you type it</td></tr>
+          <tr><td>Quizzes (Quiz 1 + 2 + 3)</td><td class="num"><b>30%</b></td><td class="ad-muted">from the module</td></tr>
+          <tr><td>Term exam</td><td class="num"><b>30%</b></td><td class="ad-muted">from the module</td></tr>
+          <tr><td>Performance tasks (PT 1–3)</td><td class="num"><b>30%</b></td><td class="ad-muted">you type them</td></tr>
+          <tr><td>Recitation / Attendance</td><td class="num"><b>10%</b></td><td class="ad-muted">you type them</td></tr>
         </tbody></table>
-        <p class="ad-muted">Final rating = (MT Grade + FT Grade) ÷ 2. Equivalent: 96.5+ → 1.00, 93.5 → 1.25, 90.5 → 1.50, 87.5 → 1.75, 84.5 → 2.00, 81.5 → 2.25, 78.5 → 2.50, 75.5 → 2.75, 74.5 → 3.00, below → 5.00. Passed at 3.00 or better.</p>
+        <p class="ad-muted">Laid out like the BulSU Class Record template. Final rating = (MT Grade + FT Grade) ÷ 2. MG, FTG and FG: 96.50+ → 1.00, 93.50 → 1.25, 90.50 → 1.50, 87.50 → 1.75, 84.50 → 2.00, 81.50 → 2.25, 78.50 → 2.50, 75.50 → 2.75, 75.00 → 3.00, 74.01–74.99 → 4.00, 74.00 and below → 5.00. Type INC or Dropped in Status to override Remarks.</p>
       </div>
+      <div class="ad-card span2" data-consult></div>
     </div>`;
   $('[data-build]', box).addEventListener('click', e => {
     const btn = e.currentTarget; busy(btn, true, 'Building…');
@@ -944,6 +971,45 @@ function viewRecord(box) {
       toast('Class record updated.');
     }).catch(err => { busy(btn, false); toast(err.message, 'bad'); });
   });
+  consultCard($('[data-consult]', box));
+}
+
+/* Online grade consultation: release terms to students and preview what they see. */
+function consultCard(card) {
+  card.innerHTML = '<div class="ad-card-h"><h4>Online grade consultation</h4></div><div class="ad-loading"><span class="ad-spin"></span></div>';
+  api('consult.get').then(res => {
+    const c = res.consult;
+    card.innerHTML = `<div class="ad-card-h"><h4>Online grade consultation</h4></div>
+      <p>Students see their own scores, term grades and a short reading of their record under <b>My Grades</b>, only for the terms you release. A blank score with <b>red fill</b> counts as not submitted; a blank without fill keeps the student's record on "still being graded".</p>
+      <div class="ad-row">
+        <label class="ad-check"><input type="checkbox" data-rel="mt" ${c.mt ? 'checked' : ''}> Release Midterm</label>
+        <label class="ad-check"><input type="checkbox" data-rel="ft" ${c.ft ? 'checked' : ''}> Release Final Term (shows the final grade)</label>
+      </div>
+      <label class="ad-lbl">Note shown to students (consultation hours, deadline for concerns)
+        <textarea data-note rows="2" maxlength="500">${h(String(c.note || '').replace(/^'/, ''))}</textarea></label>
+      <div class="ad-row"><button class="ad-btn" data-save>Save</button>${c.updated ? `<span class="ad-muted">Last changed ${h(fmtDate(c.updated))}</span>` : ''}</div>
+      <hr class="ad-hr">
+      <label class="ad-lbl">Preview a student (access code)<span class="ad-row"><input data-code maxlength="20" placeholder="Student's access code" autocomplete="off">
+        <button class="ad-btn ghost" data-prev type="button">Preview</button></span></label>
+      <div data-pv class="ad-consult-pv"></div>`;
+    $('[data-save]', card).addEventListener('click', e => {
+      const btn = e.currentTarget; busy(btn, true, 'Saving…');
+      api('consult.set', { mt: $('[data-rel="mt"]', card).checked, ft: $('[data-rel="ft"]', card).checked, note: $('[data-note]', card).value })
+        .then(() => { busy(btn, false); toast('Grade consultation updated.'); })
+        .catch(err => { busy(btn, false); toast(err.message, 'bad'); });
+    });
+    const prev = () => {
+      const code = $('[data-code]', card).value.trim();
+      if (!code) return;
+      const pv = $('[data-pv]', card); pv.innerHTML = '<div class="ad-loading"><span class="ad-spin"></span></div>';
+      api('consult.preview', { code }).then(r => {
+        pv.innerHTML = `<p class="ad-muted">Both terms shown for checking. Students only see released terms.</p>` +
+          (window.AAPGrades ? AAPGrades.render(r.record, { note: $('[data-note]', card).value }) : '');
+      }).catch(err => { pv.innerHTML = `<p class="bad">${h(err.message)}</p>`; });
+    };
+    $('[data-prev]', card).addEventListener('click', prev);
+    $('[data-code]', card).addEventListener('keydown', e => { if (e.key === 'Enter') prev(); });
+  }).catch(err => { card.innerHTML = `<div class="ad-card-h"><h4>Online grade consultation</h4></div><p class="bad">${h(err.message)}</p>`; });
 }
 
 /* ═════════════════════════ BOOT ═════════════════════════ */

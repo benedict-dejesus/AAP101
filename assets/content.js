@@ -5,6 +5,19 @@
    ══════════════════════════════════════════════════════════════ */
 'use strict';
 
+/* The term label comes from config.js so a new semester is a one-line change. */
+const AAP_TERM = (typeof window !== 'undefined' && window.AAP_CONFIG && window.AAP_CONFIG.TERM) || 'A.Y. 2026–2027';
+
+/* ─────────── Museum labels ───────────
+   Image path → what the artwork is. Only works whose source is known are
+   listed; an image with no entry simply shows no label. Add an entry
+   whenever you replace an image with a real, identifiable work. */
+const ARTWORKS = {
+  'images/image15.jpg': {title:'Girl with a Mandolin (Fanny Tellier)', artist:'Pablo Picasso', year:'1910', medium:'Oil on canvas'},
+  'images/image19.jpg': {title:'Charing Cross Bridge, London', artist:'André Derain', year:'1906', medium:'Oil on canvas'},
+  'images/image31.jpg': {title:'Under the Wave off Kanagawa (The Great Wave)', artist:'Katsushika Hokusai', year:'c. 1830–32', medium:'Woodblock print'}
+};
+
 /* ─────────── Guitar chord library (preserved) ─────────── */
 const CHORDS = {
   A:{name:'A Major',type:'Open Major',strings:['x','o',null,null,null,'o'],fingers:[[2,2,1],[3,2,2],[4,2,3]],barre:null,desc:'A bright open chord. Use three fingers on the D, G, and B strings.',fing:['Index (1): D string, 2nd fret','Middle (2): G string, 2nd fret','Ring (3): B string, 2nd fret']},
@@ -76,7 +89,7 @@ const CONTENT = {
 m: {
   label:'Midterm Module',
   short:'Midterm',
-  desc:'Lessons 1–6 covering Introduction to Art, Functions, Art Movements, Visual Elements, and the Coffee Painting Project.',
+  desc:'Lessons 1–8 covering Introduction to Art, Functions, Artists and Artisans, Art Movements, Visual Elements and the Coffee Painting Project, Reading an Artwork, and Philippine National Artists.',
   doneIcon:'🎨',
   lessons:[
 
@@ -92,6 +105,10 @@ m: {
       {t:'text', html:`
         <p>Mr. Benedict C. de Jesus (Sir Kito) is a licensed professional English teacher who has been serving as a humble part-time instructor at Bulacan State University, teaching Art Appreciation and Communication subjects for 8 years. He is also an enthusiast of music, research, statistics, AI technology, and instructional design.</p>
         <p>He has been a freelance Research/Thesis consultant for 16 years and a frequent guest lecturer and workshop facilitator for the City Government of Malolos. Sir Kito is also a musician with over 25 years of experience and is active in instructional design and educational development.</p>`},
+
+      {t:'text', html:`
+        <p><strong>How this course works.</strong> The Midterm Module has eight lessons and the Final Term Module has four. Each lesson opens with an artwork to look at, teaches one idea, and ends with an activity that unlocks the next lesson.</p>
+        <p>Activities earn XP and badges, and your progress saves to the class record automatically, so you can continue on any phone or computer with your access code. Quizzes and exams set by Sir Kito appear under <strong>Tests</strong>.</p>`},
 
       {t:'polaroids', gate:'m1-gal', xp:40,
        title:'The Studio Wall', kicker:'Photo Reveal',
@@ -124,10 +141,12 @@ m: {
        title:'Sorting Gauntlet: Art or Nature?', kicker:'Drag & Drop Challenge',
        instr:'Classify each item as <strong>Art</strong> or <strong>Nature</strong>. Nature is created by natural processes; Art involves conscious human effort.<br><em>Desktop: drag &amp; drop. Mobile: tap an item to select it (turns green), then tap a category box to place it.</em>',
        items:[
-         {id:'sunset', label:'🌅 Sunset at the beach'},
-         {id:'banaue', label:'🌾 The Banaue Rice Terraces'},
-         {id:'ai-img', label:'🤖 AI-generated Images'},
-         {id:'crush',  label:'💕 Your crush'}
+         {id:'sunset',  label:'🌅 Sunset at the beach'},
+         {id:'banaue',  label:'🌾 The Banaue Rice Terraces'},
+         {id:'ai-img',  label:'🤖 AI-generated Images'},
+         {id:'crush',   label:'💕 Your crush'},
+         {id:'jeepney', label:'🚙 A hand-painted jeepney'},
+         {id:'choco',   label:'⛰️ The Chocolate Hills of Bohol'}
        ],
        cats:[{id:'art', label:'🎨 Art'},{id:'nature', label:'🌿 Nature'}]},
 
@@ -157,12 +176,12 @@ m: {
          badgeText:'Select 2 FALSE statements',
          q:'Based on the Definition and Assumptions of Art, which <strong>two (2)</strong> statements are clearly <strong>FALSE</strong>? Select them below, then click Check Answers.',
          opts:[
+           {txt:'Some people are natural-born artists. They were gifted with artistic skills because a certain hemisphere of their brain is more developed. Only these people can become artists.'},
+           {txt:'Writing a song after a terrible breakup is a manifestation of how art can be used to vent emotions and transform them into something that helps us express ourselves.'},
            {txt:'AI-generated images can be considered as art because it still involves conscious human effort (LLM architecture and codes; user prompts).'},
            {txt:'While your crush is man-made, he/she may not be considered as art because his/her parents made no conscious effort in editing his/her appearance.'},
            {txt:'The Banaue Rice Terraces can be considered as art because it was handcrafted by the Ifugaos along the sides of the mountains — it was definitely man-made.'},
-           {txt:'Mayon Volcano — regardless of its perfect cone shape — can still be considered as art because of its outstanding natural beauty.'},
-           {txt:'Some people are natural-born artists. They were gifted with artistic skills because a certain hemisphere of their brain is more developed. Only these people can become artists.'},
-           {txt:'Writing a song after a terrible breakup is a manifestation of how art can be used to vent emotions and transform them into something that helps us express ourselves.'}
+           {txt:'Mayon Volcano — regardless of its perfect cone shape — can still be considered as art because of its outstanding natural beauty.'}
          ]},
 
         {t:'continue', id:'cont-m2-end', req:['m2-tabs','m2-kc'], label:'Continue to Lesson 3',
@@ -209,7 +228,7 @@ m: {
          {a:'Personal',   b:'Journaling & sketching for yourself'},
          {a:'Social',     b:'A collaborative community mural'},
          {a:'Economic',   b:'Commission-based tattoo art'},
-         {a:'Religious',  b:'Stained glass windows'},
+         {a:'Religious',  b:'The carved retablo of a Baroque church'},
          {a:'Political',  b:'Protest songs & political cartoons'},
          {a:'Historical', b:'War monuments & archival photos'},
          {a:'Cultural',   b:'Tinikling and Singkil folk dances'},
@@ -217,8 +236,18 @@ m: {
          {a:'Aesthetic',  b:'Graffiti, tattoos & interior design'}
        ]},
 
-      {t:'continue', id:'cont-m3', req:['m3-tabs','m3-match'], label:'Continue to Lesson 4',
-       note:'⚠️ Discover all 9 functions and clear the match game to continue.', go:'m4', unlock:4}
+      {t:'quiz', mode:'single', gate:'m3-kc', xp:50,
+       title:'Look Closer: The Bulul', kicker:'Knowledge Check',
+       q:'The Ifugao carve <strong>bulul</strong>, wooden figures placed in rice granaries and honored in rituals to protect and bless the harvest. Which function of art does the bulul <strong>mainly</strong> serve?',
+       opts:[
+         {txt:'Economic'},
+         {txt:'Religious'},
+         {txt:'Aesthetic'},
+         {txt:'Physical'}
+       ]},
+
+      {t:'continue', id:'cont-m3', req:['m3-tabs','m3-match','m3-kc'], label:'Continue to Lesson 4',
+       note:'⚠️ Discover all 9 functions, clear the match game and answer the check to continue.', go:'m4', unlock:4}
     ]
   },
 
@@ -236,6 +265,10 @@ m: {
          html:'<p>Artisans focus on <strong>craftsmanship and functionality</strong>. They are highly skilled manual workers who create functional, utilitarian objects — such as furniture, pottery, clothing, or bread — by hand. While their work can be beautiful, it is designed with a specific practical purpose in mind. A potter who makes clay jars for everyday use is an artisan.</p>'}
       ]},
 
+      {t:'text', html:`
+        <p><strong>Artisans are honored too.</strong> The Philippines recognizes master folk artisans through the <strong>Gawad sa Manlilikha ng Bayan</strong> (GAMABA, the National Living Treasures Award), created by Republic Act 7355 in 1992. Awardees include weavers, potters, carvers and musicians who keep a community's craft alive, such as the T'boli <em>t'nalak</em> weaver Lang Dulay.</p>
+        <p>The line between artist and artisan is about <strong>purpose</strong>, not skill. A woven t'nalak cloth is made to be worn and used in ritual, so its maker is an artisan, even though the work is beautiful and highly skilled.</p>`},
+
       {t:'sorter', gate:'m4-dnd', xp:60, badgeOnPerfect:'sorter',
        title:'Sorting Gauntlet: Artist or Artisan?', kicker:'Drag & Drop Challenge',
        instr:'Classify each professional as an <strong>Artist</strong> or an <strong>Artisan</strong> based on the definitions above.<br><em>Desktop: drag &amp; drop. Mobile: tap to select, then tap a category to place.</em>',
@@ -243,7 +276,9 @@ m: {
          {id:'potter',       label:'🏺 Potter'},
          {id:'painter',      label:'🖌️ Painter'},
          {id:'photographer', label:'📸 Photographer'},
-         {id:'buntal',       label:'🎩 Buntal Hat-Maker'}
+         {id:'buntal',       label:'🎩 Buntal Hat-Maker'},
+         {id:'weaver',       label:"🧶 T'nalak Weaver"},
+         {id:'filmmaker',    label:'🎬 Independent Filmmaker'}
        ],
        cats:[{id:'artist', label:'🎨 Artists'},{id:'artisan', label:'🛠️ Artisans'}]},
 
@@ -283,19 +318,28 @@ m: {
           def:'Fauvism emphasizes painterly qualities and strong color over representational or realistic values. Artists use vivid, non-naturalistic colors and simplified forms.'}
        ]},
 
+      {t:'text', html:`
+        <p><strong>Movements at home.</strong> Filipino artists took these international styles and made them their own:</p>
+        <ul>
+          <li><strong>Fernando Amorsolo</strong> painted sunlit rural scenes with his signature <em>backlighting</em>, glowing figures set against the light.</li>
+          <li><strong>Vicente Manansala</strong> developed <em>transparent cubism</em>, layering see-through geometric planes over everyday Filipino subjects.</li>
+          <li><strong>Ang Kiukok</strong> used the distorted, anguished forms of <em>expressionism</em> to show human struggle.</li>
+          <li><strong>Fernando Zóbel</strong> moved into <em>abstraction</em>, building calm compositions from line and tone alone.</li>
+        </ul>`},
+
       {t:'quiz', mode:'single', gate:'m5-kc', xp:60,
        title:'Read the Artwork', kicker:'Knowledge Check',
        q:'Which art movement would best describe the image below?',
        img:'images/image20.jpg', imgAlt:'Which movement?',
        opts:[
-         {txt:'Realism'},
-         {txt:'Expressionism'},
-         {txt:'Impressionism'},
          {txt:'Cubism'},
          {txt:'Surrealism'},
          {txt:'Abstract Art'},
          {txt:'Pop Art'},
-         {txt:'Fauvism'}
+         {txt:'Fauvism'},
+         {txt:'Realism'},
+         {txt:'Expressionism'},
+         {txt:'Impressionism'}
        ]},
 
       {t:'boss', gate:'m5-boss', xp:120, optional:true,
@@ -304,21 +348,21 @@ m: {
        time:10,
        questions:[
          {q:'Which movement breaks objects into geometric shapes and multiple viewpoints at once?',
-          opts:['Cubism','Realism','Fauvism','Impressionism']},
+          opts:['Realism','Fauvism','Impressionism','Cubism']},
          {q:'Which movement captures fleeting effects of light with loose brushwork?',
-          opts:['Surrealism','Impressionism','Pop Art','Realism']},
+          opts:['Realism','Surrealism','Impressionism','Pop Art']},
          {q:'Which movement explores dream imagery and the unconscious mind?',
-          opts:['Abstract Art','Expressionism','Surrealism','Cubism']},
+          opts:['Surrealism','Cubism','Abstract Art','Expressionism']},
          {q:'Which movement draws from advertising, comics, and consumer culture?',
           opts:['Fauvism','Realism','Impressionism','Pop Art']},
          {q:'Which movement shows everyday life truthfully, without idealization?',
-          opts:['Realism','Surrealism','Pop Art','Cubism']},
+          opts:['Cubism','Realism','Surrealism','Pop Art']},
          {q:'Which movement uses vivid, non-naturalistic color above all else?',
-          opts:['Cubism','Fauvism','Realism','Impressionism']},
+          opts:['Fauvism','Realism','Impressionism','Cubism']},
          {q:'Which movement distorts form to convey inner emotion and angst?',
           opts:['Pop Art','Realism','Expressionism','Fauvism']},
          {q:'Which movement can be entirely non-representational?',
-          opts:['Realism','Impressionism','Cubism','Abstract Art']}
+          opts:['Cubism','Abstract Art','Realism','Impressionism']}
        ]},
 
       {t:'continue', id:'cont-m5', req:['m5-flip','m5-kc'], label:'Continue to Lesson 6',
@@ -379,8 +423,90 @@ m: {
           html:'<p>Take <strong>2 photos</strong> of the finished portrait:</p><ol><li>One close-up with the reference image beside it</li><li>One with you holding your finished work</li></ol><p style="margin-top:10px">Upload both files to your designated folder in the class GDrive.</p>'}
        ]},
 
-      {t:'continue', id:'cont-m6', req:['m6-car'], label:'Complete Midterm Module 🎉',
-       note:'⚠️ Navigate through all 7 Visual Elements in the deck to complete this module.', go:'mc'}
+      {t:'continue', id:'cont-m6', req:['m6-car'], label:'Continue to Lesson 7',
+       note:'⚠️ Navigate through all 7 Visual Elements in the deck to continue.', go:'m7', unlock:7}
+    ]
+  },
+
+  /* ── M7 ── */
+  {
+    id:'m7', num:7, title:'Reading an Artwork', tag:'Midterm · Lesson 7',
+    desc:'Four steps for talking about any artwork with confidence.',
+    blocks:[
+      {t:'text', html:`
+        <p>"I like it" and "I don't get it" are where most people stop. Art critics go further by following a method. The best known is <strong>Edmund Feldman's</strong> four-step approach to art criticism, which moves from what you <em>see</em> to what you <em>think</em>.</p>
+        <p>The order matters. You describe and analyze before you interpret, so your opinion rests on evidence in the artwork rather than a first impression.</p>`},
+
+      {t:'discover', gate:'m7-tabs', xp:50, cols:2,
+       title:"Feldman's Four Steps", kicker:'Discovery Grid',
+       instr:'Tap each step to see what it asks. <strong>Uncover all 4</strong> to continue.',
+       items:[
+         {label:'1 · Describe', ico:'👁️', title:'Step 1: Describe',
+          html:'<p><strong>What do you see?</strong> List only facts anyone could agree on: the title, artist, medium and size, then the subjects, objects, colors and shapes in the work. No opinions yet.</p><p><em>Example: "A woman in a white dress walks through a rice field. The sun is behind her."</em></p>'},
+         {label:'2 · Analyze', ico:'📐', title:'Step 2: Analyze',
+          html:'<p><strong>How is it organized?</strong> Use the elements of art and principles of design. Where is the focal point? How do line, color and value lead your eye? Is it balanced or tense?</p><p><em>Example: "Warm yellows dominate, and the bright backlight makes the figure the focal point."</em></p>'},
+         {label:'3 · Interpret', ico:'💭', title:'Step 3: Interpret',
+          html:'<p><strong>What does it mean?</strong> Say what you think the artwork expresses, its mood, message or idea, and point to the evidence from steps 1 and 2.</p><p><em>Example: "The glowing light makes farm work feel peaceful and dignified."</em></p>'},
+         {label:'4 · Judge', ico:'⚖️', title:'Step 4: Judge',
+          html:'<p><strong>Is it successful?</strong> Decide whether the artwork achieves what it sets out to do, and why. Judge it by its purpose, its technique or its impact, not only by whether you like it.</p><p><em>Example: "It succeeds: the lighting carries the mood the artist wanted."</em></p>'}
+       ]},
+
+      {t:'sorter', gate:'m7-dnd', xp:70, badgeOnPerfect:'sorter',
+       title:'Sorting Gauntlet: Which Step?', kicker:'Drag & Drop Challenge',
+       instr:'Each statement comes from a student\'s critique. Place it under the step it belongs to.<br><em>Desktop: drag &amp; drop. Mobile: tap a statement, then tap a step.</em>',
+       items:[
+         {id:'s-desc1', label:'The painting shows three fishermen pulling a net.'},
+         {id:'s-desc2', label:'It is an oil painting, about one meter wide.'},
+         {id:'s-ana1',  label:'Diagonal lines of the net lead the eye to the center.'},
+         {id:'s-ana2',  label:'Dark values on the left balance the bright sky on the right.'},
+         {id:'s-int1',  label:'The work seems to honor hard, shared labor.'},
+         {id:'s-int2',  label:'The stormy sky suggests the danger of life at sea.'},
+         {id:'s-jud1',  label:'It succeeds because every element supports its message.'},
+         {id:'s-jud2',  label:'The crowded corner weakens an otherwise strong work.'}
+       ],
+       cats:[{id:'describe', label:'1 · Describe'},{id:'analyze', label:'2 · Analyze'},{id:'interpret', label:'3 · Interpret'},{id:'judge', label:'4 · Judge'}]},
+
+      {t:'continue', id:'cont-m7', req:['m7-tabs','m7-dnd'], label:'Continue to Lesson 8',
+       note:'⚠️ Uncover all 4 steps and clear the sorting gauntlet to continue.', go:'m8', unlock:8}
+    ]
+  },
+
+  /* ── M8 ── */
+  {
+    id:'m8', num:8, title:'Philippine Art and National Artists', tag:'Midterm · Lesson 8',
+    desc:'The Filipino artists the nation chose to honor.',
+    blocks:[
+      {t:'text', html:`
+        <p>The <strong>Order of National Artists</strong> (Orden ng Pambansang Alagad ng Sining) is the highest honor the Philippines gives to artists. It was created in 1972, and <strong>Fernando Amorsolo</strong> was its first awardee. National Artists are named by the President on the recommendation of the National Commission for Culture and the Arts (NCCA) and the Cultural Center of the Philippines (CCP).</p>
+        <p>The award covers many fields, including visual arts, music, dance, theater, literature, film and broadcast arts, and architecture. Earlier masters such as <strong>Juan Luna</strong>, whose <em>Spoliarium</em> won a gold medal in Madrid in 1884, lived before the award existed, so they are honored as national heroes of art rather than as National Artists.</p>`},
+
+      {t:'match', gate:'m8-match', xp:70,
+       title:'Know Your National Artists', kicker:'Memory Minigame',
+       instr:'Pair each <strong>National Artist for Visual Arts</strong> with what they are known for. Tap a name, then tap its match.',
+       pairs:[
+         {a:'Fernando Amorsolo',    b:'Sunlit rural scenes with backlighting'},
+         {a:'Botong Francisco',     b:'Large murals of Philippine history'},
+         {a:'Vicente Manansala',    b:'Transparent cubism'},
+         {a:'Napoleon Abueva',      b:'Father of modern Philippine sculpture'},
+         {a:'Ang Kiukok',           b:'Anguished expressionist figures'},
+         {a:'Benedicto "BenCab" Cabrera', b:'The Sabel series'}
+       ]},
+
+      {t:'quiz', mode:'single', gate:'m8-kc', xp:50,
+       title:'The First National Artist', kicker:'Knowledge Check',
+       q:'The Order of National Artists was created in 1972. Who was its <strong>first</strong> awardee?',
+       opts:[
+         {txt:'Juan Luna'},
+         {txt:'Fernando Amorsolo'},
+         {txt:'Vicente Manansala'},
+         {txt:'Botong Francisco'}
+       ]},
+
+      {t:'text', html:`
+        <p><strong>Try it yourself.</strong> Pick one work by a National Artist, at the National Museum of Fine Arts in Manila or online, and read it with Feldman's four steps from Lesson 7. It is good practice for your Midterm Project reflection.</p>`},
+
+      {t:'continue', id:'cont-m8', req:['m8-match','m8-kc'], label:'Complete Midterm Module 🎉',
+       note:'⚠️ Clear the match game and answer the check to complete this module.', go:'mc'}
     ]
   }
   ],
@@ -388,7 +514,7 @@ m: {
   complete:{
     id:'mc', icon:'🎉', title:'Midterm Module Complete!', conf:'🎨 ✨ 🖌️ 🎭 ✨ 🎨',
     badge:'midterm',
-    html:"Congratulations! You've successfully completed the <strong>Midterm Learning Module</strong> for AAP101. You've covered the foundations of Art Appreciation — from the definition of art, its functions, artists vs. artisans, major art movements, and the visual elements. Good luck on your Coffee Painting Self-Portrait!"
+    html:"Congratulations! You've successfully completed the <strong>Midterm Learning Module</strong> for AAP101. You've covered the foundations of Art Appreciation — from the definition of art, its functions, artists vs. artisans, major art movements and the visual elements, to reading an artwork and the National Artists of the Philippines. Good luck on your Coffee Painting Self-Portrait!"
   }
 },
 
@@ -482,10 +608,10 @@ f: {
        title:'Camera Call', kicker:'Knowledge Check',
        q:'You are shooting a fast-moving basketball game indoors and the photos come out dark and blurry. Based on the exposure triangle, which adjustment set makes the most sense?',
        opts:[
+         {txt:'Keep ISO 100 for a clean image and accept the blur.'},
          {txt:'Slow the shutter to 1/15s and drop ISO to 100.'},
          {txt:'Use a fast shutter (1/1000s), widen the aperture (low f-number), and raise the ISO.'},
-         {txt:'Narrow the aperture to f/22 and keep everything else the same.'},
-         {txt:'Keep ISO 100 for a clean image and accept the blur.'}
+         {txt:'Narrow the aperture to f/22 and keep everything else the same.'}
        ]},
 
       {t:'continue', id:'cont-f2', req:['f2-tabs','f2-sim'], label:'Continue to Lesson 3',
@@ -557,25 +683,25 @@ f: {
        time:10,
        questions:[
          {q:'You need to establish a vast desert location before the story begins. Which shot?',
-          opts:['Extreme Long Shot','Extreme Close-Up','Over-the-Shoulder','Insert Shot']},
+          opts:['Extreme Close-Up','Over-the-Shoulder','Insert Shot','Extreme Long Shot']},
          {q:'Two characters are arguing. You want to show the listener\'s perspective. Which shot?',
-          opts:['Bird\'s-Eye View','Over-the-Shoulder','Extreme Long Shot','Full Shot']},
+          opts:['Full Shot','Bird\'s-Eye View','Over-the-Shoulder','Extreme Long Shot']},
          {q:'You want the villain to look powerful and intimidating. Which angle?',
-          opts:['High Angle','Eye-Level','Low Angle','Bird\'s-Eye View']},
+          opts:['Low Angle','Bird\'s-Eye View','High Angle','Eye-Level']},
          {q:'A character reads a threatening text. You must show the phone screen. Which shot?',
           opts:['Long Shot','Two Shot','Medium Shot','Insert Shot']},
          {q:'You want the audience to feel a character is helpless and small. Which angle?',
-          opts:['High Angle','Low Angle','Dutch Angle','Eye-Level']},
+          opts:['Eye-Level','High Angle','Low Angle','Dutch Angle']},
          {q:'A psychological thriller needs a sense of unease and imbalance. Which angle?',
-          opts:['Eye-Level','Dutch Angle','High Angle','Worm\'s-Eye View']},
+          opts:['Dutch Angle','High Angle','Worm\'s-Eye View','Eye-Level']},
          {q:'A news anchor delivers the evening report. Which shot is standard?',
           opts:['Extreme Long Shot','Extreme Close-Up','Medium Close-Up','Bird\'s-Eye View']},
          {q:'You cut away from a tense scene to show rain on a window. That is a…',
-          opts:['POV Shot','Two Shot','Full Shot','Cutaway Shot']},
+          opts:['Full Shot','Cutaway Shot','POV Shot','Two Shot']},
          {q:'The audience should see exactly what the character sees. Which shot?',
-          opts:['POV Shot','Over-the-Shoulder','Medium Shot','Insert Shot']},
+          opts:['Over-the-Shoulder','Medium Shot','Insert Shot','POV Shot']},
          {q:'A single tear rolls down a cheek — maximum emotional impact. Which shot?',
-          opts:['Long Shot','Extreme Close-Up','Full Shot','Two Shot']}
+          opts:['Two Shot','Long Shot','Extreme Close-Up','Full Shot']}
        ]},
 
       {t:'continue', id:'cont-f3', req:['f3-shot','f3-angle'], label:'Continue to Lesson 4',
@@ -612,12 +738,12 @@ f: {
        q:'Which pattern most likely contains a <strong>half note</strong>?',
        mono:true,
        opts:[
-         {txt:'D – D – D – D'},
-         {txt:'D (sustained to 4 beats)'},
          {txt:'D – DU – DU – D'},
          {txt:'D – DUDU – D – D'},
          {txt:'D – D – DUDU – D'},
-         {txt:'DUDU – DUDU – D'}
+         {txt:'DUDU – DUDU – D'},
+         {txt:'D – D – D – D'},
+         {txt:'D (sustained to 4 beats)'}
        ]},
 
       {t:'heading', lvl:3, text:'Final Term Project: Guitar Performance Video'},
@@ -642,9 +768,9 @@ f: {
 const TERMINAL = {
   heroTag:'Bulacan State University · Main Campus',
   heroTitle:'Art Appreciation',
-  heroSub:'AAP101 · A.Y. 2026–2027 · 1st Semester<br>Instructor: Mr. Benedict C. de Jesus, LPT. (Sir Kito)',
-  video:{src:'images/Video1.mp4', label:'Video1 · Welcome to AAP101 (autoplay · loop)'},
+  heroSub:'AAP101 · '+AAP_TERM+'<br>Instructor: Mr. Benedict C. de Jesus, LPT. (Sir Kito)',
+  video:{src:'images/video1.mp4', label:'Welcome to AAP101'},
   welcome:'<p>Welcome to <strong>AAP101 – Art Appreciation</strong> under Mr. Benedict de Jesus (Sir Kito)!</p>',
   warnTitle:'⚠️ &nbsp;WARNING!!!',
-  warn:'This learning module was created by <strong>Mr. Benedict de Jesus (Sir Kito)</strong> for his students at <strong>Bulacan State University</strong> for the 1st semester of A.Y. 2026–2027. Distribution and sharing of the link/url/screenshots/codes to people <strong>not enrolled in AAP101 under Sir Kito during the aforementioned semester is extremely prohibited</strong> and violators will <strong>face legal charges</strong>. Enrolled students, while given access rights to the course, are <strong>discouraged to take screenshots</strong>, as the interactive elements for learning the topic will be compromised.'
+  warn:'This learning module was created by <strong>Mr. Benedict de Jesus (Sir Kito)</strong> for his students at <strong>Bulacan State University</strong> for the '+AAP_TERM+'. Distribution and sharing of the link/url/screenshots/codes to people <strong>not enrolled in AAP101 under Sir Kito during the aforementioned semester is extremely prohibited</strong> and violators will <strong>face legal charges</strong>. Enrolled students, while given access rights to the course, are <strong>discouraged to take screenshots</strong>, as the interactive elements for learning the topic will be compromised.'
 };

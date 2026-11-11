@@ -286,3 +286,35 @@ body.px-running{overflow:hidden}
   #px-run,.pxr-q.pxr-in,.pxr-result,.pxr-ring,.pxr-confirm-card{animation:none}
   .px-go::before,.pxr-timer.danger{animation:none}
 }
+
+/* ───────── sidebar: My Grades, Course Guide ───────── */
+.px-sb-link{position:relative;margin-top:0}
+.px-sb-link.on{background:rgba(0,193,142,.24);box-shadow:inset 0 0 0 1px rgba(0,193,142,.5)}
+
+/* ───────── My Grades ───────── */
+.px-grades{max-width:920px}
+.px-grades-note{margin-top:10px;padding:10px 14px;border-radius:12px;background:rgba(0,193,142,.08);white-space:pre-wrap}
+
+/* ───────── Course Guide ───────── */
+.px-guide{display:flex;flex-direction:column;gap:16px;max-width:920px}
+.px-g-card{background:var(--white);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);border:1px solid var(--deep-06);min-width:0}
+.px-g-card h3{font:700 16px/1.3 var(--fb);color:var(--deep);margin:0 0 10px}
+.px-g-card p{font:400 14.5px/1.65 var(--fb);color:#24434D;margin:0 0 8px}
+.px-g-card p:last-child{margin-bottom:0}
+.px-g-cos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.px-g-cos li{display:flex;gap:12px;align-items:flex-start;font:400 14.5px/1.55 var(--fb);color:#24434D}
+.px-g-cos b{flex-shrink:0;padding:3px 9px;border-radius:999px;background:rgba(0,193,142,.14);color:#008A64;font:800 11.5px/1.4 var(--fd)}
+.px-g-tbl{width:100%;border-collapse:collapse;font:400 14px/1.45 var(--fb);color:#24434D}
+.px-g-tbl th,.px-g-tbl td{padding:8px 6px;border-top:1px solid var(--deep-06);text-align:left;vertical-align:top}
+.px-g-tbl thead th{border-top:none;font:700 11.5px/1.3 var(--fb);text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+.px-g-tbl tbody th{font-weight:700;color:var(--deep);white-space:nowrap;width:1%}
+.px-g-tbl td:last-child{font-variant-numeric:tabular-nums}
+.px-g-tot th,.px-g-tot td{font-weight:800;color:var(--deep)}
+.px-g-scale td{text-align:right;font-weight:700}
+.px-g-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.px-g-fine{font-size:12.5px !important;color:var(--muted) !important;margin-top:10px !important}
+.px-g-pol{margin:0;display:grid;gap:4px 0}
+.px-g-pol dt{font:700 14px/1.4 var(--fb);color:var(--deep);margin-top:8px}
+.px-g-pol dt:first-child{margin-top:0}
+.px-g-pol dd{margin:0;font:400 14px/1.6 var(--fb);color:#24434D}
+.px-ready span b{color:var(--deep)}

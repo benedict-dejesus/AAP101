@@ -11,10 +11,11 @@
 <title>AAP101 – Art Appreciation | Bulacan State University</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="assets/auth.css">
 <link rel="stylesheet" href="assets/portal.css">
+<link rel="stylesheet" href="assets/grades.css">
 </head>
 <body>
 
@@ -40,7 +41,7 @@
   <div class="sb-brand">
     <div class="sb-tag">Bulacan State University</div>
     <h1>Art Appreciation</h1>
-    <div class="sb-ay">AAP101 · A.Y. 2026–2027 · 1st Semester</div>
+    <div class="sb-ay" id="sb-ay">AAP101</div>
   </div>
 
   <!-- Player card -->
@@ -72,16 +73,16 @@
     </div>
     <div class="tb-hud">
       <div class="hud-chip hud-streak" id="hud-streak" title="Answer streak">
-        <span class="hud-ico">🔥</span><span id="hud-streak-n">0</span>
+        <span class="hud-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c4 0 7-2.7 7-7 0-4-3-6.5-4-9-1.5 2-2 3.5-2 5-1.5-1-2.5-3-2.5-5C7 8.5 5 11.5 5 15c0 4.3 3 7 7 7z"/></svg></span><span id="hud-streak-n">0</span>
       </div>
       <div class="hud-chip hud-xp" id="hud-xp" title="Experience points">
-        <span class="hud-ico">⚡</span><span id="hud-xp-n">0</span><span class="hud-unit">XP</span>
+        <span class="hud-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></span><span id="hud-xp-n">0</span><span class="hud-unit">XP</span>
       </div>
       <div class="hud-chip hud-lvl" id="hud-lvl" title="Your level">
         <span class="hud-lvl-n" id="hud-lvl-n">1</span>
       </div>
-      <button class="hud-btn" id="btn-badges" title="Trophy case">🏅</button>
-      <button class="hud-btn" id="btn-sound" title="Toggle sound">🔊</button>
+      <button class="hud-btn" id="btn-badges" title="Trophy case" aria-label="Trophy case"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.5 13 17 22l-5-3-5 3 1.5-9"/></svg></button>
+      <button class="hud-btn" id="btn-sound" title="Toggle sound" aria-label="Toggle sound"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg></button>
     </div>
   </header>
 
@@ -95,21 +96,21 @@
 <!-- ═══════════ MOBILE BOTTOM NAV (replaces the sidebar on phones) ═══════════ -->
 <nav id="mobilenav" aria-label="Main navigation">
   <button class="mn-btn" data-mn="home">
-    <span class="mn-ico">⌂</span><span class="mn-lbl">Home</span>
+    <span class="mn-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg></span><span class="mn-lbl">Home</span>
   </button>
   <button class="mn-btn" data-mn="lessons">
-    <span class="mn-ico">📚</span><span class="mn-lbl">Lessons</span>
+    <span class="mn-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg></span><span class="mn-lbl">Lessons</span>
     <span class="mn-dot" id="mn-lessons-dot"></span>
   </button>
   <button class="mn-btn" data-mn="tests">
-    <span class="mn-ico">📝</span><span class="mn-lbl">Tests</span>
+    <span class="mn-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></span><span class="mn-lbl">Tests</span>
     <span class="mn-dot" id="mn-tests-dot"></span>
   </button>
   <button class="mn-btn" data-mn="badges">
-    <span class="mn-ico">🏅</span><span class="mn-lbl">Trophies</span>
+    <span class="mn-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.5 13 17 22l-5-3-5 3 1.5-9"/></svg></span><span class="mn-lbl">Trophies</span>
   </button>
-  <button class="mn-btn" data-mn="sound">
-    <span class="mn-ico" id="mn-sound-ico">🔊</span><span class="mn-lbl">Sound</span>
+  <button class="mn-btn" data-mn="grades">
+    <span class="mn-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg></span><span class="mn-lbl">Grades</span>
   </button>
 </nav>
 
@@ -152,6 +153,7 @@
 <script src="assets/content.js"></script>
 <script src="assets/app.js"></script>
 <script src="assets/auth.js"></script>
+<script src="assets/grades.js"></script>
 <script src="assets/portal.js"></script>
 </body>
 </html>

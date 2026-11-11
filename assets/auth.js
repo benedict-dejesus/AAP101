@@ -756,7 +756,7 @@ const Gate = {
         <div class="ag-crest">🎨</div>
         <div class="ag-tag">Bulacan State University</div>
         <h1 id="ag-title">Art Appreciation</h1>
-        <div class="ag-sub">AAP101 · A.Y. 2026–2027 · 1st Semester</div>
+        <div class="ag-sub">AAP101 · ${(window.AAP_CONFIG && AAP_CONFIG.TERM) || ''}</div>
 
         <form class="ag-step" data-step="code" autocomplete="off">
           <label for="ag-code">Enter your access code</label>

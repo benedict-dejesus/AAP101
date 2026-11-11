@@ -57,7 +57,7 @@
 }
 .ag-sub{
   font:500 11.5px/1.4 'Inter',system-ui,sans-serif;
-  color:#8FA9B2; margin-bottom:24px;
+  color:#62808A; margin-bottom:24px;
 }
 
 /* ── Form steps ── */
@@ -86,7 +86,7 @@
   box-shadow:0 0 0 4px rgba(0,193,142,.16);
 }
 #ag-code{
-  font-family:'Space Grotesk','Roboto Mono',monospace;
+  font-family:ui-monospace,'SF Mono','Roboto Mono',Menlo,monospace;
   letter-spacing:.09em; text-align:center; font-size:19px;
 }
 
@@ -184,22 +184,23 @@
 /* ─────────────────────── CONNECTION BANNER ─────────────────────── */
 
 #aap-net-banner{
-  position:fixed; left:50%; z-index:99000;
+  position:fixed; left:16px; right:16px; z-index:99000;
+  margin:0 auto; width:fit-content;
   bottom:calc(18px + env(safe-area-inset-bottom));
-  transform:translate(-50%, 130%);
-  max-width:min(440px, calc(100vw - 32px));
+  transform:translateY(130%);
+  max-width:440px;
   padding:11px 18px;
   font:600 12.5px/1.45 'Inter',system-ui,sans-serif;
   text-align:center;
   color:#002C39;
   background:rgba(255,247,247,.98);
   border:1px solid rgba(0,44,57,.14);
-  border-radius:999px;
+  border-radius:16px;
   box-shadow:0 10px 32px rgba(0,44,57,.24);
   opacity:0; pointer-events:none;
   transition:transform .38s cubic-bezier(.22,1,.36,1), opacity .3s;
 }
-#aap-net-banner.on{ transform:translate(-50%,0); opacity:1; }
+#aap-net-banner.on{ transform:translateY(0); opacity:1; }
 #aap-net-banner.bad{
   background:#B91C1C; color:#fff; border-color:transparent;
 }

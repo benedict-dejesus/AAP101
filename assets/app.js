@@ -5,7 +5,7 @@
 'use strict';
 
 /* ══════════════════════ STATE ══════════════════════ */
-const SAVE_KEY = 'aap101.progress.v2';
+const SAVE_KEY = 'aap101.progress.v3';
 
 /* Progress is stored per access code, so two students sharing one phone (or a
    campus computer) never inherit each other's XP. Falls back to the original
@@ -96,7 +96,7 @@ function handleImgErr(img){
 window.handleImgErr = handleImgErr;
 
 function imgTag(src, alt){
-  return `<img src="${esc(src)}" alt="${esc(alt||'')}" loading="lazy" data-onerr="ph">`;
+  return `<img src="${esc(src)}" alt="${esc(alt||'')}" loading="lazy" decoding="async" data-onerr="ph">`;
 }
 /* Broken images are handled here rather than with inline error-handler attributes,
    which the page's Content-Security-Policy blocks. Image error events do not
@@ -107,6 +107,57 @@ document.addEventListener('error', e => {
   if (t.dataset.onerr === 'ph') handleImgErr(t);
   else if (t.dataset.onerr === 'rm') t.remove();
 }, true);
+
+/* ── Line icons (replace emoji in navigation and HUD so they look the same on every phone) ── */
+const ICONS = {
+  vol:  '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>',
+  mute: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg>',
+  zoom: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/></svg>',
+  close:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
+};
+
+/* ── Museum labels ──
+   ARTWORKS (content.js) maps an image path to {title, artist, year, medium}.
+   Only images whose source is known get a label; the rest show nothing
+   rather than a guessed attribution. */
+function artInfo(src){ return (typeof ARTWORKS !== 'undefined' && ARTWORKS[src]) || null; }
+function artLabel(src, cls){
+  const a = artInfo(src);
+  if(!a) return '';
+  const meta = [a.artist, a.year].filter(Boolean).join(', ');
+  return `<div class="art-label ${cls||''}"><span class="al-title">${esc(a.title)}</span>`
+       + (meta ? `<span class="al-meta">${esc(meta)}</span>` : '')
+       + (a.medium ? `<span class="al-med">${esc(a.medium)}</span>` : '')
+       + `</div>`;
+}
+
+/* ── Tap-to-zoom lightbox for display images (not the ones a tap flips or reveals) ── */
+const ZOOMABLE = '.dg-panel-img img, .dk-img img, .qz-img img, .cmp-img img, .bq-img-wrap img, .art-zoom img';
+const Lightbox = {
+  node:null,
+  open(img){
+    if(!this.node){
+      this.node = el('div','lb');
+      this.node.setAttribute('role','dialog');
+      this.node.setAttribute('aria-modal','true');
+      this.node.innerHTML = `<button class="lb-x" aria-label="Close">${ICONS.close}</button><div class="lb-stage"><img alt=""></div><div class="lb-cap"></div>`;
+      document.body.appendChild(this.node);
+      this.node.addEventListener('click', e=>{ if(!e.target.closest('.lb-stage img')) this.close(); });
+      document.addEventListener('keydown', e=>{ if(e.key==='Escape') this.close(); });
+    }
+    const src = img.getAttribute('src');
+    const im = $('.lb-stage img', this.node);
+    im.src = src; im.alt = img.alt || '';
+    $('.lb-cap', this.node).innerHTML = artLabel(src, 'on-dark') || (img.alt ? `<div class="art-label on-dark"><span class="al-title">${esc(img.alt)}</span></div>` : '');
+    this.node.classList.add('on');
+    $('.lb-x', this.node).focus();
+  },
+  close(){ if(this.node) this.node.classList.remove('on'); }
+};
+document.addEventListener('click', e=>{
+  const img = e.target.closest && e.target.closest(ZOOMABLE);
+  if(img && img.tagName === 'IMG'){ e.preventDefault(); Lightbox.open(img); }
+});
 
 /* ══════════════════════ AUDIO ══════════════════════ */
 const Audio_ = {
@@ -676,6 +727,7 @@ const Blocks = {
           <div class="fd-face fd-back">
             <h4>${esc(it.title)}</h4>
             <div class="fd-def">${esc(it.def)}</div>
+            ${artLabel(it.img, 'compact')}
           </div>
         </div>`;
       grid.appendChild(c);
@@ -698,6 +750,7 @@ const Blocks = {
         <div class="dk-txt dk-in-anim">
           <div class="dk-num">${String(i+1).padStart(2,'0')} / ${String(b.items.length).padStart(2,'0')}</div>
           <h4>${esc(it.title)}</h4>${it.html}
+          ${artLabel(it.img)}
         </div>`;
       stage.appendChild(c);
     });
@@ -757,7 +810,7 @@ const Blocks = {
     }
     body.appendChild(el('p','qz-q', b.q));
     if(b.img){
-      const im = el('div','qz-img', imgTag(b.img, b.imgAlt));
+      const im = el('div','qz-img', imgTag(b.img, b.imgAlt) + artLabel(b.img));
       body.appendChild(im);
     }
 
@@ -1091,7 +1144,7 @@ const Init = {
       const it = b.items[i];
       cur = i;
       inner.innerHTML = `
-        ${it.img ? `<div class="dg-panel-img">${imgTag(it.img, it.alt)}</div>` : ''}
+        ${it.img ? `<div class="dg-panel-img">${imgTag(it.img, it.alt)}${artLabel(it.img)}</div>` : ''}
         <div class="dg-panel-txt">
           <h4><span class="dgp-ico">${it.ico || '◆'}</span>${esc(it.title)}</h4>
           ${it.html}
@@ -1999,7 +2052,11 @@ function buildLessonPage(les){
     <div class="l-body"></div>`;
 
   const body = $('.l-body', page);
-  les.blocks.forEach(b => body.appendChild(buildBlock(b)));
+  les.blocks.forEach((b,i) => {
+    /* The banner already shows the lesson title; skip an opening heading that repeats it. */
+    if(i === 0 && b.t === 'heading' && String(b.text||'').trim().toLowerCase() === String(les.title||'').trim().toLowerCase()) return;
+    body.appendChild(buildBlock(b));
+  });
   return page;
 }
 
@@ -2062,7 +2119,6 @@ function buildTerminal(){
   page.id = 'page-terminal';
   page.innerHTML = `
     <div class="t-hero">
-      <div class="t-glyphs"></div>
       <div class="t-hero-inner">
         <span class="t-hero-tag">${esc(TERMINAL.heroTag)}</span>
         <h1>${esc(TERMINAL.heroTitle)}</h1>
@@ -2070,30 +2126,9 @@ function buildTerminal(){
       </div>
     </div>
     <div class="t-body">
-      <div class="block b-video">
-        <video id="terminal-video" src="${esc(TERMINAL.video.src)}" autoplay muted loop playsinline></video>
-        <div class="vid-label">${esc(TERMINAL.video.label)}</div>
-      </div>
-
       <div class="block" data-resume></div>
 
       <div class="block" data-assess></div>
-
-      <div class="block">
-        <div class="dash">
-          <div class="dash-card"><span class="dash-ico">⚡</span><div class="dash-val" data-d-xp>0</div><div class="dash-lbl">Total XP</div></div>
-          <div class="dash-card"><span class="dash-ico">🎖️</span><div class="dash-val" data-d-lvl>1</div><div class="dash-lbl">Level</div></div>
-          <div class="dash-card"><span class="dash-ico">🏅</span><div class="dash-val" data-d-badges>0<span class="dv-unit">/${BADGES.length}</span></div><div class="dash-lbl">Badges</div></div>
-          <div class="dash-card"><span class="dash-ico">🎯</span><div class="dash-val" data-d-acc>0<span class="dv-unit">%</span></div><div class="dash-lbl">Accuracy</div></div>
-        </div>
-      </div>
-
-      <div class="block b-text">${TERMINAL.welcome}</div>
-
-      <div class="block b-warn">
-        <div class="b-warn-title">${TERMINAL.warnTitle}</div>
-        <p>${TERMINAL.warn}</p>
-      </div>
 
       <div class="block">
         <div class="mod-access">
@@ -2119,18 +2154,31 @@ function buildTerminal(){
           }).join('')}
         </div>
       </div>
-    </div>`;
 
-  // floating glyphs
-  const glyphs = $('.t-glyphs', page);
-  ['🎨','🖌️','🎭','📸','🎬','🎸','🖼️','✨','🎼','🏛️'].forEach((g,i)=>{
-    const s = el('span','t-glyph', g);
-    s.style.left = (4 + i * 10 + Math.random()*5) + '%';
-    s.style.animationDuration = (13 + Math.random()*11) + 's';
-    s.style.animationDelay = (-Math.random()*18) + 's';
-    s.style.fontSize = (18 + Math.random()*18) + 'px';
-    glyphs.appendChild(s);
-  });
+      <div class="block">
+        <div class="dash">
+          <div class="dash-card"><span class="dash-ico">⚡</span><div class="dash-val" data-d-xp>0</div><div class="dash-lbl">Total XP</div></div>
+          <div class="dash-card"><span class="dash-ico">🎖️</span><div class="dash-val" data-d-lvl>1</div><div class="dash-lbl">Level</div></div>
+          <div class="dash-card"><span class="dash-ico">🏅</span><div class="dash-val" data-d-badges>0<span class="dv-unit">/${BADGES.length}</span></div><div class="dash-lbl">Badges</div></div>
+          <div class="dash-card"><span class="dash-ico">🎯</span><div class="dash-val" data-d-acc>0<span class="dv-unit">%</span></div><div class="dash-lbl">Accuracy</div></div>
+        </div>
+      </div>
+
+      <div class="block t-about">
+        <div class="t-about-h">About this course</div>
+        <div class="b-text">${TERMINAL.welcome}</div>
+        <div class="b-video t-video">
+          <video id="terminal-video" src="${esc(TERMINAL.video.src)}" autoplay muted loop playsinline></video>
+          <div class="vid-label">${esc(TERMINAL.video.label)}</div>
+        </div>
+      </div>
+
+      <div class="block b-warn">
+        <div class="b-warn-title">${TERMINAL.warnTitle}</div>
+        <p>${TERMINAL.warn}</p>
+      </div>
+
+    </div>`;
 
   $$('.mod-card', page).forEach(card=>{
     card.addEventListener('click', ()=>{
@@ -2468,7 +2516,7 @@ function closeSheet(){
 function refreshMobileNav(){
   $$('#mobilenav .mn-btn').forEach(b=>{
     const k = b.dataset.mn;
-    b.classList.toggle('on', (k === 'home' && S.page === 'terminal') || (k === 'tests' && S.page === 'tests'));
+    b.classList.toggle('on', (k === 'home' && S.page === 'terminal') || (k === 'tests' && S.page === 'tests') || (k === 'grades' && S.page === 'grades'));
   });
   // little dot on "Lessons" when something new is unlocked but unfinished
   const anyOpen = ['m','f'].some(k=>
@@ -2513,6 +2561,8 @@ function boot(){
   FX.setup();
   buildSidebar();
   buildSheet();
+  const ay = document.getElementById('sb-ay');
+  if(ay) ay.textContent = 'AAP101 · ' + AAP_TERM;
 
   /* localStorage got us this far so the module can paint instantly, but the
      spreadsheet is the record. Overwrite the local view with whatever the
@@ -2540,6 +2590,7 @@ function boot(){
         case 'lessons': openSheet(); break;
         case 'badges':  closeSheet(); openBadges(); break;
         case 'tests':   closeSheet(); navigateTo('tests'); break;
+        case 'grades':  closeSheet(); navigateTo('grades'); break;
         case 'sound':   toggleSound(); break;
       }
     });
@@ -2547,10 +2598,10 @@ function boot(){
 
   const sb = $('#btn-sound');
   function paintSound(){
-    sb.textContent = S.sound ? '🔊' : '🔇';
+    sb.innerHTML = S.sound ? ICONS.vol : ICONS.mute;
     sb.classList.toggle('muted', !S.sound);
     const mi = $('#mn-sound-ico');
-    if(mi) mi.textContent = S.sound ? '🔊' : '🔇';
+    if(mi) mi.innerHTML = S.sound ? ICONS.vol : ICONS.mute;
     $('#mobilenav [data-mn="sound"]')?.classList.toggle('muted', !S.sound);
   }
   window.toggleSound = ()=>{

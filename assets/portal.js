@@ -202,7 +202,7 @@ function buildTestsPage() {
     <div class="l-hdr px-hdr"><div class="l-hdr-inner">
       <span class="l-tag">📝 Assessments</span>
       <h2>Quizzes &amp; Exams</h2>
-      <p class="l-hdr-desc">Your Quiz 1, Quiz 2 and term exams for the Midterm and Final Term. Each one is timed by the server and saves as you answer.</p>
+      <p class="l-hdr-desc">Your Quiz 1, Quiz 2, Quiz 3 and term exams for the Midterm and Final Term. Each one is timed by the server and saves as you answer.</p>
     </div></div>
     <div class="l-body"><div class="px-list" aria-live="polite"></div></div>`;
   page._onShow = () => renderTests(page.querySelector('.px-list'), true);
@@ -303,7 +303,7 @@ function confirmStart(t) {
         <li>Leaving this page during the test is recorded for your instructor.</li>
         ${t.closes ? `<li>The test closes at <b>${h(fmtDate(t.closes))}</b>, even if you still have time left.</li>` : ''}
       </ul>
-      <label class="px-ready"><input type="checkbox" data-ready> I'm ready, and I will answer on my own.</label>
+      <label class="px-ready"><input type="checkbox" data-ready> <span><b>Academic Integrity.</b> I will answer on my own, use no unauthorized help, notes or AI tools, and not share the test contents with anyone who may take this course.</span></label>
       <div class="px-actions px-actions-end">
         <button class="px-btn px-btn-ghost" data-x type="button">Not yet</button>
         <button class="px-btn" data-go type="button" disabled>Begin</button>
@@ -734,6 +734,7 @@ function refreshNav() {
   const btn = document.querySelector('.px-sb-tests');
   if (btn) {
     btn.classList.toggle('on', S.page === 'tests');
+    ['grades', 'guide'].forEach(pid => { const x = document.querySelector('.px-sb-' + pid); if (x) x.classList.toggle('on', S.page === pid); });
     const b = btn.querySelector('.px-badge');
     b.textContent = P.openTests || '';
     b.hidden = !P.openTests;
@@ -767,6 +768,117 @@ function terminalCard(box) {
   loadTests(false).then(paint).catch(() => {});
 }
 
+/* ═════════════════════════ MY GRADES (online consultation) ═════════════════════════ */
+
+function buildGradesPage() {
+  const page = el('div', 'page');
+  page.id = 'page-grades';
+  page.innerHTML = `
+    <div class="l-hdr px-hdr"><div class="l-hdr-inner">
+      <span class="l-tag">🎓 Grade Consultation</span>
+      <h2>My Grades</h2>
+      <p class="l-hdr-desc">Your class record for AAP101, once your instructor releases a term: each score, how the grade was computed, and what to focus on next.</p>
+    </div></div>
+    <div class="l-body"><div class="px-grades" aria-live="polite"></div></div>`;
+  page._onShow = () => renderGrades(page.querySelector('.px-grades'));
+  return page;
+}
+
+function renderGrades(box) {
+  box.innerHTML = skeleton(2);
+  withTimeout(AAPAuth.api('grades', {}, 20000), 25000).then(res => {
+    if (!res || !res.ok) throw new Error((res && res.message) || 'Could not load your grades.');
+    if (res.state !== 'open') {
+      const ico = res.state === 'closed' ? '🔒' : '🗂️';
+      const title = res.state === 'closed' ? 'Grades are not released yet' : 'You are not on the class record yet';
+      box.innerHTML = `<div class="px-empty"><div class="px-empty-ico">${ico}</div><h3>${title}</h3><p>${h(res.message)}</p>
+        ${res.note ? `<p class="px-grades-note">${h(res.note)}</p>` : ''}</div>`;
+      return;
+    }
+    box.innerHTML = window.AAPGrades ? AAPGrades.render(res.record, { note: res.note })
+                                     : '<div class="px-empty"><h3>Please reload the page.</h3></div>';
+  }).catch(err => {
+    box.innerHTML = `<div class="px-empty"><div class="px-empty-ico">📡</div><h3>Couldn't reach the class database</h3>
+      <p>${h(err.message === 'TIMEOUT' ? 'The connection is slow. Please try again.' : (err.message || 'Please check your connection.'))}</p>
+      <button class="px-btn px-btn-ghost" type="button">Try again</button></div>`;
+    box.querySelector('button').addEventListener('click', () => renderGrades(box));
+  });
+}
+
+/* ═════════════════════════ COURSE GUIDE (from the syllabus) ═════════════════════════ */
+
+const GUIDE = {
+  description: 'AAP 101 Art Appreciation is a three-unit general education course that develops students’ ability to appreciate, analyze, and critique works of art. Through interdisciplinary and multimodal approaches, students explore the nature, functions, and assumptions of art; the work of artists and artisans; art movements; the elements and principles of design; Philippine art; and the creative practices of photography, videography, and basic guitar. Students describe, analyze, interpret, and judge artworks, and create and reflect on their own outputs.',
+  outcomes: [
+    ['CO1', 'Explain the nature, assumptions, and functions of art, and distinguish artists from artisans.'],
+    ['CO2', 'Analyze artworks using the elements and principles of art, art movements, Feldman’s method of art criticism, and the context of Philippine art.'],
+    ['CO3', 'Apply the basics of photography, videography, and guitar playing in creative work.'],
+    ['CO4', 'Create original artworks and reflect on the creative process and on art’s place in everyday life.']
+  ],
+  weeks: [
+    ['1', 'Orientation: BulSU VMGO, grading system, classroom policies, BulSU AI policy'],
+    ['2', 'Introduction to art and the assumptions of art'],
+    ['3', 'Functions of art'],
+    ['4', 'Artists and artisans'],
+    ['5–6', 'Art movements'],
+    ['7', 'Visual elements of art · Coffee painting self-portrait (PT)'],
+    ['8', 'Reading an artwork: Feldman’s method'],
+    ['9', 'Philippine art and National Artists'],
+    ['10', 'Midterm examination'],
+    ['11–12', 'Principles of design'],
+    ['13–14', 'Basic photography'],
+    ['15–16', 'Basic videography'],
+    ['17', 'Guitar basics · Guitar performance video (PT)'],
+    ['18', 'Final examination']
+  ],
+  grading: [['Quizzes (Quiz 1–3)', 30], ['Recitation / Attendance', 10], ['Performance tasks (PT 1–3)', 30], ['Term examination', 30]],
+  scale: [['96.50–100', '1.00'], ['93.50–96.49', '1.25'], ['90.50–93.49', '1.50'], ['87.50–90.49', '1.75'],
+          ['84.50–87.49', '2.00'], ['81.50–84.49', '2.25'], ['78.50–81.49', '2.50'], ['75.50–78.49', '2.75'],
+          ['75.00–75.49', '3.00'], ['74.01–74.99', '4.00'], ['74.00 and below', '5.00']],
+  policies: [
+    ['Attendance', 'Be on time and stay until class ends. Catch up on missed lessons and arrange make-up work with your instructor. In online sessions, use your real name and report connection problems right away.'],
+    ['Submission of requirements', 'Submit complete work on time through the designated platform, following the given format. Ask for extensions early; late work is considered case by case.'],
+    ['Academic integrity', 'Submit your own work and cite your sources. No plagiarism, cheating, or copying. Every quiz and exam here starts with the Academic Integrity affirmation, and you must not share test contents with anyone who may take the course.'],
+    ['AI use', 'Following the BulSU AI policy, AI tools may be used for brainstorming and practice only when a task allows it, and you must disclose how you used them. AI tools are not allowed during quizzes and exams, and AI-generated images may not be submitted as your own artwork.'],
+    ['Safe space', 'Respect everyone. No bullying, discrimination, or harassment. Ask permission before photographing, recording, or sharing other people or their work, which matters for the photography and video tasks.'],
+    ['Special needs and accommodations', 'If you need support because of health, disability, or other concerns, talk to your instructor privately and early. Your information is kept confidential.']
+  ]
+};
+
+function buildGuidePage() {
+  const page = el('div', 'page');
+  page.id = 'page-guide';
+  const row = (a, b) => `<tr><th scope="row">${h(a)}</th><td>${h(b)}</td></tr>`;
+  page.innerHTML = `
+    <div class="l-hdr px-hdr"><div class="l-hdr-inner">
+      <span class="l-tag">📘 Syllabus</span>
+      <h2>Course Guide</h2>
+      <p class="l-hdr-desc">AAP 101 Art Appreciation · ${h(window.AAP_TERM || '2nd Semester, A.Y. 2026-2027')} · 3 units</p>
+    </div></div>
+    <div class="l-body px-guide">
+      <section class="px-g-card"><h3>Course description</h3><p>${h(GUIDE.description)}</p></section>
+      <section class="px-g-card"><h3>Course outcomes</h3>
+        <ul class="px-g-cos">${GUIDE.outcomes.map(o => `<li><b>${h(o[0])}</b><span>${h(o[1])}</span></li>`).join('')}</ul></section>
+      <section class="px-g-card"><h3>Weekly plan</h3>
+        <table class="px-g-tbl"><thead><tr><th>Week</th><th>Topic</th></tr></thead><tbody>${GUIDE.weeks.map(w => row(w[0], w[1])).join('')}</tbody></table></section>
+      <div class="px-g-two">
+        <section class="px-g-card"><h3>Grading system</h3>
+          <table class="px-g-tbl">${GUIDE.grading.map(g => row(g[0], g[1] + '%')).join('')}
+            <tr class="px-g-tot"><th scope="row">Term grade</th><td>100%</td></tr></table>
+          <p class="px-g-fine">Final rating = (Midterm grade + Final Term grade) ÷ 2. A blank score with no submission counts as zero.</p></section>
+        <section class="px-g-card"><h3>Grading scale</h3>
+          <table class="px-g-tbl px-g-scale"><thead><tr><th>Rating</th><th>Grade</th></tr></thead><tbody>${GUIDE.scale.map(s => row(s[0], s[1])).join('')}</tbody></table></section>
+      </div>
+      <section class="px-g-card"><h3>Classroom policies</h3>
+        <dl class="px-g-pol">${GUIDE.policies.map(p => `<dt>${h(p[0])}</dt><dd>${h(p[1])}</dd>`).join('')}</dl></section>
+      <section class="px-g-card px-g-bulsu"><h3>Bulacan State University</h3>
+        <p><b>Bisyon.</b> Ang Bulacan State University ay isang progresibong institusyong lumilikha ng kaalaman na kinikilala sa daigdig sa pinakamahusay na pagtuturo, nangungunang mga pananaliksik, at maagap na pagtugon sa pangangailangan ng komunidad.</p>
+        <p><b>Misyon.</b> Ang Bulacan State University ay may hangaring humubog ng mga propesyonal na mahuhusay, etikal, at handang maglingkod, na nakapag-aambag sa patuloy na pag-unlad ng bayan.</p>
+        <p><b>Core values: ALAB BulSU!</b> Agap sa Pagbabago · Lingap sa Kapwa at Sangnilikha · Agapayan sa Paggawa · Bayanihan sa Banyuhay</p></section>
+    </div>`;
+  return page;
+}
+
 /* ═════════════════════════ PUBLIC ═════════════════════════ */
 
 window.AAPPortal = {
@@ -785,16 +897,20 @@ window.AAPPortal = {
     return (o && o.status) || 'Open';
   },
 
-  owns(pid) { return pid === 'tests' || /^x-/.test(pid); },
+  owns(pid) { return pid === 'tests' || pid === 'grades' || pid === 'guide' || /^x-/.test(pid); },
 
   buildPage(pid) {
     if (pid === 'tests') return buildTestsPage();
+    if (pid === 'grades') return buildGradesPage();
+    if (pid === 'guide') return buildGuidePage();
     const c = findCustom(pid);
     return c ? buildCustomLesson(c) : null;
   },
 
   breadcrumb(pid) {
     if (pid === 'tests') return ['Assessments', 'Quizzes & Exams'];
+    if (pid === 'grades') return ['Grade Consultation', 'My Grades'];
+    if (pid === 'guide') return ['Syllabus', 'Course Guide'];
     const c = findCustom(pid);
     return c ? [CONTENT[c.term === 'f' ? 'f' : 'm'].label, c.title] : null;
   },
@@ -804,6 +920,12 @@ window.AAPPortal = {
     b.type = 'button';
     b.addEventListener('click', () => navigateTo('tests'));
     nav.appendChild(b);
+    [['grades', '🎓 &nbsp;My Grades'], ['guide', '📘 &nbsp;Course Guide']].forEach(([pid, label]) => {
+      const x = el('button', 'sb-home-btn px-sb-link px-sb-' + pid, label);
+      x.type = 'button';
+      x.addEventListener('click', () => navigateTo(pid));
+      nav.appendChild(x);
+    });
   },
 
   extraLessons(k, container, mode) {
@@ -814,7 +936,7 @@ window.AAPPortal = {
   terminalCard,
 
   /* Exposed for tests only. */
-  _richText: richText, _videoEmbed: videoEmbed
+  _richText: richText, _videoEmbed: videoEmbed, _guidePage: buildGuidePage
 };
 
 })();

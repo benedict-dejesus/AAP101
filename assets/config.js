@@ -17,7 +17,10 @@ window.AAP_CONFIG = {
   /* ① Paste your Web app URL here (keep the quotes). */
   ENDPOINT: 'https://script.google.com/macros/s/AKfycbz58d-JYZ6KFhGcXTeLbcd7tRbGF9O13fjQKtPeMaPxaPGH6FZSmI6vvkktuQYi7mNHMA/exec',
 
-  /* ② Leave everything below alone unless you know what you're changing. */
+  /* ② The term shown on the sign-in screen, sidebar and home page. */
+  TERM: 'A.Y. 2026–2027 · 2nd Semester',
+
+  /* ③ Leave everything below alone unless you know what you're changing. */
 
   // How often the module quietly sends data to the sheet, in seconds.
   SYNC_SECONDS: 20,
