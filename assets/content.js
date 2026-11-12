@@ -572,19 +572,14 @@ m: {
       {t:'text', html:`
         <p>In <strong>Week 9</strong> the class watches <strong>“Tanghalaya 2027”</strong>. Sir Kito will announce the venue, schedule and ticket details in class.</p>
         <p><strong>While watching</strong>, notice the elements of theater: the script and story, the actors, the set and costumes, the lighting, and the music and sound. Please follow theater etiquette: arrive early, keep your phone silent and put away, and do not record the performance.</p>
-        <p><strong>After the play</strong>, write a <strong>500–800 word critique</strong> of the performance using Feldman's four steps from Lesson 6: describe what you saw, analyze how the elements worked together, interpret its meaning, and give your judgment. Your critique is graded as the Midterm Activity.</p>`},
+        <p><strong>How it is scored:</strong> watching the whole play earns the <strong>full points</strong> for the Midterm Activity. There is no reaction or reflection paper to write. Enjoy the show, and use what you learned in Lesson 6 to look closely at what the artists on stage are doing.</p>`},
 
-      {t:'rubric', kicker:"Rubric R2 \u00b7 How it is scored", title:"Theater Play Critique: “Tanghalaya 2027”", when:"Week 9 · after the viewing",
-       task:"Write a 500–800 word critique using Feldman’s four steps and the elements of theater: script and story, acting, set and costumes, lighting, and music and sound.",
+      {t:'rubric', kicker:"Rubric R2 \u00b7 How it is scored", title:"Theater Play Viewing: “Tanghalaya 2027”", when:"Week 9",
+       task:"Watch the full performance of “Tanghalaya 2027” with the class. No written output is required.",
        crit:[
-         {name:"Description", pts:15, ex:"Accurate, specific account of the story, setting, characters and staging."},
-         {name:"Analysis of theater elements", pts:25, ex:"Explains how at least four elements work together, with specific scenes as evidence."},
-         {name:"Interpretation", pts:20, ex:"Insightful reading of the play’s meaning and message, supported by the analysis."},
-         {name:"Judgment", pts:20, ex:"Clear, fair evaluation using stated criteria and evidence from the performance."},
-         {name:"Organization and mechanics", pts:10, ex:"Follows Feldman’s order; clear paragraphs; no errors in grammar or spelling."},
-         {name:"Attendance, etiquette and integrity", pts:10, ex:"Attended the full show, followed theater etiquette, own work with signed integrity statement."}
+         {name:"Watched the full play", pts:100, ex:"Present from the start of the performance to the curtain call, following theater etiquette."}
        ],
-       note:"If you cannot attend for a valid, documented reason, you will be given an equivalent recorded performance to critique."},
+       note:"Did not watch = 0. If you miss it for a valid, documented reason, talk to Sir Kito: a make-up viewing may be allowed at the instructor’s discretion."},
 
       {t:'heading', lvl:3, text:'Midterm Quiz and Midterm Exam'},
 
