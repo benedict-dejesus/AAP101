@@ -124,7 +124,7 @@ function applyLessons(d) {
    formatting before it is shown. */
 const STRUCT = ['t', 'gate', 'xp', 'id', 'req', 'go', 'unlock', 'reveal', 'mode', 'optional', 'mono', 'cols',
                 'badgeOnPerfect', 'badgeOnDone', 'badgeOnClean', 'badge', 'badgeOnClear'];
-const FREE_TYPES = ['heading', 'text', 'quote', 'warn', 'compare', 'strum'];
+const FREE_TYPES = ['heading', 'text', 'quote', 'warn', 'compare', 'strum', 'rubric'];
 const anchorOf = b => b.gate ? 'g:' + b.gate : (b.t === 'continue' || b.t === 'reveal') && b.id ? b.t + ':' + b.id : /^sim-/.test(b.t) ? 's:' + b.t : '';
 
 function anchors(blocks, map) {
@@ -914,7 +914,7 @@ function renderGrades(box) {
 /* ═════════════════════════ COURSE GUIDE (from the syllabus) ═════════════════════════ */
 
 const GUIDE = {
-  description: 'AAP 101 Art Appreciation is a three-unit general education course that develops students’ ability to appreciate, analyze, and critique works of art. Through interdisciplinary and multimodal approaches, students explore the nature, functions, and assumptions of art; the work of artists and artisans; art movements; the elements and principles of design; Philippine art; and the creative practices of photography, videography, and basic guitar. Students describe, analyze, interpret, and judge artworks, critique a live theater performance, and create a coffee painting self-portrait, a photography challenge set, and a live guitar performance.',
+  description: 'AAP 101 Art Appreciation is a three-unit general elective course offered by the College of Arts and Letters that develops students’ ability to appreciate, analyze, and critique works of art. Through interdisciplinary and multimodal approaches, students explore the nature, functions, and assumptions of art; the work of artists and artisans; art movements; the elements and principles of design; Philippine art; and the creative practices of photography, videography, and basic guitar. Students describe, analyze, interpret, and judge artworks, critique a live theater performance, and create a coffee painting self-portrait, a photography challenge set, and a live guitar performance.',
   outcomes: [
     ['CO1', 'Explain the nature, assumptions, and functions of art, and distinguish artists from artisans.'],
     ['CO2', 'Analyze artworks and performances using the elements and principles of art, art movements, Feldman’s method of art criticism, and the context of Philippine art.'],

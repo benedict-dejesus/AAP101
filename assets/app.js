@@ -637,6 +637,40 @@ const Blocks = {
     return n;
   },
 
+  /* ── rubric: how a performance task is scored (read-only, no gate) ── */
+  rubric(b){
+    const n = el('div','block b-rubric');
+    const crit = Array.isArray(b.crit) ? b.crit : [];
+    const total = crit.reduce((a,c)=> a + (Number(c && c.pts) || 0), 0) || 100;
+    const plain = v => esc(String(v == null ? '' : v).replace(/<[^>]*>/g, ''));
+    n.innerHTML = `
+      <div class="act-hdr">
+        <div class="act-ico" aria-hidden="true">📋</div>
+        <div class="act-meta">
+          <div class="act-kicker">${plain(b.kicker || 'Rubric')}</div>
+          <div class="act-title">${plain(b.title)}</div>
+        </div>
+        ${b.when ? `<div class="rb-when">${plain(b.when)}</div>` : ''}
+      </div>
+      ${b.task ? `<p class="rb-task">${plain(b.task)}</p>` : ''}
+      <ol class="rb-list">
+        ${crit.map(c => {
+          const pts = Number(c && c.pts) || 0;
+          return `<li class="rb-crit">
+            <div class="rb-row"><span class="rb-name">${plain(c.name)}</span><span class="rb-pts">${pts} pts</span></div>
+            <div class="rb-bar" aria-hidden="true"><i style="width:${Math.round(pts / total * 100)}%"></i></div>
+            ${c.ex ? `<p class="rb-ex"><b>Excellent:</b> ${plain(c.ex)}</p>` : ''}
+          </li>`;
+        }).join('')}
+      </ol>
+      <div class="rb-foot">
+        <span class="rb-scale" aria-label="Rating scale"><b>4</b> Excellent <b>3</b> Proficient <b>2</b> Developing <b>1</b> Beginning</span>
+        <span class="rb-math">Points = rating ÷ 4 × weight · Total ${total}</span>
+      </div>
+      ${b.note ? `<p class="rb-note">${plain(b.note)}</p>` : ''}`;
+    return n;
+  },
+
   /* ── video ── */
   video(b){
     const n = el('div','block b-video');
@@ -2622,9 +2656,44 @@ function boot(){
   document.addEventListener('pointerdown', unlock);
 
   showPage('terminal');
+  KB.start();
 
   setTimeout(()=> $('#boot').classList.add('gone'), 620);
 }
+
+/* ══════════════════════ KEYBOARD ACCESS ══════════════════════
+   Several interactive pieces are drawn as <div>s (lesson links in the sidebar,
+   knowledge-check choices, sorter items and boxes, polaroids, flip cards,
+   quest steps, memory tiles). This makes each one reachable with Tab and
+   usable with Enter or Space, exactly as a click, without touching how each
+   activity is built. */
+const KB = {
+  SEL: '.nav-item, .qz-opt, .so-item, .so-cat, .pol, .fd-card, .tl-step, .mt-tile',
+  t: 0,
+  mark(root){
+    $$(this.SEL, root).forEach(n=>{
+      if(n.tagName === 'BUTTON' || n.tagName === 'A' || n.hasAttribute('tabindex')) return;
+      n.tabIndex = 0;
+      if(!n.hasAttribute('role')) n.setAttribute('role', 'button');
+    });
+    $$('.nav-item', root).forEach(n=>{
+      const cur = n.classList.contains('active') ? 'page' : 'false';
+      if(n.getAttribute('aria-current') !== cur) n.setAttribute('aria-current', cur);
+    });
+  },
+  start(){
+    this.mark(document);
+    new MutationObserver(()=>{ clearTimeout(this.t); this.t = setTimeout(()=> this.mark(document), 60); })
+      .observe(document.body, { childList:true, subtree:true });
+    document.addEventListener('keydown', e=>{
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      const n = e.target;
+      if(!n || !n.matches || !n.matches(this.SEL) || n.tagName === 'BUTTON' || n.tagName === 'A') return;
+      e.preventDefault();
+      n.click();
+    });
+  }
+};
 
 /* The access layer (assets/auth.js) must clear a student before the module
    builds itself. This fails CLOSED on purpose: if the access layer is missing
