@@ -47,6 +47,14 @@ const STRUM_PATTERNS = [
   {name:'Sixteenth',   beats:'¼ beat',    pattern:'DUDU – DUDU – DUDU – DUDU',       seq:['D','U','D','U','D','U','D','U','D','U','D','U','D','U','D','U']}
 ];
 
+/* ─────────── Lesson numbers shown to students ───────────
+   `num` drives unlocking and saved progress; `no` (when set) is the number
+   students see, so the welcome page can sit before Lesson 1 and the lesson
+   numbers match the course syllabus and planner. */
+function lessonNo(l){ return (l && l.no !== undefined) ? l.no : l.num; }
+function lessonLabel(l){ const n = lessonNo(l); return n === 0 ? 'Welcome' : 'Lesson ' + n; }
+function lessonIcon(l){ const n = lessonNo(l); return n === 0 ? '👋' : String(n); }
+
 /* ─────────── Badge definitions ─────────── */
 const BADGES = [
   {id:'first-steps', em:'👣', n:'First Steps',       d:'Open your first lesson'},
@@ -89,13 +97,13 @@ const CONTENT = {
 m: {
   label:'Midterm Module',
   short:'Midterm',
-  desc:'Lessons 1–8 covering Introduction to Art, Functions, Artists and Artisans, Art Movements, Visual Elements and the Coffee Painting Project, Reading an Artwork, and Philippine National Artists.',
+  desc:'Lessons 1–7 covering Introduction to Art, Functions, Artists and Artisans, Art Movements, Visual Elements with the Coffee Painting Workshop and Project, Reading an Artwork, and Philippine Art and National Artists, then the Theater Play Viewing, the Midterm Quiz and the Midterm Exam.',
   doneIcon:'🎨',
   lessons:[
 
   /* ── M1 ── */
   {
-    id:'m1', num:1, title:'About the Instructor', tag:'Midterm · Lesson 1',
+    id:'m1', num:1, no:0, title:'About the Instructor', tag:'Midterm · Welcome',
     desc:'Meet the person guiding you through AAP101 this semester.',
     blocks:[
       {t:'quote', img:'images/image1.jpg', alt:'Sir Kito',
@@ -107,8 +115,36 @@ m: {
         <p>He has been a freelance Research/Thesis consultant for 16 years and a frequent guest lecturer and workshop facilitator for the City Government of Malolos. Sir Kito is also a musician with over 25 years of experience and is active in instructional design and educational development.</p>`},
 
       {t:'text', html:`
-        <p><strong>How this course works.</strong> The Midterm Module has eight lessons and the Final Term Module has four. Each lesson opens with an artwork to look at, teaches one idea, and ends with an activity that unlocks the next lesson.</p>
+        <p><strong>How this course works.</strong> The Midterm Module has seven lessons and the Final Term Module has four. Each lesson opens with an artwork to look at, teaches one idea, and ends with an activity that unlocks the next lesson.</p>
         <p>Activities earn XP and badges, and your progress saves to the class record automatically, so you can continue on any phone or computer with your access code. Quizzes and exams set by Sir Kito appear under <strong>Tests</strong>.</p>`},
+
+      {t:'heading', lvl:3, text:'Course Planner'},
+
+      {t:'text', html:`
+        <p><strong>Midterm</strong></p>
+        <ol>
+          <li>Introduction to Art and Assumptions of Art <em>(Week 1, after the class orientation)</em></li>
+          <li>Functions of Art <em>(Week 2)</em></li>
+          <li>Artists and Artisans <em>(Week 3)</em></li>
+          <li>Art Movements <em>(Week 4)</em></li>
+          <li>Visual Elements of Art <em>(Week 5)</em>, with the Coffee Painting Classroom Workshop <em>(Week 6)</em> and the Midterm Project: Coffee Painting Self-Portrait</li>
+          <li>Reading an Artwork <em>(Week 7)</em></li>
+          <li>Philippine Art and National Artists <em>(Week 8)</em></li>
+          <li>Midterm Activity: Theater Play Viewing, “Tanghalaya 2027” <em>(Week 9)</em></li>
+          <li>Midterm Quiz <em>(Week 9)</em></li>
+          <li>Midterm Exam <em>(Week 10)</em></li>
+        </ol>
+        <p style="margin-top:12px"><strong>Final Term</strong></p>
+        <ol>
+          <li>Principles of Design <em>(Week 11)</em></li>
+          <li>Basic Photography <em>(Week 12)</em></li>
+          <li>Final Term Activity: Photography Challenge <em>(Week 13)</em></li>
+          <li>Basic Videography <em>(Week 14)</em></li>
+          <li>Guitar Lessons for Beginners <em>(Week 15)</em>, with the Guitar Lesson Classroom Workshops <em>(2 meetings, Week 16)</em> and the Final Term Project: Live Guitar Performance <em>(Week 17)</em></li>
+          <li>Final Term Quiz <em>(Week 17)</em></li>
+          <li>Final Term Exam <em>(Week 18)</em></li>
+        </ol>
+        <p style="margin-top:12px">Grading for each term: Quiz 30%, Performance Tasks (workshop, activity and project) 30%, Exam 30%, Recitation and Attendance 10%.</p>`},
 
       {t:'polaroids', gate:'m1-gal', xp:40,
        title:'The Studio Wall', kicker:'Photo Reveal',
@@ -120,14 +156,14 @@ m: {
          {img:'images/image5.jpg', alt:'Photo 4', cap:'Frame 04'}
        ]},
 
-      {t:'continue', id:'cont-m1', req:['m1-gal'], label:'Continue to Lesson 2',
+      {t:'continue', id:'cont-m1', req:['m1-gal'], label:'Continue to Lesson 1',
        note:'📸 Develop all 4 polaroids above to continue.', go:'m2', unlock:2}
     ]
   },
 
   /* ── M2 ── */
   {
-    id:'m2', num:2, title:'Introduction to Art and Assumptions of Art', tag:'Midterm · Lesson 2',
+    id:'m2', num:2, no:1, title:'Introduction to Art and Assumptions of Art', tag:'Midterm · Lesson 1',
     desc:'What actually counts as art — and what does not.',
     blocks:[
       {t:'quote', img:'images/image6.jpg', alt:'Art quote',
@@ -184,7 +220,7 @@ m: {
            {txt:'Mayon Volcano — regardless of its perfect cone shape — can still be considered as art because of its outstanding natural beauty.'}
          ]},
 
-        {t:'continue', id:'cont-m2-end', req:['m2-tabs','m2-kc'], label:'Continue to Lesson 3',
+        {t:'continue', id:'cont-m2-end', req:['m2-tabs','m2-kc'], label:'Continue to Lesson 2',
          note:'⚠️ Complete all activities in this lesson to continue.', go:'m3', unlock:3}
       ]}
     ]
@@ -192,7 +228,7 @@ m: {
 
   /* ── M3 ── */
   {
-    id:'m3', num:3, title:'Functions of Art', tag:'Midterm · Lesson 3',
+    id:'m3', num:3, no:2, title:'Functions of Art', tag:'Midterm · Lesson 2',
     desc:'Nine reasons humanity keeps making art.',
     blocks:[
       {t:'heading', lvl:2, text:'Functions of Art'},
@@ -246,14 +282,14 @@ m: {
          {txt:'Physical'}
        ]},
 
-      {t:'continue', id:'cont-m3', req:['m3-tabs','m3-match','m3-kc'], label:'Continue to Lesson 4',
+      {t:'continue', id:'cont-m3', req:['m3-tabs','m3-match','m3-kc'], label:'Continue to Lesson 3',
        note:'⚠️ Discover all 9 functions, clear the match game and answer the check to continue.', go:'m4', unlock:4}
     ]
   },
 
   /* ── M4 ── */
   {
-    id:'m4', num:4, title:'Artists and Artisans', tag:'Midterm · Lesson 4',
+    id:'m4', num:4, no:3, title:'Artists and Artisans', tag:'Midterm · Lesson 3',
     desc:'Expression versus craft — where is the line?',
     blocks:[
       {t:'heading', lvl:2, text:'Artists and Artisans'},
@@ -282,14 +318,14 @@ m: {
        ],
        cats:[{id:'artist', label:'🎨 Artists'},{id:'artisan', label:'🛠️ Artisans'}]},
 
-      {t:'continue', id:'cont-m4', req:['m4-dnd'], label:'Continue to Lesson 5',
+      {t:'continue', id:'cont-m4', req:['m4-dnd'], label:'Continue to Lesson 4',
        note:'⚠️ Complete the sorting gauntlet to continue.', go:'m5', unlock:5}
     ]
   },
 
   /* ── M5 ── */
   {
-    id:'m5', num:5, title:'Art Movements', tag:'Midterm · Lesson 5',
+    id:'m5', num:5, no:4, title:'Art Movements', tag:'Midterm · Lesson 4',
     desc:'Eight movements that reshaped how the world sees.',
     blocks:[
       {t:'heading', lvl:2, text:'Art Movements'},
@@ -365,15 +401,15 @@ m: {
           opts:['Cubism','Abstract Art','Realism','Impressionism']}
        ]},
 
-      {t:'continue', id:'cont-m5', req:['m5-flip','m5-kc'], label:'Continue to Lesson 6',
+      {t:'continue', id:'cont-m5', req:['m5-flip','m5-kc'], label:'Continue to Lesson 5',
        note:'⚠️ Flip all 8 cards and answer the knowledge check to continue.', go:'m6', unlock:6}
     ]
   },
 
   /* ── M6 ── */
   {
-    id:'m6', num:6, title:'Visual Elements of Art & Midterm Project', tag:'Midterm · Lesson 6',
-    desc:'The seven raw building blocks — then your coffee painting quest.',
+    id:'m6', num:6, no:5, title:'Visual Elements of Art & Midterm Project', tag:'Midterm · Lesson 5',
+    desc:'The seven building blocks, the Coffee Painting Workshop, and your Midterm Project.',
     blocks:[
       {t:'heading', lvl:2, text:'Visual Elements of Art'},
 
@@ -396,6 +432,12 @@ m: {
          {img:'images/image27.jpg', alt:'Space', title:'Space',
           html:'<p>The area around, between, above, below, or within objects. <strong>Positive space</strong> refers to subjects or main areas of interest; <strong>negative space</strong> refers to empty areas around or between subjects. Both are equally important in creating a balanced, intentional composition.</p>'}
        ]},
+
+      {t:'heading', lvl:2, text:'Coffee Painting Classroom Workshop'},
+
+      {t:'text', html:`
+        <p>In <strong>Week 6</strong> we paint together in class. You will practice the coffee washes, the value scale and the layering you need for your Midterm Project, using line, shape, value, texture and space from the deck above. Your workshop output is graded as a performance task.</p>
+        <p><strong>Bring:</strong> instant coffee, water, two small containers, brushes of different sizes, a pencil and eraser, thick watercolor paper or vellum board, a palette or paper plate, and tissue or a rag.</p>`},
 
       {t:'heading', lvl:2, text:'Midterm Project: Coffee Painting Self-Portrait'},
 
@@ -423,14 +465,14 @@ m: {
           html:'<p>Take <strong>2 photos</strong> of the finished portrait:</p><ol><li>One close-up with the reference image beside it</li><li>One with you holding your finished work</li></ol><p style="margin-top:10px">Upload both files to your designated folder in the class GDrive.</p>'}
        ]},
 
-      {t:'continue', id:'cont-m6', req:['m6-car'], label:'Continue to Lesson 7',
+      {t:'continue', id:'cont-m6', req:['m6-car'], label:'Continue to Lesson 6',
        note:'⚠️ Navigate through all 7 Visual Elements in the deck to continue.', go:'m7', unlock:7}
     ]
   },
 
   /* ── M7 ── */
   {
-    id:'m7', num:7, title:'Reading an Artwork', tag:'Midterm · Lesson 7',
+    id:'m7', num:7, no:6, title:'Reading an Artwork', tag:'Midterm · Lesson 6',
     desc:'Four steps for talking about any artwork with confidence.',
     blocks:[
       {t:'text', html:`
@@ -466,14 +508,14 @@ m: {
        ],
        cats:[{id:'describe', label:'1 · Describe'},{id:'analyze', label:'2 · Analyze'},{id:'interpret', label:'3 · Interpret'},{id:'judge', label:'4 · Judge'}]},
 
-      {t:'continue', id:'cont-m7', req:['m7-tabs','m7-dnd'], label:'Continue to Lesson 8',
+      {t:'continue', id:'cont-m7', req:['m7-tabs','m7-dnd'], label:'Continue to Lesson 7',
        note:'⚠️ Uncover all 4 steps and clear the sorting gauntlet to continue.', go:'m8', unlock:8}
     ]
   },
 
   /* ── M8 ── */
   {
-    id:'m8', num:8, title:'Philippine Art and National Artists', tag:'Midterm · Lesson 8',
+    id:'m8', num:8, no:7, title:'Philippine Art and National Artists', tag:'Midterm · Lesson 7',
     desc:'The Filipino artists the nation chose to honor.',
     blocks:[
       {t:'text', html:`
@@ -503,7 +545,18 @@ m: {
        ]},
 
       {t:'text', html:`
-        <p><strong>Try it yourself.</strong> Pick one work by a National Artist, at the National Museum of Fine Arts in Manila or online, and read it with Feldman's four steps from Lesson 7. It is good practice for your Midterm Project reflection.</p>`},
+        <p><strong>Try it yourself.</strong> Pick one work by a National Artist, at the National Museum of Fine Arts in Manila or online, and read it with Feldman's four steps from Lesson 6. It is good practice for your Midterm Project reflection.</p>`},
+
+      {t:'heading', lvl:2, text:'Midterm Activity: Theater Play Viewing, “Tanghalaya 2027”'},
+
+      {t:'text', html:`
+        <p>In <strong>Week 9</strong> the class watches <strong>“Tanghalaya 2027”</strong>. Sir Kito will announce the venue, schedule and ticket details in class.</p>
+        <p><strong>While watching</strong>, notice the elements of theater: the script and story, the actors, the set and costumes, the lighting, and the music and sound. Please follow theater etiquette: arrive early, keep your phone silent and put away, and do not record the performance.</p>
+        <p><strong>After the play</strong>, write a critique of the performance using Feldman's four steps from Lesson 6: describe what you saw, analyze how the elements worked together, interpret its meaning, and give your judgment. Your critique is graded as the Midterm Activity.</p>`},
+
+      {t:'heading', lvl:3, text:'Midterm Quiz and Midterm Exam'},
+
+      {t:'text', html:'<p>The <strong>Midterm Quiz</strong> (Week 9) and the <strong>Midterm Exam</strong> (Week 10) cover Lessons 1 to 7. Both are taken here in the module, under <strong>Tests</strong>, when Sir Kito opens them.</p>'},
 
       {t:'continue', id:'cont-m8', req:['m8-match','m8-kc'], label:'Complete Midterm Module 🎉',
        note:'⚠️ Clear the match game and answer the check to complete this module.', go:'mc'}
@@ -514,7 +567,7 @@ m: {
   complete:{
     id:'mc', icon:'🎉', title:'Midterm Module Complete!', conf:'🎨 ✨ 🖌️ 🎭 ✨ 🎨',
     badge:'midterm',
-    html:"Congratulations! You've successfully completed the <strong>Midterm Learning Module</strong> for AAP101. You've covered the foundations of Art Appreciation — from the definition of art, its functions, artists vs. artisans, major art movements and the visual elements, to reading an artwork and the National Artists of the Philippines. Good luck on your Coffee Painting Self-Portrait!"
+    html:"Congratulations! You've successfully completed the <strong>Midterm Learning Module</strong> for AAP101. You've covered the foundations of Art Appreciation — from the definition of art, its functions, artists vs. artisans, major art movements and the visual elements, to reading an artwork and the National Artists of the Philippines. Good luck on your Coffee Painting Self-Portrait, enjoy “Tanghalaya 2027”, and do your best in the Midterm Quiz and Exam!"
   }
 },
 
@@ -524,7 +577,7 @@ m: {
 f: {
   label:'Final Term Module',
   short:'Final Term',
-  desc:'Lessons 1–4 covering Principles of Design, Basic Photography, Videography, Guitar Lessons, and the Guitar Performance Project.',
+  desc:'Lessons 1–4 covering Principles of Design, Basic Photography with the Photography Challenge, Basic Videography, and Guitar Lessons for Beginners with the Guitar Workshops and the Live Guitar Performance, then the Final Term Quiz and Exam.',
   doneIcon:'🏆',
   lessons:[
 
@@ -613,6 +666,24 @@ f: {
          {txt:'Use a fast shutter (1/1000s), widen the aperture (low f-number), and raise the ISO.'},
          {txt:'Narrow the aperture to f/22 and keep everything else the same.'}
        ]},
+
+      {t:'heading', lvl:3, text:'Composition: Where to Put Your Subject'},
+
+      {t:'text', html:`
+        <p>Good exposure makes a photo readable; good composition makes it worth looking at. Try these on your phone camera:</p>
+        <ul>
+          <li><strong>Rule of thirds</strong>: turn on the grid and place your subject where the lines cross, not dead center.</li>
+          <li><strong>Leading lines</strong>: use roads, rails, fences or shadows to lead the eye to the subject.</li>
+          <li><strong>Framing</strong>: shoot through a doorway, window or branches to frame the subject.</li>
+          <li><strong>Symmetry and pattern</strong>: center the subject when both sides mirror each other, or fill the frame with a repeating pattern.</li>
+          <li><strong>Light and angle</strong>: shoot with soft side light near windows or at golden hour, and try high and low angles instead of only eye level.</li>
+        </ul>`},
+
+      {t:'heading', lvl:2, text:'Final Term Activity: Photography Challenge'},
+
+      {t:'text', html:`
+        <p>In <strong>Week 13</strong> you put this lesson to work. Sir Kito will give each class a challenge theme. Shoot your photos with any camera or phone, then choose your best shots for the class photo exhibit.</p>
+        <p>Your set should show a clear subject, good exposure, and at least two composition techniques from this lesson, such as the rule of thirds, leading lines or framing, plus the principles of design from Lesson 1. Add a short caption to each photo explaining your choices. Submit your own original photos only: no AI-generated or heavily filtered images.</p>`},
 
       {t:'continue', id:'cont-f2', req:['f2-tabs','f2-sim'], label:'Continue to Lesson 3',
        note:'⚠️ Uncover all 3 exposure controls and achieve a perfect exposure in the simulator to continue.', go:'f3', unlock:3}
@@ -704,6 +775,12 @@ f: {
           opts:['Two Shot','Long Shot','Extreme Close-Up','Full Shot']}
        ]},
 
+      {t:'heading', lvl:3, text:'Planning and Editing a Short Video'},
+
+      {t:'text', html:`
+        <p><strong>Storyboard first.</strong> Before you shoot, sketch each scene in a box and write under it the shot type, the camera angle, and what is said or heard. A one-minute video usually needs only six to ten shots.</p>
+        <p><strong>Edit simply.</strong> In a free phone editor, put the clips in storyboard order, trim the dead seconds at the start and end of each clip, keep the sound clear and steady, and add titles only where they help the viewer.</p>`},
+
       {t:'continue', id:'cont-f3', req:['f3-shot','f3-angle'], label:'Continue to Lesson 4',
        note:'⚠️ Collect all 12 shot types and all 6 camera angles to continue.', go:'f4', unlock:4}
     ]
@@ -712,7 +789,7 @@ f: {
   /* ── F4 ── */
   {
     id:'f4', num:4, title:'Guitar Lessons for Beginners', tag:'Final Term · Lesson 4',
-    desc:'Chords, strumming, and your final performance project.',
+    desc:'Chords, strumming, the guitar workshops, and your live performance.',
     blocks:[
       {t:'heading', lvl:2, text:'Guitar Lessons for Beginners'},
       {t:'heading', lvl:3, text:"Sir Kito's Interactive Guitar Chord Cheat Sheet"},
@@ -746,9 +823,17 @@ f: {
          {txt:'D (sustained to 4 beats)'}
        ]},
 
-      {t:'heading', lvl:3, text:'Final Term Project: Guitar Performance Video'},
+      {t:'heading', lvl:3, text:'Guitar Lesson Classroom Workshops'},
 
-      {t:'text', html:'<p>Instructions for the Final Term Project will be personally given by your instructor to allow room for questions and concerns. Please attend the designated class session where Sir Kito will walk you through the requirements, rubric, and submission details.</p>'},
+      {t:'text', html:'<p>In <strong>Week 16</strong> we hold two hands-on workshop meetings in class. Bring a guitar if you have one (sharing is fine). We will practice tuning, clean chord changes and steady strumming with the patterns above, and Sir Kito will check your progress at each meeting.</p>'},
+
+      {t:'heading', lvl:3, text:'Final Term Project: Live Guitar Performance'},
+
+      {t:'text', html:'<p>In <strong>Week 17</strong> you perform a short song live in class, using the chords and strumming patterns from this lesson. Sir Kito will explain the song requirements, the rubric and the schedule in class, so please attend the briefing session.</p>'},
+
+      {t:'heading', lvl:3, text:'Final Term Quiz and Final Term Exam'},
+
+      {t:'text', html:'<p>The <strong>Final Term Quiz</strong> (Week 17) and the <strong>Final Term Exam</strong> (Week 18) cover Lessons 1 to 4 of the Final Term. Both are taken here in the module, under <strong>Tests</strong>.</p>'},
 
       {t:'continue', id:'cont-f4', req:['f4-kc'], label:'Complete Final Term Module 🎉',
        note:'⚠️ Answer the knowledge check above to complete this module.', go:'fc'}
@@ -759,7 +844,7 @@ f: {
   complete:{
     id:'fc', icon:'🏆', title:'Final Term Module Complete!', conf:'🎸 ✨ 📸 🎬 ✨ 🎸',
     badge:'final',
-    html:"Congratulations! You've successfully completed the <strong>Final Term Learning Module</strong> for AAP101. You've mastered the Principles of Design, the fundamentals of Photography and Videography, and explored Guitar Basics. Good luck with your Guitar Performance Video project!"
+    html:"Congratulations! You've successfully completed the <strong>Final Term Learning Module</strong> for AAP101. You've mastered the Principles of Design, the fundamentals of Photography and Videography, and explored Guitar Basics. Good luck with your Live Guitar Performance!"
   }
 }
 };

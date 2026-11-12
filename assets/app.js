@@ -598,7 +598,7 @@ function breadcrumb(pid){
   if(pid === 'terminal') return ['AAP101','Art Appreciation'];
   if(window.AAPPortal){ const bc = AAPPortal.breadcrumb(pid); if(bc) return bc; }
   const les = findLesson(pid);
-  if(les) return [CONTENT[lessonMod(pid)].label, `Lesson ${les.num}: ${les.title}`];
+  if(les) return [CONTENT[lessonMod(pid)].label, `${lessonLabel(les)}: ${les.title}`];
   if(pid === 'mc') return [CONTENT.m.label, 'Complete! 🎉'];
   if(pid === 'fc') return [CONTENT.f.label, 'Complete! 🏆'];
   return ['AAP101','Art Appreciation'];
@@ -2213,7 +2213,7 @@ function buildTerminal(){
           <div class="resume-ico">▶️</div>
           <div class="resume-txt">
             <div class="resume-k">Continue where you left off</div>
-            <div class="resume-t">${esc(CONTENT[lessonMod(target.id)].short)} · Lesson ${target.num}: ${esc(target.title)}</div>
+            <div class="resume-t">${esc(CONTENT[lessonMod(target.id)].short)} · ${lessonLabel(target)}: ${esc(target.title)}</div>
           </div>
           <div class="resume-go">→</div>
         </div>`;
@@ -2359,7 +2359,7 @@ function unlockLesson(mod, num){
   if(!S.unlocked[mod].includes(num)){
     S.unlocked[mod].push(num);
     const les = CONTENT[mod].lessons.find(l => l.num === num);
-    if(les) toast('🔓', 'Lesson unlocked!', `Lesson ${num}: ${les.title}`);
+    if(les) toast('🔓', 'Lesson unlocked!', `${lessonLabel(les)}: ${les.title}`);
     save();
   }
   refreshSidebar();
@@ -2389,7 +2389,7 @@ function buildSidebar(){
       item.dataset.page = les.id;
       item.dataset.mod = k;
       item.dataset.num = les.num;
-      item.innerHTML = `<div class="nav-icon">${les.num}</div>
+      item.innerHTML = `<div class="nav-icon">${lessonIcon(les)}</div>
         <span class="nav-title">${esc(les.title)}</span>
         <span class="nav-flag"></span>`;
       item.addEventListener('click', ()=>{
@@ -2422,7 +2422,7 @@ function refreshSidebar(){
     const flag = $('.nav-flag', item);
     flag.textContent = !open ? '🔒' : done ? '✓' : '';
     const ico = $('.nav-icon', item);
-    ico.textContent = done && pid !== S.page ? '✓' : num;
+    ico.textContent = done && pid !== S.page ? '✓' : lessonIcon(les);
   });
 
   // mobile lesson sheet mirrors the same state
@@ -2437,7 +2437,7 @@ function refreshSidebar(){
     item.classList.toggle('current', pid === S.page);
     item.classList.toggle('done', done);
     $('.sheet-flag', item).textContent = !open ? '🔒' : done ? '✓' : '›';
-    $('.sheet-num', item).textContent  = done ? '✓' : num;
+    $('.sheet-num', item).textContent  = done ? '✓' : lessonIcon(les);
   });
 
   ['m','f'].forEach(k=>{
@@ -2480,7 +2480,7 @@ function buildSheet(){
       it.dataset.mod  = k;
       it.dataset.num  = les.num;
       it.innerHTML = `
-        <span class="sheet-num">${les.num}</span>
+        <span class="sheet-num">${lessonIcon(les)}</span>
         <span class="sheet-txt">
           <span class="sheet-t">${esc(les.title)}</span>
           <span class="sheet-d">${esc(les.desc || '')}</span>
