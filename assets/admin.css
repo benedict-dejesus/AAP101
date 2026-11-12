@@ -626,3 +626,16 @@ kbd{display:inline-block;min-width:20px;padding:1px 6px;border-radius:6px;backgr
   .lc-pv{position:static}
   .lc-pv-frame{height:70vh}
 }
+
+/* Grade Book: rubric scorer */
+.gb-c.gb-pt{position:relative}
+.gb-rb{position:absolute;right:2px;top:50%;transform:translateY(-50%);border:none;background:transparent;cursor:pointer;font-size:13px;padding:2px;opacity:0;transition:opacity .15s}
+.gb-c.gb-pt:hover .gb-rb,.gb-c.gb-pt:focus-within .gb-rb{opacity:1}
+.gb .gb-c.gb-pt input{padding-right:22px}
+.gb-rub{display:flex;flex-direction:column;gap:10px;margin:12px 0;max-height:52vh;overflow:auto}
+.gb-rub-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid rgba(0,44,57,.08)}
+.gb-rub-c{display:flex;flex-direction:column;min-width:180px;flex:1}
+.gb-rub-c small{color:var(--muted)}
+.gb-rub-seg button{display:flex;flex-direction:column;align-items:center;min-width:58px;line-height:1.1}
+.gb-rub-seg button span{font-size:10px;font-weight:600;opacity:.75}
+.gb-rub-total{padding:10px 12px;border-radius:10px;background:rgba(0,193,142,.08);font-size:14px}

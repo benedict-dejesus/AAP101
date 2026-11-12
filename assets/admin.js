@@ -1653,6 +1653,18 @@ function gbCalc(row) {
 }
 function gbVal(row, key) { const e = GB.edits[row.code + '|' + key]; return e ? e.value : key === 'status' ? row.status : row.cells[key]; }
 function gbMiss(row, key) { const e = GB.edits[row.code + '|' + key]; return e ? !!e.missing : !!row.missing[key]; }
+/* Input columns shown for a term. A quiz column whose maximum is 0 is not used
+   this semester and stays hidden unless someone has already typed a score in it. */
+function gbKeys(T) {
+  if (T === 'ALL') return [];
+  return GB_KEYS.map(k => T + '.' + k).filter(k => !(/\.q[23]$/.test(k) && !GB.max[k] && !GB.rows.some(r => r.cells[k] !== '' && r.cells[k] != null)));
+}
+/* With Quiz 2 and 3 switched off, Quiz 1 is the one term quiz. */
+function gbLabel(k) {
+  const t = k.split('.')[0];
+  if (/\.q1$/.test(k) && !GB.max[t + '.q2'] && !GB.max[t + '.q3'] && /^Quiz 1$/.test(GB.labels[k])) return t === 'MT' ? 'Midterm Quiz' : 'Final Term Quiz';
+  return GB.labels[k];
+}
 const gbDirty = () => !!GB && (Object.keys(GB.edits).length + Object.keys(GB.maxEdits).length + Object.keys(GB.hdrEdits).length) > 0;
 
 function viewGradebook(box, arg) {
@@ -1693,8 +1705,8 @@ function paintGradebook(box) {
     .then(ok => { if (ok) { GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {}; loadGradebook(box, GB.tabs, GB.tab, GB.term); } }));
   $('[data-save]', a).addEventListener('click', e => gbSave(e.currentTarget, box));
 
-  const T = GB.term, keys = T === 'ALL' ? [] : GB_KEYS.map(k => T + '.' + k);
-  const head2 = keys.map(k => `<th class="gb-max"><input data-max="${k}" value="${h(GB.max[k])}" inputmode="decimal" aria-label="Maximum for ${h(GB.labels[k])}" title="Maximum score"></th>`).join('');
+  const T = GB.term, keys = gbKeys(T);
+  const head2 = keys.map(k => `<th class="gb-max"><input data-max="${k}" value="${h(GB.max[k])}" inputmode="decimal" aria-label="Maximum for ${h(gbLabel(k))}" title="${/\.q[23]$/.test(k) ? 'Maximum score (0 = not used)' : 'Maximum score'}"></th>`).join('');
   box.innerHTML = `
     <div class="gb-bar">
       <select class="ad-select" data-tab aria-label="Section">${GB.tabs.map(t => `<option value="${h(t.tab)}" ${t.tab === GB.tab ? 'selected' : ''}>${h(t.tab)} (${t.students})</option>`).join('')}</select>
@@ -1702,11 +1714,11 @@ function paintGradebook(box) {
       <input class="ad-search" type="search" placeholder="Find a student…" data-q value="${h(GB.q)}">
       <span class="ad-muted gb-dirty" data-dirty></span>
     </div>
-    <p class="ad-hint gb-help">Type a score and press <kbd>Enter</kbd> or the arrow keys to move. Type <kbd>x</kbd> to mark it <b>not submitted</b> (red in the sheet). Row 2 holds each maximum. Click a performance task's name to rename it. <kbd>Ctrl</kbd>+<kbd>S</kbd> saves.</p>
+    <p class="ad-hint gb-help">Type a score and press <kbd>Enter</kbd> or the arrow keys to move. Type <kbd>x</kbd> to mark it <b>not submitted</b> (red in the sheet). Row 2 holds each maximum. Click a performance task's name to rename it. In a performance-task cell, press <kbd>R</kbd> or click 📋 to <b>score it with its rubric</b>. <kbd>Ctrl</kbd>+<kbd>S</kbd> saves.</p>
     <div class="ad-card flush"><div class="gb-wrap"><table class="gb">
       <thead><tr><th class="gb-n">#</th><th class="gb-name">Student</th>
         ${T === 'ALL' ? '<th>MT Grade</th><th>MG</th><th>FT Grade</th><th>FTG</th><th>Final</th><th>FG</th><th>Status</th><th>Remarks</th>'
-          : keys.map(k => `<th class="gb-h ${/pt\d$/.test(k) ? 'pt' : ''}" ${/pt\d$/.test(k) ? `data-hdr="${k}" title="Rename this performance task"` : ''}>${h(GB.labels[k])}</th>`).join('') + `<th class="gb-calc">${T} Grade</th><th class="gb-calc">${T === 'MT' ? 'MG' : 'FTG'}</th><th>Status</th>`}
+          : keys.map(k => `<th class="gb-h ${/pt\d$/.test(k) ? 'pt' : ''}" ${/pt\d$/.test(k) ? `data-hdr="${k}" title="Rename this performance task"` : ''}>${h(gbLabel(k))}</th>`).join('') + `<th class="gb-calc">${T} Grade</th><th class="gb-calc">${T === 'MT' ? 'MG' : 'FTG'}</th><th>Status</th>`}
       </tr>${T === 'ALL' ? '' : `<tr class="gb-maxrow"><th class="gb-n"></th><th class="gb-name"><small>Maximum</small></th>${head2}<th class="gb-calc"></th><th class="gb-calc"></th><th></th></tr>`}</thead>
       <tbody data-rows></tbody></table></div></div>`;
 
@@ -1719,7 +1731,8 @@ function paintGradebook(box) {
   $('[data-q]', box).addEventListener('input', e => { GB.q = e.target.value; gbRows(box); });
   $$('[data-max]', box).forEach(inp => inp.addEventListener('change', () => {
     const k = inp.dataset.max, n = Number(inp.value);
-    if (!(n > 0 && n <= 1000)) { toast('A maximum must be between 1 and 1000.', 'bad'); inp.value = GB.max[k]; return; }
+    const zeroOk = /\.q[23]$/.test(k);
+    if (!(n > 0 && n <= 1000) && !(zeroOk && n === 0 && inp.value.trim() !== '')) { toast('A maximum must be between 1 and 1000' + (zeroOk ? ', or 0 if this quiz is not used.' : '.'), 'bad'); inp.value = GB.max[k]; return; }
     GB.max[k] = n; GB.maxEdits[k] = n; inp.classList.add('dirty'); gbRows(box);
   }));
   $$('[data-hdr]', box).forEach(th => th.addEventListener('click', () => {
@@ -1731,7 +1744,7 @@ function paintGradebook(box) {
 }
 
 function gbRows(box) {
-  const T = GB.term, keys = T === 'ALL' ? [] : GB_KEYS.map(k => T + '.' + k);
+  const T = GB.term, keys = gbKeys(T);
   const q = GB.q.trim().toLowerCase();
   const rows = GB.rows.filter(r => !q || (r.surname + ' ' + r.given + ' ' + r.studno + ' ' + r.code).toLowerCase().includes(q));
   const remPill = t => t ? `<span class="ad-pill ${t === 'Passed' ? 'ok' : t === 'Failed' ? 'bad' : 'warn'}">${h(t)}</span>` : '';
@@ -1742,7 +1755,8 @@ function gbRows(box) {
       <td class="num"><b>${fmtNum(c.final)}</b></td><td class="num"><b>${fmtEq(c.fg)}</b></td><td>${h(st || '')}</td><td>${remPill(c.remarks)}</td></tr>`;
     return `<tr data-code="${h(r.code)}">${name}${keys.map((k, j) => {
       const v = gbVal(r, k), miss = gbMiss(r, k), dirty = GB.edits[r.code + '|' + k];
-      return `<td class="gb-c ${miss ? 'miss' : ''} ${dirty ? 'dirty' : ''}"><input data-k="${k}" data-r="${i}" data-c="${j}" value="${miss && (v === '' || v == null) ? '' : h(v)}" placeholder="${miss ? 'x' : ''}" inputmode="decimal" autocomplete="off" aria-label="${h(r.surname)} ${h(GB.labels[k])}"></td>`;
+      const pt = /\.pt\d$/.test(k);
+      return `<td class="gb-c ${pt ? 'gb-pt' : ''} ${miss ? 'miss' : ''} ${dirty ? 'dirty' : ''}"><input data-k="${k}" data-r="${i}" data-c="${j}" value="${miss && (v === '' || v == null) ? '' : h(v)}" placeholder="${miss ? 'x' : ''}" inputmode="decimal" autocomplete="off" aria-label="${h(r.surname)} ${h(gbLabel(k))}">${pt ? `<button class="gb-rb" data-rb tabindex="-1" title="Score with the rubric" aria-label="Score ${h(r.surname)} with the rubric">📋</button>` : ''}</td>`;
     }).join('')}<td class="num gb-calc" data-g>${fmtNum(T === 'MT' ? c.mt : c.ft)}</td><td class="num gb-calc" data-e>${fmtEq(T === 'MT' ? c.mg : c.ftg)}</td>
       <td class="gb-st ${GB.edits[r.code + '|status'] ? 'dirty' : ''}"><select data-st aria-label="Status"><option value="" ${!st ? 'selected' : ''}>—</option><option ${String(st).toUpperCase() === 'INC' ? 'selected' : ''}>INC</option><option ${String(st).toUpperCase() === 'DROPPED' ? 'selected' : ''}>Dropped</option></select></td></tr>`;
   }).join('') : `<tr><td colspan="14" class="ad-muted center">No students match.</td></tr>`;
@@ -1770,7 +1784,10 @@ function gbRows(box) {
       $('[data-e]', tr).textContent = fmtEq(GB.term === 'MT' ? c.mg : c.ftg);
       gbDirtyLabel(box);
     });
+    const rb = $('[data-rb]', inp.parentNode);
+    if (rb) rb.addEventListener('click', () => gbRubric(row, k, inp));
     inp.addEventListener('keydown', e => {
+      if (rb && (e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) { e.preventDefault(); gbRubric(row, k, inp); return; }
       const r = Number(inp.dataset.r), c = Number(inp.dataset.c);
       const mv = { ArrowUp: [-1, 0], ArrowDown: [1, 0], Enter: [e.shiftKey ? -1 : 1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
       if (!mv) return;
@@ -1787,6 +1804,59 @@ function gbRows(box) {
     gbDirtyLabel(box);
   }));
   gbDirtyLabel(box);
+}
+
+/* ── Score a performance task with its course rubric ──
+   The rubrics are the ones shown to students in the lessons (content.js), so
+   the criteria and weights always match what students were told. Each
+   criterion is rated 4 Excellent · 3 Proficient · 2 Developing · 1 Beginning ·
+   0 Missing; points = rating ÷ 4 × weight. The total (out of 100) is scaled to
+   the column's maximum and typed into the cell, ready to save. */
+const GB_RUBRIC_FOR = { 'MT.pt1': 'R1', 'MT.pt2': 'R2', 'MT.pt3': 'R3', 'FT.pt1': 'R4', 'FT.pt2': 'R5', 'FT.pt3': 'R6' };
+function gbRubrics() {
+  const out = [];
+  if (typeof CONTENT === 'undefined') return out;
+  const walk = bs => (bs || []).forEach(b => { if (b && b.t === 'rubric') out.push(b); if (b && b.t === 'reveal') walk(b.blocks); });
+  ['m', 'f'].forEach(t => (CONTENT[t].lessons || []).forEach(l => walk(l.blocks)));
+  return out.map(b => ({ code: (/\bR\d\b/.exec(b.kicker || '') || [''])[0], title: String(b.title || '').replace(/<[^>]*>/g, ''), crit: (b.crit || []).filter(c => c && c.pts > 0) }));
+}
+function gbGuessRubric(list, k) {
+  const words = String(GB.labels[k] || '').toLowerCase().match(/[a-z]{4,}/g) || [];
+  let best = null, score = 0;
+  list.forEach(r => { const t = r.title.toLowerCase(); const s = words.filter(w => t.indexOf(w) >= 0).length; if (s > score) { score = s; best = r; } });
+  return best || list.find(r => r.code === GB_RUBRIC_FOR[k]) || list[0];
+}
+function gbRubric(row, k, inp) {
+  const list = gbRubrics();
+  if (!list.length) return toast('No rubrics were found in the lessons.', 'bad');
+  let cur = gbGuessRubric(list, k), marks = {};
+  const max = Number(GB.max[k]) || 100;
+  const body = `<label class="ad-lbl">Rubric<select data-rsel>${list.map((r, i) => `<option value="${i}" ${r === cur ? 'selected' : ''}>${h(r.code)} · ${h(r.title)}</option>`).join('')}</select></label>
+    <div class="gb-rub" data-rgrid></div>
+    <div class="gb-rub-total" data-rtot aria-live="polite"></div>`;
+  const pending = dialog({ title: `${row.surname}, ${row.given} · ${gbLabel(k)}`, body, ok: 'Use this score', wide: true });
+  const d = $$('.ad-dialog').pop();
+  const RATE = [[4, 'Excellent'], [3, 'Proficient'], [2, 'Developing'], [1, 'Beginning'], [0, 'Missing']];
+  const total = () => cur.crit.reduce((a, c, i) => a + (marks[i] == null ? 0 : marks[i] / 4 * c.pts), 0);
+  const weight = () => cur.crit.reduce((a, c) => a + c.pts, 0) || 100;
+  const paint = () => {
+    $('[data-rgrid]', d).innerHTML = cur.crit.map((c, i) => `<div class="gb-rub-row"><div class="gb-rub-c"><b>${h(c.name)}</b><small>${c.pts} pts</small></div>
+      <div class="ad-seg gb-rub-seg" role="radiogroup" aria-label="${h(c.name)}">${RATE.map(([v, l]) => `<button type="button" role="radio" data-ri="${i}" data-rv="${v}" aria-checked="${marks[i] === v}" class="${marks[i] === v ? 'on' : ''}" title="${l}">${v}<span>${l}</span></button>`).join('')}</div></div>`).join('');
+    $$('[data-rv]', d).forEach(b => b.addEventListener('click', () => { marks[b.dataset.ri] = Number(b.dataset.rv); paint(); }));
+    const done = cur.crit.every((c, i) => marks[i] != null), t = r2(total() / weight() * 100), sc = r2(t / 100 * max);
+    $('[data-rtot]', d).innerHTML = done ? `Total <b>${fmtNum(t)}</b> / 100 → <b>${fmtNum(sc)}</b> / ${fmtNum(max)} in the Grade Book`
+      : `Rate every criterion (${cur.crit.filter((c, i) => marks[i] != null).length} of ${cur.crit.length} done).`;
+    $('[data-o]', d).disabled = !done;
+  };
+  $('[data-rsel]', d).addEventListener('change', e => { cur = list[Number(e.target.value)]; marks = {}; paint(); });
+  paint();
+  pending.then(ok => {
+    if (!ok) { inp.focus(); return; }
+    inp.value = String(r2(total() / weight() * 100 / 100 * max));
+    inp.dispatchEvent(new Event('input'));
+    inp.focus();
+    toast('Score filled in. Save changes to record it.');
+  });
 }
 
 function gbDirtyLabel(box) {
@@ -1815,8 +1885,8 @@ function gbSave(btn, box) {
 
 function gbCsv() {
   const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const keys = ['MT', 'FT'].reduce((a, t) => a.concat(GB_KEYS.map(k => t + '.' + k)), []);
-  const lines = [['Surname', 'Given Name', 'Student Number'].concat(keys.map(k => k.split('.')[0] + ' ' + GB.labels[k]), ['MT Grade', 'MG', 'FT Grade', 'FTG', 'Final', 'FG', 'Status', 'Remarks']).map(q).join(',')]
+  const keys = ['MT', 'FT'].reduce((a, t) => a.concat(gbKeys(t)), []);
+  const lines = [['Surname', 'Given Name', 'Student Number'].concat(keys.map(k => k.split('.')[0] + ' ' + gbLabel(k)), ['MT Grade', 'MG', 'FT Grade', 'FTG', 'Final', 'FG', 'Status', 'Remarks']).map(q).join(',')]
     .concat(GB.rows.map(r => { const c = gbCalc(r); return [r.surname, r.given, r.studno].concat(keys.map(k => gbMiss(r, k) ? 'x' : gbVal(r, k)), [c.mt, c.mg, c.ft, c.ftg, c.final, c.fg, gbVal(r, 'status'), c.remarks]).map(q).join(','); }));
   download(lines.join('\r\n'), GB.tab.replace(/[^\w\- ]+/g, '') + ' - class record.csv');
 }
