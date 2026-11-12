@@ -317,7 +317,7 @@ function viewTests(box) {
           return `<div class="ad-slot"><div class="ad-slot-h"><b>${h(SLOT_NAME[slot] || slot)}</b><span>Class record column ${COLS[term + '|' + slot]}</span></div>
             ${here.map(t => `
               <article class="ad-test" data-id="${h(t.id)}">
-                <div class="ad-test-top">${statusChip(t)}<span class="ad-muted">${t.questions} q · ${t.minutes ? t.minutes + ' min' : 'untimed'} · ${t.max} pts</span></div>
+                <div class="ad-test-top">${statusChip(t)}<span class="ad-muted">${t.perStudent && t.perStudent < t.questions ? `${t.perStudent} of ${t.questions}` : t.questions} q · ${t.minutes ? t.minutes + ' min' : 'untimed'} · ${t.max} pts</span></div>
                 <h4>${h(t.title)}</h4>
                 <div class="ad-test-meta">${t.opens ? 'Opens ' + fmtDate(t.opens) : 'Opens when you press Open'}${t.closes ? ' · closes ' + fmtDate(t.closes) : ''}</div>
                 <div class="ad-test-stats"><span><b>${t.submitted}</b> submitted</span>${t.inProgress ? `<span><b>${t.inProgress}</b> in progress</span>` : ''}</div>
@@ -342,18 +342,20 @@ function viewTests(box) {
 /* Ready-made, TOS-aligned question banks. Each loads as a DRAFT test you review before opening. */
 function openBanks(box) {
   api('banks.list').then(res => {
-    const rows = res.banks.map(b => `<tr><td><b>${h(b.title)}</b><div class="ad-muted">${h(TERMS[b.term])} · ${h(b.slot)} · ${b.items} items · ${b.minutes} min</div>
+    const rows = res.banks.map(b => `<tr><td><b>${h(b.title)}</b><div class="ad-muted">${h(TERMS[b.term])} · ${h(b.slot)} · ${b.items} items per student from a bank of ${b.pool || b.items} · ${b.max} pts · ${b.minutes} min</div>
         <div class="ad-muted">${Object.keys(b.topics).map(k => h(k) + ' ' + b.topics[k]).join(' · ')}</div></td>
-      <td class="ad-row-end">${b.loaded ? `<span class="ad-pill muted">${h(b.loaded.status === 'DRAFT' ? 'Loaded as draft' : 'In your tests')}</span>`
-        : `<button class="ad-btn sm" data-load="${h(b.key)}">Load as draft</button>`}</td></tr>`).join('');
+      <td class="ad-row-end">${!b.loaded ? `<button class="ad-btn sm" data-load="${h(b.key)}">Load as draft</button>`
+        : b.loaded.current ? `<span class="ad-pill muted">${h(b.loaded.status === 'DRAFT' ? 'Loaded as draft' : 'In your tests')}</span>`
+        : !b.loaded.attempts ? `<button class="ad-btn sm ghost" data-load="${h(b.key)}" data-replace title="Swap the loaded copy's questions for this version. Dates and sections are kept.">Update to this version</button>`
+        : `<span class="ad-pill muted" title="Students have taken it, so it is kept as it is.">Older version, already taken</span>`}</td></tr>`).join('');
     const d = dialog({ title: 'Question banks · ' + (res.semester || ''), ok: 'Done', cancel: '', wide: true,
-      body: `<p class="ad-muted">Built from last semester's quizzes and exams and aligned to the syllabus TOS. Each bank loads as a <b>draft</b> with shuffled questions and choices. Review it, set the dates, then press Open.</p>
+      body: `<p class="ad-muted">Aligned to this semester's Table of Specifications. Each exam gives every student 60 items, drawn cell by cell from the TOS out of a much larger bank, so classmates get different papers worth the same points. Each bank loads as a <b>draft</b>. Review it, set the dates, then press Open.</p>
         <table class="ad-table compact"><tbody>${rows}</tbody></table>` });
     setTimeout(() => $$('[data-load]').forEach(btn => btn.addEventListener('click', () => {
       busy(btn, true, 'Loading…');
-      api('banks.import', { key: btn.dataset.load }).then(r => {
-        btn.outerHTML = '<span class="ad-pill ok">Loaded as draft</span>';
-        toast('"' + r.test.title + '" is in your tests as a draft.');
+      api('banks.import', { key: btn.dataset.load, replace: btn.hasAttribute('data-replace') }).then(r => {
+        btn.outerHTML = '<span class="ad-pill ok">' + (r.replaced ? 'Updated' : 'Loaded as draft') + '</span>';
+        toast(r.replaced ? '"' + r.test.title + '" now has the new questions and draw plan.' : '"' + r.test.title + '" is in your tests as a draft.');
       }).catch(e => { busy(btn, false); toast(e.message, 'bad'); });
     })), 0);
     d.then(() => viewTests(box));
@@ -398,7 +400,7 @@ function editTest(id, preset) {
   const box = $('#ad-view');
   loading(box);
   const load = id ? api('tests.get', { id }) : Promise.resolve({
-    test: Object.assign({ id: '', title: '', term: 'MT', slot: 'Quiz 1', instr: '', minutes: 30, max: 40, tries: 1, shuffle: true, draw: 0,
+    test: Object.assign({ id: '', title: '', term: 'MT', slot: 'Quiz 1', instr: '', minutes: 30, max: 40, tries: 1, shuffle: true, draw: 0, blueprint: {},
       results: 'score', sections: '', opens: 0, closes: 0, status: 'DRAFT' }, preset || {}),
     questions: [blankQ('mc')]
   });
@@ -432,13 +434,14 @@ function renderEditor(box) {
           <label>Opens<input data-f="opens" type="datetime-local" value="${toLocal(t.opens)}"><small>Blank = as soon as you press Open.</small></label>
           <label>Closes<input data-f="closes" type="datetime-local" value="${toLocal(t.closes)}"><small>Blank = when you press Close.</small></label>
           <label>Attempts allowed<input data-f="tries" type="number" min="1" max="10" value="${h(t.tries)}"><small>The best score counts.</small></label>
-          <label>Questions per student<input data-f="draw" type="number" min="0" max="150" value="${h(t.draw)}"><small>0 = all. Fewer draws a random set for each student.</small></label>
+          <label data-drawbox>Questions per student<input data-f="draw" type="number" min="0" max="300" value="${h(t.draw)}"><small>0 = all. Fewer draws a random set for each student.</small></label>
           <label>After submitting, students see<select data-f="results">
             <option value="score" ${t.results === 'score' ? 'selected' : ''}>Their score</option>
             <option value="review" ${t.results === 'review' ? 'selected' : ''}>Score, then answers after it closes</option>
             <option value="hidden" ${t.results === 'hidden' ? 'selected' : ''}>Nothing until you release it</option></select></label>
           <label>Sections<input data-f="sections" maxlength="400" value="${h(t.sections)}" placeholder="All sections"><small>Comma-separated, e.g. BSMCS 3A, BSED 1B.</small></label>
           <label class="ad-switch span2"><input type="checkbox" data-f="shuffle" ${t.shuffle !== false ? 'checked' : ''}><span></span>Shuffle questions and choices for each student</label>
+          <div class="span2" data-plan></div>
           <label class="span2">Instructions<textarea data-f="instr" rows="3" maxlength="4000" placeholder="Shown before the student starts. **bold** and *italic* work.">${h(t.instr)}</textarea></label>
         </div>
       </section>
@@ -466,6 +469,50 @@ function renderEditor(box) {
   paintQs();
 }
 
+/* ── Draw plan: how many questions each student gets from each TOS group ──
+   Questions carry a TOS group (the banks fill it in, e.g. "Lesson 2 · Analysis").
+   When any count is set, each student gets exactly that many from each group,
+   chosen at random, so every paper follows the TOS; a substitute for an item
+   always comes from the same group and is worth the same points. */
+function planGroups() {
+  const out = {};
+  ED.qs.forEach(q => {
+    const g = String(q.group || '').trim(); if (!g) return;
+    const o = out[g] || (out[g] = { n: 0, pts: new Set() });
+    o.n++; o.pts.add(Number(q.points) || 0);
+  });
+  return out;
+}
+
+function paintPlan() {
+  const box = $('[data-plan]'), drawBox = $('[data-drawbox]');
+  if (!box) return;
+  const groups = planGroups(), names = Object.keys(groups);
+  const bp = ED.test.blueprint || (ED.test.blueprint = {});
+  Object.keys(bp).forEach(g => { if (!groups[g]) delete bp[g]; });
+  if (drawBox) drawBox.hidden = names.length > 0;
+  if (!names.length) { box.innerHTML = ''; return; }
+  const on = Object.keys(bp).some(g => bp[g] > 0);
+  let per = 0, pts = 0;
+  const rows = names.map(g => {
+    const o = groups[g], want = Number(bp[g]) || 0, p = [...o.pts][0];
+    per += want; pts += want * p;
+    const bad = want > o.n ? 'Only ' + o.n + ' in the bank' : o.pts.size > 1 ? 'Mixed points' : want && want === o.n ? 'No substitutes' : '';
+    return `<tr><td>${h(g)}<div class="ad-muted">${o.pts.size > 1 ? [...o.pts].join(' / ') : p} pt each${bad ? ` · <b style="color:var(--${want > o.n || o.pts.size > 1 ? 'bad' : 'muted'})">${h(bad)}</b>` : ''}</div></td>
+      <td>${o.n}</td>
+      <td><input data-bp="${h(g)}" type="number" min="0" max="${o.n}" value="${want}" style="width:60px" aria-label="Questions per student from ${h(g)}"></td></tr>`;
+  }).join('');
+  box.innerHTML = `<details class="ad-more" ${on ? 'open' : ''}><summary>Draw plan by TOS group · ${on ? `${per} questions, ${pts} points per student` : 'off (every student gets every question)'}</summary>
+    <p class="ad-hint">Each student gets the number you set from each group, picked at random, so every paper follows the Table of Specifications. A substitute always comes from the same group and is worth the same points, and a retake gets questions the student has not seen yet. Set every count to 0 to give all questions instead.</p>
+    <div class="ad-table-wrap"><table class="ad-table compact"><thead><tr><th>TOS group</th><th>In bank</th><th>Each paper</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${on && pts !== Number(ED.test.max) ? `<p class="ad-hint">Each paper is worth ${pts} points of questions; the score is scaled to ${h(ED.test.max)}.</p>` : ''}</details>`;
+  $$('[data-bp]', box).forEach(inp => inp.addEventListener('change', () => {
+    const n = Math.max(0, Math.floor(Number(inp.value) || 0));
+    if (n) bp[inp.dataset.bp] = n; else delete bp[inp.dataset.bp];
+    ED.dirty = true; paintQs();
+  }));
+}
+
 function colHint() {
   const c = COLS[ED.test.term + '|' + ED.test.slot];
   const el = $('[data-colhint]');
@@ -481,9 +528,13 @@ function paintQs() {
   const list = $('[data-qlist]');
   if (!list) return;
   const total = ED.qs.reduce((s, q) => s + (Number(q.points) || 0), 0);
-  $('[data-qsum]').textContent = `${ED.qs.length} question${ED.qs.length === 1 ? '' : 's'} · ${total} point${total === 1 ? '' : 's'}`;
+  const bp = ED.test.blueprint || {}, per = Object.keys(bp).reduce((s, g) => s + (Number(bp[g]) || 0), 0);
+  $('[data-qsum]').textContent = per
+    ? `${ED.qs.length} questions in the bank · ${per} per student, drawn by TOS group`
+    : `${ED.qs.length} question${ED.qs.length === 1 ? '' : 's'} · ${total} point${total === 1 ? '' : 's'}`;
   list.innerHTML = ED.qs.length ? ED.qs.map((q, i) => qCard(q, i)).join('') : '<div class="ad-empty small"><p>No questions yet. Add one below, or paste a whole set.</p></div>';
   $$('.ad-q', list).forEach(card => wireQ(card, Number(card.dataset.i)));
+  paintPlan();
 }
 
 function qCard(q, i) {
@@ -511,6 +562,7 @@ function qCard(q, i) {
     <div class="ad-q-h"><span class="ad-q-n">${i + 1}</span>
       <select data-type>${Object.keys(QTYPES).map(k => `<option value="${k}" ${q.type === k ? 'selected' : ''}>${QTYPES[k]}</option>`).join('')}</select>
       <label class="ad-pts"><input data-points type="number" min="0" max="100" step="0.5" value="${h(q.points)}"> pts</label>
+      ${q.group ? `<span class="ad-pill muted" title="TOS group">${h(q.group)}</span>` : ''}
       <div class="ad-q-tools">
         <button class="ad-icon" data-move="-1" title="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button class="ad-icon" data-move="1" title="Move down" ${i === ED.qs.length - 1 ? 'disabled' : ''}>↓</button>
@@ -519,7 +571,9 @@ function qCard(q, i) {
       </div></div>
     <textarea data-prompt rows="2" maxlength="4000" placeholder="Type the question…">${h(q.prompt)}</textarea>
     ${body}
-    <details class="ad-more" ${q.image || q.explain ? 'open' : ''}><summary>Image &amp; notes</summary>
+    <details class="ad-more" ${q.image || q.explain ? 'open' : ''}><summary>Image, notes &amp; TOS group</summary>
+      <label class="ad-lbl">TOS group<input data-group maxlength="80" value="${h(q.group || '')}" placeholder="e.g. Lesson 2 · Analysis"></label>
+      <p class="ad-hint">Questions in the same TOS group are substitutes for each other in the draw plan.</p>
       <label class="ad-lbl">Image link (https)<input data-image maxlength="600" value="${h(q.image)}" placeholder="https://…"></label>
       <label class="ad-lbl">${q.type === 'essay' ? 'Rubric / notes (only you see this)' : 'Explanation shown in the answer review'}<textarea data-explain rows="2" maxlength="2000">${h(q.explain)}</textarea></label>
     </details>
@@ -533,12 +587,13 @@ function wireQ(card, i) {
   $('[data-points]', card).addEventListener('input', e => { q.points = Number(e.target.value); dirty(); const total = ED.qs.reduce((s, x) => s + (Number(x.points) || 0), 0); $('[data-qsum]').textContent = `${ED.qs.length} questions · ${total} points`; });
   $('[data-type]', card).addEventListener('change', e => {
     const nq = blankQ(e.target.value);
-    nq._k = q._k; nq.prompt = q.prompt; nq.points = q.points; nq.image = q.image; nq.explain = q.explain;
+    nq._k = q._k; nq.prompt = q.prompt; nq.points = q.points; nq.image = q.image; nq.explain = q.explain; nq.group = q.group;
     if ((nq.type === 'mc' || nq.type === 'multi') && q.options && q.options.length) nq.options = q.options.slice();
     ED.qs[i] = nq; dirty(); paintQs();
   });
   const im = $('[data-image]', card); if (im) im.addEventListener('input', e => { q.image = e.target.value.trim(); dirty(); });
   const ex = $('[data-explain]', card); if (ex) ex.addEventListener('input', e => { q.explain = e.target.value; dirty(); });
+  const gr = $('[data-group]', card); if (gr) gr.addEventListener('change', e => { q.group = e.target.value.trim(); dirty(); paintQs(); });
   $$('[data-opt]', card).forEach(inp => inp.addEventListener('input', () => { q.options[Number(inp.dataset.opt)] = inp.value; dirty(); }));
   $$('[data-mark]', card).forEach(b => b.addEventListener('click', () => {
     const k = Number(b.dataset.mark);
@@ -576,7 +631,7 @@ function saveTest(btn) {
   if (!String(t.title || '').trim()) { toast('Give the test a title first.', 'bad'); $('[data-f="title"]').focus(); return; }
   busy(btn, true, 'Saving…');
   const payload = Object.assign({}, t);
-  const qs = ED.qs.map(q => ({ qid: q.qid, type: q.type, prompt: q.prompt, options: q.options, answer: q.answer, points: q.points, image: q.image, explain: q.explain }));
+  const qs = ED.qs.map(q => ({ qid: q.qid, type: q.type, prompt: q.prompt, options: q.options, answer: q.answer, points: q.points, image: q.image, explain: q.explain, group: q.group || '' }));
   api('tests.save', { test: payload, questions: qs }).then(res => {
     busy(btn, false);
     ED = { test: res.test, qs: res.questions.map(q => Object.assign({ _k: uid() }, q)), dirty: false };
