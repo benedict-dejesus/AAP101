@@ -38,9 +38,11 @@ const SLOT_NAME = { 'Quiz 1': 'Term Quiz (Quiz 1)', 'Quiz 2': 'Quiz 2 (not in th
 const QTYPES = { mc: 'Multiple choice', multi: 'Multiple answers', tf: 'True / False', ident: 'Identification', essay: 'Essay (you grade)' };
 const COLS = { 'MT|Quiz 1': 'E', 'MT|Quiz 2': 'F', 'MT|Quiz 3': 'G', 'MT|Exams': 'T',
                'FT|Quiz 1': 'Y', 'FT|Quiz 2': 'Z', 'FT|Quiz 3': 'AA', 'FT|Exams': 'AN' };
-/* Default maximums, matching row 2 of a new class record tab. */
-const MAXES = { 'MT|Quiz 1': 40, 'MT|Quiz 2': 20, 'MT|Quiz 3': 20, 'MT|Exams': 50,
-                'FT|Quiz 1': 20, 'FT|Quiz 2': 20, 'FT|Quiz 3': 20, 'FT|Exams': 50 };
+/* Default maximums, matching row 2 of a new class record tab (2026-2027: one
+   40-item term quiz and a 60-item exam). Quiz 2 and 3 are off (0) in the class
+   record; if a test is still put in those slots, it starts at 20 items. */
+const MAXES = { 'MT|Quiz 1': 40, 'MT|Quiz 2': 20, 'MT|Quiz 3': 20, 'MT|Exams': 60,
+                'FT|Quiz 1': 40, 'FT|Quiz 2': 20, 'FT|Quiz 3': 20, 'FT|Exams': 60 };
 const maxFor = t => MAXES[(t.term || 'MT') + '|' + (t.slot || 'Quiz 1')] || 20;
 
 const fmtDate = ms => ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
