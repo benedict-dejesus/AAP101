@@ -214,7 +214,7 @@ m: {
          opts:[
            {txt:'Some people are natural-born artists. They were gifted with artistic skills because a certain hemisphere of their brain is more developed. Only these people can become artists.'},
            {txt:'Writing a song after a terrible breakup is a manifestation of how art can be used to vent emotions and transform them into something that helps us express ourselves.'},
-           {txt:'AI-generated images can be considered as art because it still involves conscious human effort (LLM architecture and codes; user prompts).'},
+           {txt:'AI-generated images can be considered as art because it still involves conscious human effort (people design and code the AI model, and people write the prompts).'},
            {txt:'While your crush is man-made, he/she may not be considered as art because his/her parents made no conscious effort in editing his/her appearance.'},
            {txt:'The Banaue Rice Terraces can be considered as art because it was handcrafted by the Ifugaos along the sides of the mountains — it was definitely man-made.'},
            {txt:'Mayon Volcano — regardless of its perfect cone shape — can still be considered as art because of its outstanding natural beauty.'}
@@ -439,6 +439,15 @@ m: {
         <p>In <strong>Week 6</strong> we paint together in class. You will practice the coffee washes, the value scale and the layering you need for your Midterm Project, using line, shape, value, texture and space from the deck above. Your workshop output is graded as a performance task.</p>
         <p><strong>Bring:</strong> instant coffee, water, two small containers, brushes of different sizes, a pencil and eraser, thick watercolor paper or vellum board, a palette or paper plate, and tissue or a rag.</p>`},
 
+      {t:'rubric', kicker:"Rubric R1 \u00b7 How it is scored", title:"Coffee Painting Classroom Workshop", when:"Week 6 · in class",
+       task:"Paint a five-step coffee value scale and a small still life or study using coffee washes, layering and dry-brush, applying the visual elements from this lesson.",
+       crit:[
+         {name:"Value scale and washes", pts:30, ex:"Five clearly distinct values from lightest to darkest; washes are smooth and even."},
+         {name:"Layering and edges", pts:25, ex:"Waits for each layer to dry; builds depth with clean hard and soft edges."},
+         {name:"Use of the visual elements", pts:25, ex:"Line, shape, value, texture and space are used on purpose and work together."},
+         {name:"Work habits and participation", pts:20, ex:"Prepared with all materials, follows each step, keeps the area clean, helps classmates."}
+       ]},
+
       {t:'heading', lvl:2, text:'Midterm Project: Coffee Painting Self-Portrait'},
 
       {t:'timeline', gate:'m6-quest', xp:60,
@@ -462,8 +471,19 @@ m: {
          {title:'Refine and Blend',
           html:'<p>Review the portrait and make adjustments. Soften harsh edges with a damp brush. Add additional layers for darker values. Improve details and texture. <strong>Allow each layer to dry completely before adding another.</strong></p>'},
          {title:'Submission',
-          html:'<p>Take <strong>2 photos</strong> of the finished portrait:</p><ol><li>One close-up with the reference image beside it</li><li>One with you holding your finished work</li></ol><p style="margin-top:10px">Upload both files to your designated folder in the class GDrive.</p>'}
+          html:'<p>Take <strong>2 photos</strong> of the finished portrait:</p><ol><li>One close-up with the reference image beside it</li><li>One with you holding your finished work</li></ol><p style="margin-top:10px">Then write a <strong>150–250 word reflection</strong>: which visual elements you used and why, what was hardest, and what you learned.</p><p style="margin-top:10px">Upload both photos and your reflection to your designated folder in the class GDrive by <strong>Week 9</strong>.</p>'}
        ]},
+
+      {t:'rubric', kicker:"Rubric R3 \u00b7 How it is scored", title:"Midterm Project: Coffee Painting Self-Portrait", when:"Submit by Week 9",
+       task:"Paint a self-portrait using only coffee and water, following the Project Quest Log above. Submit two photos and a 150–250 word reflection.",
+       crit:[
+         {name:"Likeness and proportion", pts:25, ex:"Recognizable likeness; facial proportions and placement are accurate."},
+         {name:"Value range and tonal depth", pts:25, ex:"Full range from light to very dark; shadows model the face convincingly."},
+         {name:"Technique", pts:20, ex:"Clean layering and blending, controlled edges, no blooms or tears."},
+         {name:"Composition and visual elements", pts:15, ex:"Thoughtful placement, background and use of line, texture and space."},
+         {name:"Reflection and submission", pts:15, ex:"Reflection explains choices, challenges and learning; both photos submitted on time in the correct folder."}
+       ],
+       note:"Pure coffee only: no paint, ink, filters, digital edits or AI-generated images."},
 
       {t:'continue', id:'cont-m6', req:['m6-car'], label:'Continue to Lesson 6',
        note:'⚠️ Navigate through all 7 Visual Elements in the deck to continue.', go:'m7', unlock:7}
@@ -552,7 +572,19 @@ m: {
       {t:'text', html:`
         <p>In <strong>Week 9</strong> the class watches <strong>“Tanghalaya 2027”</strong>. Sir Kito will announce the venue, schedule and ticket details in class.</p>
         <p><strong>While watching</strong>, notice the elements of theater: the script and story, the actors, the set and costumes, the lighting, and the music and sound. Please follow theater etiquette: arrive early, keep your phone silent and put away, and do not record the performance.</p>
-        <p><strong>After the play</strong>, write a critique of the performance using Feldman's four steps from Lesson 6: describe what you saw, analyze how the elements worked together, interpret its meaning, and give your judgment. Your critique is graded as the Midterm Activity.</p>`},
+        <p><strong>After the play</strong>, write a <strong>500–800 word critique</strong> of the performance using Feldman's four steps from Lesson 6: describe what you saw, analyze how the elements worked together, interpret its meaning, and give your judgment. Your critique is graded as the Midterm Activity.</p>`},
+
+      {t:'rubric', kicker:"Rubric R2 \u00b7 How it is scored", title:"Theater Play Critique: “Tanghalaya 2027”", when:"Week 9 · after the viewing",
+       task:"Write a 500–800 word critique using Feldman’s four steps and the elements of theater: script and story, acting, set and costumes, lighting, and music and sound.",
+       crit:[
+         {name:"Description", pts:15, ex:"Accurate, specific account of the story, setting, characters and staging."},
+         {name:"Analysis of theater elements", pts:25, ex:"Explains how at least four elements work together, with specific scenes as evidence."},
+         {name:"Interpretation", pts:20, ex:"Insightful reading of the play’s meaning and message, supported by the analysis."},
+         {name:"Judgment", pts:20, ex:"Clear, fair evaluation using stated criteria and evidence from the performance."},
+         {name:"Organization and mechanics", pts:10, ex:"Follows Feldman’s order; clear paragraphs; no errors in grammar or spelling."},
+         {name:"Attendance, etiquette and integrity", pts:10, ex:"Attended the full show, followed theater etiquette, own work with signed integrity statement."}
+       ],
+       note:"If you cannot attend for a valid, documented reason, you will be given an equivalent recorded performance to critique."},
 
       {t:'heading', lvl:3, text:'Midterm Quiz and Midterm Exam'},
 
@@ -682,8 +714,19 @@ f: {
       {t:'heading', lvl:2, text:'Final Term Activity: Photography Challenge'},
 
       {t:'text', html:`
-        <p>In <strong>Week 13</strong> you put this lesson to work. Sir Kito will give each class a challenge theme. Shoot your photos with any camera or phone, then choose your best shots for the class photo exhibit.</p>
-        <p>Your set should show a clear subject, good exposure, and at least two composition techniques from this lesson, such as the rule of thirds, leading lines or framing, plus the principles of design from Lesson 1. Add a short caption to each photo explaining your choices. Submit your own original photos only: no AI-generated or heavily filtered images.</p>`},
+        <p>In <strong>Week 13</strong> you put this lesson to work. Sir Kito will give each class a challenge theme. Shoot with any camera or phone, then submit a set of <strong>five original photos</strong>, each with a one-to-two sentence caption. Your best shots go up in the class photo exhibit.</p>
+        <p>Your set should show a clear subject, good exposure, and at least three composition techniques from this lesson, such as the rule of thirds, leading lines, framing, symmetry or angle, plus the principles of design from Lesson 1. Each caption should explain the technique and the intent behind the shot. Submit your own original photos only: no AI-generated or heavily filtered images.</p>`},
+
+      {t:'rubric', kicker:"Rubric R4 \u00b7 How it is scored", title:"Final Term Activity: Photography Challenge", when:"Week 13",
+       task:"Following the theme given in class, shoot and submit five original photographs, each with a one-to-two sentence caption.",
+       crit:[
+         {name:"Theme and creativity", pts:20, ex:"Fresh, personal take on the theme; the set tells a clear story or idea."},
+         {name:"Exposure and focus", pts:20, ex:"All photos well exposed and sharp where intended; motion and depth handled on purpose."},
+         {name:"Composition", pts:25, ex:"Uses at least three composition techniques effectively (thirds, leading lines, framing, symmetry, angle)."},
+         {name:"Principles of design", pts:15, ex:"Balance, contrast, emphasis, rhythm or unity clearly strengthen each photo."},
+         {name:"Captions", pts:10, ex:"Each caption explains the technique and the intent behind the shot."},
+         {name:"Originality and compliance", pts:10, ex:"All photos taken by you for this task; no heavy filters or AI; complete set on time."}
+       ]},
 
       {t:'continue', id:'cont-f2', req:['f2-tabs','f2-sim'], label:'Continue to Lesson 3',
        note:'⚠️ Uncover all 3 exposure controls and achieve a perfect exposure in the simulator to continue.', go:'f3', unlock:3}
@@ -827,9 +870,30 @@ f: {
 
       {t:'text', html:'<p>In <strong>Week 16</strong> we hold two hands-on workshop meetings in class. Bring a guitar if you have one (sharing is fine). We will practice tuning, clean chord changes and steady strumming with the patterns above, and Sir Kito will check your progress at each meeting.</p>'},
 
+      {t:'rubric', kicker:"Rubric R5 \u00b7 How it is scored", title:"Guitar Lesson Classroom Workshops", when:"Week 16 · two meetings",
+       task:"Show tuning and posture, the assigned open chords, clean chord changes and the strumming patterns from this lesson. Each meeting is rated and the two scores are averaged.",
+       crit:[
+         {name:"Tuning and posture", pts:20, ex:"Tunes the guitar independently; relaxed, correct posture and hand position."},
+         {name:"Chord accuracy", pts:30, ex:"All assigned chords ring clearly with no muted or buzzing strings."},
+         {name:"Chord transitions", pts:25, ex:"Changes chords on the beat without stopping."},
+         {name:"Strumming and rhythm", pts:25, ex:"Keeps a steady tempo with the assigned pattern, down and up strokes correct."}
+       ],
+       note:"No guitar? You may share one. Borrowing does not lower your score."},
+
       {t:'heading', lvl:3, text:'Final Term Project: Live Guitar Performance'},
 
-      {t:'text', html:'<p>In <strong>Week 17</strong> you perform a short song live in class, using the chords and strumming patterns from this lesson. Sir Kito will explain the song requirements, the rubric and the schedule in class, so please attend the briefing session.</p>'},
+      {t:'text', html:'<p>In <strong>Week 17</strong> you perform a short song live in class, about <strong>1–2 minutes</strong> long, using at least <strong>three chords</strong> and one strumming pattern from this lesson. Singing is optional. Sir Kito will give the performance schedule in class.</p>'},
+
+      {t:'rubric', kicker:"Rubric R6 \u00b7 How it is scored", title:"Final Term Project: Live Guitar Performance", when:"Week 17 · in class",
+       task:"Perform a short song live in class, about 1–2 minutes long, using at least three chords and one strumming pattern from this lesson. Singing is optional and is not scored separately.",
+       crit:[
+         {name:"Chord accuracy", pts:25, ex:"Every chord clean and correct throughout the song."},
+         {name:"Rhythm and tempo", pts:25, ex:"Steady tempo and a strumming pattern that fits the song from start to end."},
+         {name:"Transitions and fluency", pts:20, ex:"Plays through without stopping; smooth chord changes."},
+         {name:"Musicality and expression", pts:15, ex:"Dynamics and feel suit the song; clear musical intent."},
+         {name:"Preparation and stage presence", pts:15, ex:"Tuned and ready on time; introduces the song; confident and respectful on stage."}
+       ],
+       note:"If you are ill on performance day, you may perform at a make-up session with a valid excuse."},
 
       {t:'heading', lvl:3, text:'Final Term Quiz and Final Term Exam'},
 
@@ -853,7 +917,7 @@ f: {
 const TERMINAL = {
   heroTag:'Bulacan State University · Main Campus',
   heroTitle:'Art Appreciation',
-  heroSub:'AAP101 · '+AAP_TERM+'<br>Instructor: Mr. Benedict C. de Jesus, LPT. (Sir Kito)',
+  heroSub:'AAP101 · '+AAP_TERM+'<br>Instructor: Mr. Benedict C. de Jesus, LPT. <span style="white-space:nowrap">(Sir Kito)</span>',
   video:{src:'images/video1.mp4', label:'Welcome to AAP101'},
   welcome:'<p>Welcome to <strong>AAP101 – Art Appreciation</strong> under Mr. Benedict de Jesus (Sir Kito)!</p>',
   warnTitle:'⚠️ &nbsp;WARNING!!!',

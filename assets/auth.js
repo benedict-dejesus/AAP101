@@ -729,6 +729,8 @@ const Banner = {
     if (!this.node) {
       this.node = document.createElement('div');
       this.node.id = 'aap-net-banner';
+      this.node.setAttribute('role', 'status');
+      this.node.setAttribute('aria-live', 'polite');
       document.body.appendChild(this.node);
     }
     this.node.textContent = msg;

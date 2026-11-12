@@ -950,7 +950,8 @@ const LC_TYPES = {
   compare: ['⚖️', 'Comparison'], polaroids: ['📸', 'Photo reveal'], discover: ['🔍', 'Discovery grid'], deck: ['🃏', 'Card deck'],
   flipdeck: ['🔄', 'Flip cards'], match: ['🧩', 'Memory match'], timeline: ['🗺', 'Quest steps'], quiz: ['✅', 'Knowledge check'],
   sorter: ['🗂', 'Sorting game'], boss: ['⚔️', 'Speed round'], continue: ['➡️', 'Continue button'], reveal: ['🔓', 'Section opened by Continue'],
-  strum: ['🎸', 'Strum trainer'], 'sim-exposure': ['📷', 'Exposure simulator'], 'sim-guitar': ['🎸', 'Guitar chord simulator']
+  strum: ['🎸', 'Strum trainer'], 'sim-exposure': ['📷', 'Exposure simulator'], 'sim-guitar': ['🎸', 'Guitar chord simulator'],
+  rubric: ['📋', 'Rubric']
 };
 const LC_FREE = { heading: { t: 'heading', lvl: 2, text: '' }, text: { t: 'text', html: '<p></p>' }, quote: { t: 'quote', img: '', alt: '', html: '', attr: '' }, warn: { t: 'warn', title: '', html: '' } };
 const LC_STRUCT = new Set(['t', 'gate', 'xp', 'id', 'req', 'go', 'unlock', 'reveal', 'mode', 'optional', 'mono', 'cols', 'badgeOnPerfect', 'badgeOnDone', 'badgeOnClean', 'badgeOnClear', 'blocks']);
@@ -960,9 +961,10 @@ const LC_LABEL = {
   title: 'Title', kicker: 'Small label above the title', instr: 'Instructions', html: 'Text', text: 'Text', q: 'Question', img: 'Image',
   alt: 'Image description (for screen readers)', imgAlt: 'Image description', attr: 'Attribution', label: 'Label', note: 'Message shown until the activities are done',
   cap: 'Caption', ico: 'Icon (emoji)', def: 'Definition', badge: 'Tag', h: 'Heading', a: 'Term', b: 'Matches', txt: 'Choice', desc: 'Description',
-  emoji: 'Emoji', time: 'Seconds per question', badgeText: 'Hint chip', lvl: 'Size', src: 'Video file'
+  emoji: 'Emoji', time: 'Seconds per question', badgeText: 'Hint chip', lvl: 'Size', src: 'Video file',
+  when: 'When', task: 'Task', name: 'Criterion', ex: 'What Excellent looks like'
 };
-const LC_LIST = { items: ['Items', 'item'], opts: ['Choices', 'choice'], pairs: ['Pairs', 'pair'], steps: ['Steps', 'step'], questions: ['Questions', 'question'], cats: ['Boxes', 'box'] };
+const LC_LIST = { items: ['Items', 'item'], opts: ['Choices', 'choice'], pairs: ['Pairs', 'pair'], steps: ['Steps', 'step'], questions: ['Questions', 'question'], cats: ['Boxes', 'box'], crit: ['Criteria', 'criterion'] };
 let LC = null, LC_BINDS = [], LC_TIMER = null;
 const LC_OPEN = new WeakSet();
 
@@ -1129,6 +1131,7 @@ function lcFixedNote(b) {
   if (b.t === 'continue') return `<p class="ad-hint">Opens ${b.go ? 'the next lesson' : 'the section below'} once the activities above it are done. What it waits for stays fixed.</p>`;
   if (/^sim-/.test(b.t) || b.t === 'strum') return '<p class="ad-hint">This interactive tool is built into the module. Its settings are fixed.</p>';
   if (b.t === 'reveal') return '';
+  if (b.t === 'rubric') return '<p class="ad-hint">The criteria and their points match the course rubric, so the total stays 100. You can reword them here.</p>';
   return '';
 }
 
@@ -1150,7 +1153,7 @@ function lcFields(o, top, ctx) {
 }
 
 function lcField(o, k, v) {
-  const label = h(LC_LABEL[k] || k), bi = lcBind(o, k);
+  const label = h(o.t === 'rubric' && k === 'note' ? 'Note under the rubric' : LC_LABEL[k] || k), bi = lcBind(o, k);
   if (LC_IMG.has(k)) {
     const ok = /^(images\/|https:\/\/)/.test(v);
     return `<div class="lc-f">${label}<div class="lc-img">${ok ? `<img src="${h(v)}" alt="">` : '<span>No image</span>'}<div><input value="${h(v)}" data-bs="${bi}" placeholder="images/… or https://…"><button class="ad-btn sm ghost" data-pick="${bi}">Choose image…</button></div></div></div>`;
@@ -1176,7 +1179,7 @@ function lcSafe(s) {
 
 function lcItems(o, k, arr) {
   const [title, one] = LC_LIST[k] || [k, 'item'];
-  const fixed = o.t === 'compare' && k === 'items';
+  const fixed = (o.t === 'compare' && k === 'items') || (o.t === 'rubric' && k === 'crit');
   const min = k === 'opts' || k === 'cats' ? 2 : 1;
   const li = lcBind(arr, null, arr);
   const quiz = o.t === 'quiz' && k === 'opts' && o._graded, sorter = o.t === 'sorter' && k === 'items' && o._graded, boss = o.t === 'boss' && k === 'questions';
