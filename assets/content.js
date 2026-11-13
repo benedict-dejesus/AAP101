@@ -128,7 +128,7 @@ m: {
           <li>Artists and Artisans <em>(Week 3)</em></li>
           <li>Art Movements <em>(Week 4)</em></li>
           <li>Visual Elements of Art <em>(Week 5)</em>, with the Coffee Painting Classroom Workshop <em>(Week 6)</em> and the Midterm Project: Coffee Painting Self-Portrait</li>
-          <li>Reading an Artwork <em>(Week 7)</em></li>
+          <li>Reading an Artwork <em>(Week 7)</em>, with the Midterm Activity: Art Critique</li>
           <li>Philippine Art and National Artists <em>(Week 8)</em></li>
           <li>Midterm Activity: Theater Play Viewing, “Tanghalaya 2027” <em>(Week 9)</em></li>
           <li>Midterm Quiz <em>(Week 9)</em></li>
@@ -139,12 +139,12 @@ m: {
           <li>Principles of Design <em>(Week 11)</em></li>
           <li>Basic Photography <em>(Week 12)</em></li>
           <li>Final Term Activity: Photography Challenge <em>(Week 13)</em></li>
-          <li>Basic Videography <em>(Week 14)</em></li>
+          <li>Basic Videography <em>(Week 14)</em>, with the Final Term Activity: Storyboarding</li>
           <li>Guitar Lessons for Beginners <em>(Week 15)</em>, with the Guitar Lesson Classroom Workshops <em>(2 meetings, Week 16)</em> and the Final Term Project: Live Guitar Performance <em>(Week 17)</em></li>
           <li>Final Term Quiz <em>(Week 17)</em></li>
           <li>Final Term Exam <em>(Week 18)</em></li>
         </ol>
-        <p style="margin-top:12px">Grading for each term: Term Examination 30%, Quizzes 20%, Activities 20% (the classroom workshops, the Theater Play Viewing and the Photography Challenge), Projects 20% (the Coffee Painting Self-Portrait and the Live Guitar Performance) and Attendance 10%. Final rating = (Midterm Grade + Final Term Grade) ÷ 2. More than 3 absences in the semester (6 if your class meets twice a week) means you are dropped from the subject.</p>`},
+        <p style="margin-top:12px">Grading for each term: Term Examination 30%, Quizzes 20%, Activities 20% (two activities, 10% each: the Theater Play Viewing and the Art Critique at midterm; the Photography Challenge and the Storyboarding in the final term), Projects 20% (the Coffee Painting Self-Portrait at midterm; the Live Guitar Performance, done live in class, in the final term). The Coffee Painting and Guitar classroom workshops are practice for the projects and are not graded on their own and Attendance 10%. Final rating = (Midterm Grade + Final Term Grade) ÷ 2. More than 3 absences in the semester (6 if your class meets twice a week) means you are dropped from the subject.</p>`},
 
       {t:'polaroids', gate:'m1-gal', xp:40,
        title:'The Studio Wall', kicker:'Photo Reveal',
@@ -436,17 +436,8 @@ m: {
       {t:'heading', lvl:2, text:'Coffee Painting Classroom Workshop'},
 
       {t:'text', html:`
-        <p>In <strong>Week 6</strong> we paint together in class. You will practice the coffee washes, the value scale and the layering you need for your Midterm Project, using line, shape, value, texture and space from the deck above. Your workshop output is graded as a performance task.</p>
+        <p>In <strong>Week 6</strong> we paint together in class. You will practice the coffee washes, the value scale and the layering you need for your Midterm Project, using line, shape, value, texture and space from the deck above. The workshop is practice for your project and is not graded on its own.</p>
         <p><strong>Bring:</strong> instant coffee, water, two small containers, brushes of different sizes, a pencil and eraser, thick watercolor paper or vellum board, a palette or paper plate, and tissue or a rag.</p>`},
-
-      {t:'rubric', kicker:"Rubric R1 \u00b7 How it is scored", title:"Coffee Painting Classroom Workshop", when:"Week 6 · in class",
-       task:"Paint a five-step coffee value scale and a small still life or study using coffee washes, layering and dry-brush, applying the visual elements from this lesson.",
-       crit:[
-         {name:"Value scale and washes", pts:30, ex:"Five clearly distinct values from lightest to darkest; washes are smooth and even."},
-         {name:"Layering and edges", pts:25, ex:"Waits for each layer to dry; builds depth with clean hard and soft edges."},
-         {name:"Use of the visual elements", pts:25, ex:"Line, shape, value, texture and space are used on purpose and work together."},
-         {name:"Work habits and participation", pts:20, ex:"Prepared with all materials, follows each step, keeps the area clean, helps classmates."}
-       ]},
 
       {t:'heading', lvl:2, text:'Midterm Project: Coffee Painting Self-Portrait'},
 
@@ -493,7 +484,7 @@ m: {
   /* ── M7 ── */
   {
     id:'m7', num:7, no:6, title:'Reading an Artwork', tag:'Midterm · Lesson 6',
-    desc:'Four steps for talking about any artwork with confidence.',
+    desc:'Four steps for talking about any artwork with confidence, and your Art Critique.',
     blocks:[
       {t:'text', html:`
         <p>"I like it" and "I don't get it" are where most people stop. Art critics go further by following a method. The best known is <strong>Edmund Feldman's</strong> four-step approach to art criticism, which moves from what you <em>see</em> to what you <em>think</em>.</p>
@@ -527,6 +518,22 @@ m: {
          {id:'s-jud2',  label:'The crowded corner weakens an otherwise strong work.'}
        ],
        cats:[{id:'describe', label:'1 · Describe'},{id:'analyze', label:'2 · Analyze'},{id:'interpret', label:'3 · Interpret'},{id:'judge', label:'4 · Judge'}]},
+
+      {t:'heading', lvl:2, text:'Midterm Activity: Art Critique'},
+
+      {t:'text', html:`
+        <p>In <strong>Week 7</strong> you put Feldman's method to work on your own. Sir Kito will assign each of you one artwork. Write an <strong>individual critique</strong> of it, about <strong>300–400 words</strong>, that moves through the four steps in order: describe, analyze, interpret and judge.</p>
+        <p>Base every claim on what you can see in the artwork, and use the elements and principles of art from Lesson 5 in your analysis. Write it yourself: no AI-written critiques.</p>`},
+
+      {t:'rubric', kicker:"Rubric R2 \u00b7 How it is scored", title:"Midterm Activity: Art Critique", when:"Week 7",
+       task:"Write an individual critique of one assigned artwork using Feldman's four steps: description, analysis, interpretation and judgment (about 300–400 words).",
+       crit:[
+         {name:"Description", pts:20, ex:"Accurate, complete and objective account of the subject, medium and visible details."},
+         {name:"Analysis", pts:25, ex:"Explains how the elements and principles of art are organized, with specific examples from the work."},
+         {name:"Interpretation", pts:25, ex:"States a clear meaning, mood or message, supported by evidence from the description and analysis."},
+         {name:"Judgment", pts:20, ex:"Makes a reasoned judgment of the work's success based on its purpose, technique or impact."},
+         {name:"Organization and mechanics", pts:10, ex:"Follows the four steps in order; clear, well-organized writing with few errors."}
+       ]},
 
       {t:'continue', id:'cont-m7', req:['m7-tabs','m7-dnd'], label:'Continue to Lesson 7',
        note:'⚠️ Uncover all 4 steps and clear the sorting gauntlet to continue.', go:'m8', unlock:8}
@@ -574,7 +581,7 @@ m: {
         <p><strong>While watching</strong>, notice the elements of theater: the script and story, the actors, the set and costumes, the lighting, and the music and sound. Please follow theater etiquette: arrive early, keep your phone silent and put away, and do not record the performance.</p>
         <p><strong>How it is scored:</strong> watching the whole play earns the <strong>full points</strong> for the Midterm Activity. There is no reaction or reflection paper to write. Enjoy the show, and use what you learned in Lesson 6 to look closely at what the artists on stage are doing.</p>`},
 
-      {t:'rubric', kicker:"Rubric R2 \u00b7 How it is scored", title:"Theater Play Viewing: “Tanghalaya 2027”", when:"Week 9",
+      {t:'rubric', kicker:"Rubric R1 \u00b7 How it is scored", title:"Theater Play Viewing: “Tanghalaya 2027”", when:"Week 9",
        task:"Watch the full performance of “Tanghalaya 2027” with the class. No written output is required.",
        crit:[
          {name:"Watched the full play", pts:100, ex:"Present from the start of the performance to the curtain call, following theater etiquette."}
@@ -604,7 +611,7 @@ m: {
 f: {
   label:'Final Term Module',
   short:'Final Term',
-  desc:'Lessons 1–4 covering Principles of Design, Basic Photography with the Photography Challenge, Basic Videography, and Guitar Lessons for Beginners with the Guitar Workshops and the Live Guitar Performance, then the Final Term Quiz and Exam.',
+  desc:'Lessons 1–4 covering Principles of Design, Basic Photography with the Photography Challenge, Basic Videography with the Storyboarding activity, and Guitar Lessons for Beginners with the Guitar Workshops and the Live Guitar Performance, then the Final Term Quiz and Exam.',
   doneIcon:'🏆',
   lessons:[
 
@@ -731,7 +738,7 @@ f: {
   /* ── F3 ── */
   {
     id:'f3', num:3, title:'Basic Videography', tag:'Final Term · Lesson 3',
-    desc:'Twelve shots, six angles — the director\'s vocabulary.',
+    desc:'Twelve shots, six angles — the director\'s vocabulary, and your Storyboarding activity.',
     blocks:[
       {t:'heading', lvl:2, text:'Basic Videography'},
       {t:'heading', lvl:3, text:'Types of Shot'},
@@ -819,6 +826,22 @@ f: {
         <p><strong>Storyboard first.</strong> Before you shoot, sketch each scene in a box and write under it the shot type, the camera angle, and what is said or heard. A one-minute video usually needs only six to ten shots.</p>
         <p><strong>Edit simply.</strong> In a free phone editor, put the clips in storyboard order, trim the dead seconds at the start and end of each clip, keep the sound clear and steady, and add titles only where they help the viewer.</p>`},
 
+      {t:'heading', lvl:2, text:'Final Term Activity: Storyboarding'},
+
+      {t:'text', html:`
+        <p>In <strong>Week 14</strong> you plan a short video on paper. Make a storyboard of <strong>6 to 8 frames</strong> for a <strong>30–60 second</strong> video on a topic of your choice or one Sir Kito gives in class. You only plan it; you do not need to shoot it.</p>
+        <p>In each frame, draw a simple sketch (stick figures are fine) and write the <strong>shot type</strong>, the <strong>camera angle</strong>, and a short note on the action, the audio and how long the shot lasts. Use the shot types and angles from this lesson, and make sure the frames follow each other clearly from beginning to end.</p>`},
+
+      {t:'rubric', kicker:"Rubric R5 \u00b7 How it is scored", title:"Final Term Activity: Storyboarding", when:"Week 14",
+       task:"Plan a 30–60 second short video as a storyboard of 6 to 8 frames. Each frame has a sketch, the shot type, the camera angle, and a short note on action, audio and duration.",
+       crit:[
+         {name:"Story and concept", pts:25, ex:"A clear, original idea with a beginning, middle and end that fits 30–60 seconds."},
+         {name:"Shot types and camera angles", pts:25, ex:"Varied shot types and angles, each correctly named and chosen for a purpose."},
+         {name:"Sequence and continuity", pts:20, ex:"Frames follow a logical order; the viewer can follow the action from shot to shot."},
+         {name:"Frame details (action, audio, duration)", pts:20, ex:"Every frame notes the action, the audio and how long the shot lasts."},
+         {name:"Neatness and completeness", pts:10, ex:"6 to 8 neat, readable frames; submitted complete and on time."}
+       ]},
+
       {t:'continue', id:'cont-f3', req:['f3-shot','f3-angle'], label:'Continue to Lesson 4',
        note:'⚠️ Collect all 12 shot types and all 6 camera angles to continue.', go:'f4', unlock:4}
     ]
@@ -863,24 +886,14 @@ f: {
 
       {t:'heading', lvl:3, text:'Guitar Lesson Classroom Workshops'},
 
-      {t:'text', html:'<p>In <strong>Week 16</strong> we hold two hands-on workshop meetings in class. Bring a guitar if you have one (sharing is fine). We will practice tuning, clean chord changes and steady strumming with the patterns above, and Sir Kito will check your progress at each meeting.</p>'},
-
-      {t:'rubric', kicker:"Rubric R5 \u00b7 How it is scored", title:"Guitar Lesson Classroom Workshops", when:"Week 16 · two meetings",
-       task:"Show tuning and posture, the assigned open chords, clean chord changes and the strumming patterns from this lesson. Each meeting is rated and the two scores are averaged.",
-       crit:[
-         {name:"Tuning and posture", pts:20, ex:"Tunes the guitar independently; relaxed, correct posture and hand position."},
-         {name:"Chord accuracy", pts:30, ex:"All assigned chords ring clearly with no muted or buzzing strings."},
-         {name:"Chord transitions", pts:25, ex:"Changes chords on the beat without stopping."},
-         {name:"Strumming and rhythm", pts:25, ex:"Keeps a steady tempo with the assigned pattern, down and up strokes correct."}
-       ],
-       note:"No guitar? You may share one. Borrowing does not lower your score."},
+      {t:'text', html:'<p>In <strong>Week 16</strong> we hold two hands-on workshop meetings in class. Bring a guitar if you have one (sharing is fine). We will practice tuning, clean chord changes and steady strumming with the patterns above, and Sir Kito will check your progress at each meeting. The workshops prepare you for your Live Guitar Performance and are not graded on their own. No guitar? You may share one.</p>'},
 
       {t:'heading', lvl:3, text:'Final Term Project: Live Guitar Performance'},
 
-      {t:'text', html:'<p>In <strong>Week 17</strong> you perform a short song live in class, about <strong>1–2 minutes</strong> long, using at least <strong>three chords</strong> and one strumming pattern from this lesson. Singing is optional. Sir Kito will give the performance schedule in class.</p>'},
+      {t:'text', html:'<p>In <strong>Week 17</strong> you perform a short song live in class, about <strong>1–2 minutes</strong> long, using at least <strong>three chords</strong> and one strumming pattern from this lesson. Singing is optional. It is performed <strong>live</strong>, in front of the class: no recorded or video submissions. Sir Kito will give the performance schedule in class.</p>'},
 
       {t:'rubric', kicker:"Rubric R6 \u00b7 How it is scored", title:"Final Term Project: Live Guitar Performance", when:"Week 17 · in class",
-       task:"Perform a short song live in class, about 1–2 minutes long, using at least three chords and one strumming pattern from this lesson. Singing is optional and is not scored separately.",
+       task:"Perform a short song live in class (not on video), about 1–2 minutes long, using at least three chords and one strumming pattern from this lesson. Singing is optional and is not scored separately.",
        crit:[
          {name:"Chord accuracy", pts:25, ex:"Every chord clean and correct throughout the song."},
          {name:"Rhythm and tempo", pts:25, ex:"Steady tempo and a strumming pattern that fits the song from start to end."},

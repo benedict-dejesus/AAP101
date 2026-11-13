@@ -914,7 +914,7 @@ function renderGrades(box) {
 /* ═════════════════════════ COURSE GUIDE (from the syllabus) ═════════════════════════ */
 
 const GUIDE = {
-  description: 'AAP 101 Art Appreciation is a three-unit general elective course offered by the College of Arts and Letters that develops students’ ability to appreciate, analyze, and critique works of art. Through interdisciplinary and multimodal approaches, students explore the nature, functions, and assumptions of art; the work of artists and artisans; art movements; the elements and principles of design; Philippine art; and the creative practices of photography, videography, and basic guitar. Students describe, analyze, interpret, and judge artworks, watch a live theater performance, and create a coffee painting self-portrait, a photography challenge set, and a live guitar performance.',
+  description: 'AAP 101 Art Appreciation is a three-unit general elective course offered by the College of Arts and Letters that develops students’ ability to appreciate, analyze, and critique works of art. Through interdisciplinary and multimodal approaches, students explore the nature, functions, and assumptions of art; the work of artists and artisans; art movements; the elements and principles of design; Philippine art; and the creative practices of photography, videography, and basic guitar. Students describe, analyze, interpret, and judge artworks, watch a live theater performance, and write an art critique, take part in a photography challenge, plan a short video as a storyboard, and create a coffee painting self-portrait and a live guitar performance.',
   outcomes: [
     ['CO1', 'Explain the nature, assumptions, and functions of art, and distinguish artists from artisans.'],
     ['CO2', 'Analyze artworks and performances using the elements and principles of art, art movements, Feldman’s method of art criticism, and the context of Philippine art.'],
@@ -927,24 +927,24 @@ const GUIDE = {
     ['3', 'Midterm Lesson 3: Artists and Artisans'],
     ['4', 'Midterm Lesson 4: Art Movements'],
     ['5', 'Midterm Lesson 5: Visual Elements of Art'],
-    ['6', 'Coffee Painting Classroom Workshop · Midterm Project: Coffee Painting Self-Portrait'],
-    ['7', 'Midterm Lesson 6: Reading an Artwork (Feldman’s method)'],
+    ['6', 'Coffee Painting Classroom Workshop (practice) · Midterm Project: Coffee Painting Self-Portrait (submit by Week 9)'],
+    ['7', 'Midterm Lesson 6: Reading an Artwork (Feldman’s method) · Midterm Activity: Art Critique'],
     ['8', 'Midterm Lesson 7: Philippine Art and National Artists'],
     ['9', 'Midterm Activity: Theater Play Viewing, “Tanghalaya 2027” · Midterm Quiz'],
     ['10', 'Midterm Examination'],
     ['11', 'Final Term Lesson 1: Principles of Design'],
     ['12', 'Final Term Lesson 2: Basic Photography'],
     ['13', 'Final Term Activity: Photography Challenge'],
-    ['14', 'Final Term Lesson 3: Basic Videography'],
+    ['14', 'Final Term Lesson 3: Basic Videography · Final Term Activity: Storyboarding'],
     ['15', 'Final Term Lesson 4: Guitar Lessons for Beginners'],
-    ['16', 'Guitar Lesson Classroom Workshops (2 meetings)'],
-    ['17', 'Final Term Project: Live Guitar Performance · Final Term Quiz'],
+    ['16', 'Guitar Lesson Classroom Workshops (2 meetings, practice)'],
+    ['17', 'Final Term Project: Live Guitar Performance (live in class) · Final Term Quiz'],
     ['18', 'Final Examination']
   ],
-  grading: [['Term quiz', 30], ['Recitation / Attendance', 10], ['Performance tasks (workshop, term activity, term project)', 30], ['Term examination', 30]],
+  grading: [['Term quiz', 20], ['Attendance (out of 18; 1 point off per absence, 0.5 if the class meets twice a week)', 10], ['Activities (two per term, 10% each)', 20], ['Project (one per term)', 20], ['Term examination', 30]],
   scale: [['96.50–100', '1.00'], ['93.50–96.49', '1.25'], ['90.50–93.49', '1.50'], ['87.50–90.49', '1.75'],
           ['84.50–87.49', '2.00'], ['81.50–84.49', '2.25'], ['78.50–81.49', '2.50'], ['75.50–78.49', '2.75'],
-          ['75.00–75.49', '3.00'], ['74.01–74.99', '4.00'], ['74.00 and below', '5.00']],
+          ['74.50–75.49', '3.00'], ['74.49 and below', '5.00']],
   policies: [
     ['Attendance', 'Be on time and stay until class ends. Catch up on missed lessons and arrange make-up work with your instructor. In online sessions, use your real name and report connection problems right away.'],
     ['Submission of requirements', 'Submit complete work on time through the designated platform, following the given format. Ask for extensions early; late work is considered case by case.'],
@@ -975,7 +975,7 @@ function buildGuidePage() {
         <section class="px-g-card"><h3>Grading system</h3>
           <table class="px-g-tbl">${GUIDE.grading.map(g => row(g[0], g[1] + '%')).join('')}
             <tr class="px-g-tot"><th scope="row">Term grade</th><td>100%</td></tr></table>
-          <p class="px-g-fine">Final rating = (Midterm grade + Final Term grade) ÷ 2. A blank score with no submission counts as zero.</p></section>
+          <p class="px-g-fine">Final rating = (Midterm grade + Final Term grade) ÷ 2. A blank score with no submission counts as zero. More than 3 absences in the semester (6 if the class meets twice a week) = Dropped.</p></section>
         <section class="px-g-card"><h3>Grading scale</h3>
           <table class="px-g-tbl px-g-scale"><thead><tr><th>Rating</th><th>Grade</th></tr></thead><tbody>${GUIDE.scale.map(s => row(s[0], s[1])).join('')}</tbody></table></section>
       </div>

@@ -15,7 +15,7 @@
 const h = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const ICON = { overall: '🎓', strength: '🌟', focus: '🎯', missing: '📌', trend: '📈', pending: '⏳',
-               completion: '🧩', receiving: '🗂️', conditional: '⚖️', termOverall: '🎓' };
+               completion: '🧩', receiving: '🗂️', termOverall: '🎓' };
 
 function tone(eq) {
   const n = Number(eq);

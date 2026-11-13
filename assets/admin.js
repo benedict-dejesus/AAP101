@@ -1462,7 +1462,7 @@ function viewRecord(box) {
       </div>
       <div class="ad-card"><div class="ad-card-h"><h4>How grades are computed</h4><button class="ad-btn sm ghost" data-gsys>⚖️ Change grading system</button></div>
         <div data-how><div class="ad-loading"><span class="ad-spin"></span></div></div>
-        <p class="ad-muted">MG, FTG and FG: 96.50+ → 1.00, 93.50 → 1.25, 90.50 → 1.50, 87.50 → 1.75, 84.50 → 2.00, 81.50 → 2.25, 78.50 → 2.50, 75.50 → 2.75, 75.00 → 3.00, 74.01–74.99 → 4.00, 74.00 and below → 5.00. Type INC or Dropped in Status to override Remarks.</p>
+        <p class="ad-muted">MG, FTG and FG: 96.50+ → 1.00, 93.50 → 1.25, 90.50 → 1.50, 87.50 → 1.75, 84.50 → 2.00, 81.50 → 2.25, 78.50 → 2.50, 75.50 → 2.75, 74.50 → 3.00, below 74.50 → 5.00 (no 4.00). Type INC or Dropped in Status to override Remarks.</p>
       </div>
       <div class="ad-card span2" data-consult></div>
     </div>`;
@@ -1687,7 +1687,7 @@ function needsUpdate(err) {
    score updates the grade at once (same rules as the sheet's formulas);
    Save writes only the cells you changed. */
 
-const GB_SCALE = [[96.5, 1], [93.5, 1.25], [90.5, 1.5], [87.5, 1.75], [84.5, 2], [81.5, 2.25], [78.5, 2.5], [75.5, 2.75], [75, 3], [74.01, 4]];
+const GB_SCALE = [[96.5, 1], [93.5, 1.25], [90.5, 1.5], [87.5, 1.75], [84.5, 2], [81.5, 2.25], [78.5, 2.5], [75.5, 2.75], [74.5, 3]];
 let GB = null;
 const r2 = n => Math.round(n * 100) / 100;
 const gbEq = v => { if (v === '' || v == null) return ''; const x = r2(v); for (const [m, e] of GB_SCALE) if (x >= m) return e; return 5; };
@@ -1720,7 +1720,7 @@ function gbCalc(row) {
   const ak = GB.grading.absKey, abs = ak ? Number(cells['MT.' + ak]) || 0 : '';
   const over = ak && GB.grading.dropLimit > 0 && abs > GB.grading.dropLimit;
   const st = String(gbVal(row, 'status')).toUpperCase();
-  const remarks = st === 'INC' ? 'Incomplete' : st === 'DROPPED' || over ? 'Dropped' : fg === '' ? '' : fg <= 3 ? 'Passed' : fg === 4 ? 'Conditional' : 'Failed';
+  const remarks = st === 'INC' ? 'Incomplete' : st === 'DROPPED' || over ? 'Dropped' : fg === '' ? '' : fg <= 3 ? 'Passed' : 'Failed';
   return { mt, mg: gbEq(mt), ft, ftg: gbEq(ft), final: fin, fg, remarks, abs };
 }
 const gbCount = k => !!(GB.colBy[k] && GB.colBy[k].count);
