@@ -35,7 +35,7 @@ function termHtml(t) {
   const items = t.items.map(it => `
       <tr class="${it.missing ? 'gx-miss' : ''}">
         <th scope="row">${h(it.label)}</th>
-        <td>${it.missing ? '<span class="gx-tag">Not submitted</span>' : `<b>${h(it.score)}</b> / ${h(it.max)}`}</td>
+        <td>${it.count ? `<b>${h(it.score)}</b> absence${Number(it.score) === 1 ? '' : 's'}` : it.missing ? '<span class="gx-tag">Not submitted</span>' : `<b>${h(it.score)}</b> / ${h(it.max)}`}</td>
       </tr>`).join('');
   const parts = t.parts.map(p => `
       <li><span class="gx-part-l">${h(p.label)} <em>${h(p.weight)}%</em></span>${bar(p.percent)}<b>${h(Math.round(p.percent * 100) / 100)}%</b></li>`).join('');
@@ -79,7 +79,8 @@ function render(rec, opts) {
     <div class="gx-terms">${(rec.terms || []).map(termHtml).join('')}</div>
     <div class="gx-reads">${(rec.interpretation || []).map(readingHtml).join('')}</div>
     ${note}
-    <p class="gx-fine">Grades follow the BulSU scale: Quizzes 30%, Recitation/Attendance 10%, Performance tasks 30%, Exam 30%. Final rating = (Midterm + Final Term) ÷ 2. If something looks wrong, message your instructor before the grades are submitted.</p>
+    ${rec.absences ? `<p class="gx-fine">Absences this semester: <b>${h(rec.absences.count)}</b>${rec.absences.limit ? ` (more than ${h(rec.absences.limit)} means you are dropped from the subject)` : ''}.</p>` : ''}
+    <p class="gx-fine">Grading system: ${h(rec.policy || 'Quizzes 20% · Activities 20% · Projects 20% · Attendance 10% · Term Examinations 30%. Final rating = (Midterm + Final Term) ÷ 2.')} Equivalents follow the BulSU scale. If something looks wrong, message your instructor before the grades are submitted.</p>
   </div>`;
 }
 

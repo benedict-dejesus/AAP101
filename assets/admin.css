@@ -639,3 +639,35 @@ kbd{display:inline-block;min-width:20px;padding:1px 6px;border-radius:6px;backgr
 .gb-rub-seg button{display:flex;flex-direction:column;align-items:center;min-width:58px;line-height:1.1}
 .gb-rub-seg button span{font-size:10px;font-weight:600;opacity:.75}
 .gb-rub-total{padding:10px 12px;border-radius:10px;background:rgba(0,193,142,.08);font-size:14px}
+
+/* ── Grading system ── */
+.gs-presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:14px 0}
+.gs-preset{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:12px;border:1.5px solid var(--line);background:var(--white)}
+.gs-preset.on{border-color:var(--accent);background:rgba(0,193,142,.05)}
+.gs-preset ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.6}
+.gs-preset small{color:var(--muted)}
+.gs-preset .ad-btn{align-self:flex-start}
+.gs-comps td{vertical-align:top}
+.gs-comps td > input:not(.gs-w){min-width:180px}
+.gs-comps select{min-width:200px}
+.gs-comps small.ad-muted{display:block;max-width:280px;margin-top:6px;white-space:normal}
+input.gs-w{width:72px;text-align:right}
+.gs-keys{display:flex;flex-wrap:wrap;gap:6px;max-width:440px}
+.gs-key{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:9px;background:var(--bg);font-size:12.5px;cursor:pointer;flex-wrap:wrap}
+.gs-key small{flex-basis:100%;color:var(--muted);font-size:11px}
+.gs-key.on{background:rgba(0,193,142,.14);color:var(--deep);font-weight:600}
+.gs-key.other{opacity:.45;cursor:not-allowed}
+.gs-abs{display:flex;flex-direction:column;gap:6px;margin-top:8px;font-size:12.5px}
+.gs-abs label{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gs-final{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.gs-example{margin:14px 0;padding:12px 16px;border-radius:12px;background:var(--bg);font-size:13.5px}
+.gs-ex{margin:6px 0;padding-left:18px;line-height:1.7}
+.gs-addsec{margin-top:12px}
+.gs-addsec input{max-width:260px}
+.gb-sys{margin:0 0 6px;font-size:13px}
+.gb-max small{font-weight:600;color:var(--muted);white-space:nowrap}
+@media (max-width:700px){.gs-comps td > input:not(.gs-w),.gs-comps select{min-width:0;width:100%}}
+input.gs-w,.ad-lbl input.gs-w{width:76px!important;flex:none;min-width:0}
+.gs-final .ad-row{flex-direction:row;align-items:center;font-weight:500}
+.gs-addsec input,.gs-addsec select{width:auto!important;max-width:260px;flex:1 1 200px}
+.gs-comps td > small.ad-muted{display:block;margin-top:6px;font-size:11.5px}

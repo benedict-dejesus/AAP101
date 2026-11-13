@@ -173,7 +173,8 @@ const VIEWS = [
   { id: 'viewer', ico: '👁', label: 'Module Viewer' },
   { id: 'students', ico: '👥', label: 'Students' },
   { id: 'gradebook', ico: '✏️', label: 'Grade Book' },
-  { id: 'record', ico: '🧾', label: 'Class Record' }
+  { id: 'record', ico: '🧾', label: 'Class Record' },
+  { id: 'grading', ico: '⚖️', label: 'Grading System' }
 ];
 let current = 'overview';
 
@@ -214,15 +215,15 @@ function go(view, arg) {
   $('#ad-title').textContent = (VIEWS.find(v => v.id === view) || {}).label || '';
   const box = $('#ad-view');
   box.scrollTop = 0; window.scrollTo(0, 0);
-  ({ overview: viewOverview, tests: viewTests, results: viewResults, lessons: viewLessons, viewer: viewViewer, students: viewStudents, gradebook: viewGradebook, record: viewRecord }[view])(box, arg);
+  ({ overview: viewOverview, tests: viewTests, results: viewResults, lessons: viewLessons, viewer: viewViewer, students: viewStudents, gradebook: viewGradebook, record: viewRecord, grading: viewGrading }[view])(box, arg);
 }
 
 /* Anything unsaved on screen: the test editor, the lesson editor or the Grade Book. */
-function unsaved() { return (ED && ED.dirty) || (LE && LE.dirty) || (LC && LC.dirty) || (current === 'gradebook' && gbDirty()); }
+function unsaved() { return (ED && ED.dirty) || (LE && LE.dirty) || (LC && LC.dirty) || (current === 'gradebook' && gbDirty()) || (current === 'grading' && gsDirty()); }
 function guardLeave() {
   if (!unsaved()) return Promise.resolve(true);
   return confirmBox('Leave without saving?', 'You have unsaved changes on this page. They will be lost.', 'Leave', true).then(ok => {
-    if (ok) { ED = null; LE = null; LC = null; if (GB) { GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {}; } }
+    if (ok) { ED = null; LE = null; LC = null; if (GB) { GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {}; } if (GS) GS.dirty = false; }
     return ok;
   });
 }
@@ -1459,14 +1460,9 @@ function viewRecord(box) {
         <button class="ad-btn" data-build>🧾 Build / refresh class record</button>
         <div data-out></div>
       </div>
-      <div class="ad-card"><div class="ad-card-h"><h4>How grades are computed</h4></div>
-        <table class="ad-table compact"><tbody>
-          <tr><td>Term quiz (Quiz 1 slot)</td><td class="num"><b>30%</b></td><td class="ad-muted">from the module</td></tr>
-          <tr><td>Term exam</td><td class="num"><b>30%</b></td><td class="ad-muted">from the module</td></tr>
-          <tr><td>Performance tasks (workshop, activity, project)</td><td class="num"><b>30%</b></td><td class="ad-muted">you type them</td></tr>
-          <tr><td>Recitation / Attendance</td><td class="num"><b>10%</b></td><td class="ad-muted">you type them</td></tr>
-        </tbody></table>
-        <p class="ad-muted">Laid out like the BulSU Class Record template. Final rating = (MT Grade + FT Grade) ÷ 2. MG, FTG and FG: 96.50+ → 1.00, 93.50 → 1.25, 90.50 → 1.50, 87.50 → 1.75, 84.50 → 2.00, 81.50 → 2.25, 78.50 → 2.50, 75.50 → 2.75, 75.00 → 3.00, 74.01–74.99 → 4.00, 74.00 and below → 5.00. Type INC or Dropped in Status to override Remarks.</p>
+      <div class="ad-card"><div class="ad-card-h"><h4>How grades are computed</h4><button class="ad-btn sm ghost" data-gsys>⚖️ Change grading system</button></div>
+        <div data-how><div class="ad-loading"><span class="ad-spin"></span></div></div>
+        <p class="ad-muted">MG, FTG and FG: 96.50+ → 1.00, 93.50 → 1.25, 90.50 → 1.50, 87.50 → 1.75, 84.50 → 2.00, 81.50 → 2.25, 78.50 → 2.50, 75.50 → 2.75, 75.00 → 3.00, 74.01–74.99 → 4.00, 74.00 and below → 5.00. Type INC or Dropped in Status to override Remarks.</p>
       </div>
       <div class="ad-card span2" data-consult></div>
     </div>`;
@@ -1475,10 +1471,17 @@ function viewRecord(box) {
     api('classrecord.build').then(r => {
       busy(btn, false);
       $('[data-out]', box).innerHTML = r.results.length ? `<ul class="ad-list">${r.results.map(x => x.error ? `<li class="bad">${h(x.tab)}: ${h(x.error)}</li>`
-        : `<li><b>${h(x.tab)}</b> · ${x.total} students${x.added ? ` (${x.added} new)` : ''}</li>`).join('')}</ul>` : '<p class="ad-muted">No registered students yet.</p>';
+        : `<li><b>${h(x.tab)}</b> · ${x.total} students${x.added ? ` (${x.added} new)` : ''}${x.backup ? ` · laid out for the current grading system; the old version is saved as <b>${h(x.backup)}</b>` : ''}</li>`).join('')}</ul>` : '<p class="ad-muted">No registered students yet.</p>';
       toast('Class record updated.');
     }).catch(err => { busy(btn, false); toast(err.message, 'bad'); });
   });
+  $('[data-gsys]', box).addEventListener('click', () => navTo('grading'));
+  api('grading.get').then(r => {
+    const g = r.grading, cols = k => r.keys.find(x => x.key === k).label;
+    const src = c => c.rule === 'absences' ? 'you type the absences' : c.keys.some(k => /^(q1|exam)$/.test(k)) ? 'from the module' : 'you type them';
+    $('[data-how]', box).innerHTML = `<p><b>${h(g.name)}</b></p><table class="ad-table compact"><tbody>${g.comps.map(c => `<tr><td>${h(c.label)}<small>${h(c.keys.map(cols).join(', '))}</small></td><td class="num"><b>${h(c.weight)}%</b></td><td class="ad-muted">${src(c)}</td></tr>`).join('')}</tbody></table>
+      <p class="ad-muted">${h(g.summary)}${g.dropAfter ? ' More than ' + g.dropAfter + ' absences in the semester: Remarks say Dropped.' : ''}</p>`;
+  }).catch(err => { $('[data-how]', box).innerHTML = `<p class="bad">${h(needsUpdate(err) || err.message)}</p>`; });
   consultCard($('[data-consult]', box));
 }
 
@@ -1666,10 +1669,11 @@ function recordBlock(rec) {
   const term = t => {
     const x = rec.terms[t];
     return `<div class="ad-rec-term"><div class="ad-rec-th"><b>${t === 'MT' ? 'Midterm' : 'Final Term'}</b><span>${fmtNum(x.grade)} · ${fmtEq(x.eq)}</span></div>
-      <ul>${x.items.map(i => `<li class="${i.red ? 'miss' : ''}"><span>${h(i.label)}</span><b>${i.score == null ? (i.red ? 'Missing' : '—') : h(fmtNum(i.score))}<small>/ ${h(i.max)}</small></b></li>`).join('')}</ul></div>`;
+      <ul>${x.items.map(i => i.count ? `<li><span>${h(i.label)}</span><b>${h(fmtNum(i.score || 0))}</b></li>`
+        : `<li class="${i.red ? 'miss' : ''}"><span>${h(i.label)}</span><b>${i.score == null ? (i.red ? 'Missing' : '—') : h(fmtNum(i.score))}<small>/ ${h(i.max)}</small></b></li>`).join('')}</ul></div>`;
   };
   return `<div class="ad-rec">${term('MT')}${term('FT')}</div>
-    <p class="ad-rec-final">Final rating <b>${fmtNum(rec.final)}</b> · FG <b>${fmtEq(rec.fg)}</b>${rec.remarks ? ` · <span class="ad-pill ${/Passed/.test(rec.remarks) ? 'ok' : /Failed/.test(rec.remarks) ? 'bad' : 'warn'}">${h(rec.remarks)}</span>` : ''}</p>`;
+    <p class="ad-rec-final">${rec.absences != null ? `Absences <b>${h(rec.absences)}</b> · ` : ''}Final rating <b>${fmtNum(rec.final)}</b> · FG <b>${fmtEq(rec.fg)}</b>${rec.remarks ? ` · <span class="ad-pill ${/Passed/.test(rec.remarks) ? 'ok' : /Failed/.test(rec.remarks) ? 'bad' : 'warn'}">${h(rec.remarks)}</span>` : ''}</p>`;
 }
 
 /* An Apps Script that predates this Studio answers new actions with UNKNOWN_OP. */
@@ -1683,38 +1687,51 @@ function needsUpdate(err) {
    score updates the grade at once (same rules as the sheet's formulas);
    Save writes only the cells you changed. */
 
-const GB_KEYS = ['q1', 'q2', 'q3', 'rec', 'att', 'pt1', 'pt2', 'pt3', 'exam'];
-const GB_W = { quiz: 30, ra: 10, pt: 30, exam: 30 };
 const GB_SCALE = [[96.5, 1], [93.5, 1.25], [90.5, 1.5], [87.5, 1.75], [84.5, 2], [81.5, 2.25], [78.5, 2.5], [75.5, 2.75], [75, 3], [74.01, 4]];
 let GB = null;
 const r2 = n => Math.round(n * 100) / 100;
 const gbEq = v => { if (v === '' || v == null) return ''; const x = r2(v); for (const [m, e] of GB_SCALE) if (x >= m) return e; return 5; };
+/* The same rules as the class record's formulas (ClassRecord.gs), for the
+   grading system the server sends with the tab. */
+function gbPart(c, n, M) {
+  if (c.rule === 'absences') { const base = c.points / 2, per = Number(M(c.keys[0])) || 0; return r2(Math.max(0, base - n(c.keys[0]) * per) / base * 100); }
+  if (c.rule === 'avg') return r2(c.keys.reduce((a, k) => a + (M(k) ? n(k) / M(k) : 0), 0) / c.keys.length * 100);
+  const of = c.keys.reduce((a, k) => a + (Number(M(k)) || 0), 0);
+  return of ? r2(c.keys.reduce((a, k) => a + n(k), 0) / of * 100) : 0;
+}
 function gbTerm(cells, max, t) {
   const v = k => cells[t + '.' + k], n = k => (v(k) === '' || v(k) == null ? 0 : Number(v(k))), M = k => max[t + '.' + k];
-  if (GB_KEYS.every(k => v(k) === '' || v(k) == null)) return '';
-  const q = r2((n('q1') + n('q2') + n('q3')) / (M('q1') + M('q2') + M('q3')) * 100);
-  const ra = r2((n('rec') / M('rec') + n('att') / M('att')) / 2 * 100);
-  const pt = r2((n('pt1') / M('pt1') + n('pt2') / M('pt2') + n('pt3') / M('pt3')) / 3 * 100);
-  const ex = r2(n('exam') / M('exam') * 100);
-  return r2(r2(q * GB_W.quiz / 100) + r2(ra * GB_W.ra / 100) + r2(pt * GB_W.pt / 100) + r2(ex * GB_W.exam / 100));
+  if (GB.cols.filter(c => c.term === t).every(c => v(c.k) === '' || v(c.k) == null)) return '';
+  return r2(GB.grading.comps.reduce((a, c) => a + r2(gbPart(c, n, M) * c.weight / 100), 0));
+}
+function gbFinal(mt, ft) {
+  if (mt === '' || ft === '') return '';
+  const f = GB.grading.final;
+  return f.mt === 50 && f.ft === 50 ? r2((mt + ft) / 2) : r2(mt * f.mt / 100 + ft * f.ft / 100);
 }
 function gbCalc(row) {
   const max = {}; GB.cols.forEach(c => { max[c.key] = GB.max[c.key]; });
   const cells = Object.assign({}, row.cells);
   Object.keys(GB.edits).forEach(k => { const [code, key] = k.split('|'); if (code === row.code && key !== 'status') cells[key] = GB.edits[k].value; });
   const mt = gbTerm(cells, max, 'MT'), ft = gbTerm(cells, max, 'FT');
-  const fin = mt === '' || ft === '' ? '' : r2((mt + ft) / 2), fg = gbEq(fin);
+  const fin = gbFinal(mt, ft), fg = gbEq(fin);
+  const ak = GB.grading.absKey, abs = ak ? ['MT', 'FT'].reduce((a, t) => a + (Number(cells[t + '.' + ak]) || 0), 0) : '';
+  const over = ak && GB.grading.dropAfter > 0 && abs > GB.grading.dropAfter;
   const st = String(gbVal(row, 'status')).toUpperCase();
-  const remarks = st === 'INC' ? 'Incomplete' : st === 'DROPPED' ? 'Dropped' : fg === '' ? '' : fg <= 3 ? 'Passed' : fg === 4 ? 'Conditional' : 'Failed';
-  return { mt, mg: gbEq(mt), ft, ftg: gbEq(ft), final: fin, fg, remarks };
+  const remarks = st === 'INC' ? 'Incomplete' : st === 'DROPPED' || over ? 'Dropped' : fg === '' ? '' : fg <= 3 ? 'Passed' : fg === 4 ? 'Conditional' : 'Failed';
+  return { mt, mg: gbEq(mt), ft, ftg: gbEq(ft), final: fin, fg, remarks, abs };
 }
+const gbCount = k => !!(GB.colBy[k] && GB.colBy[k].count);
+/* The most a cell may hold: the column's maximum, or for Absences the highest count. */
+const gbLimit = k => gbCount(k) ? GB.colBy[k].limit || 60 : GB.max[k];
+const gbBad = (k, v) => v !== '' && v != null && (v < 0 || v > gbLimit(k) || (gbCount(k) && Math.floor(v) !== v));
 function gbVal(row, key) { const e = GB.edits[row.code + '|' + key]; return e ? e.value : key === 'status' ? row.status : row.cells[key]; }
 function gbMiss(row, key) { const e = GB.edits[row.code + '|' + key]; return e ? !!e.missing : !!row.missing[key]; }
 /* Input columns shown for a term. A quiz column whose maximum is 0 is not used
    this semester and stays hidden unless someone has already typed a score in it. */
 function gbKeys(T) {
   if (T === 'ALL') return [];
-  return GB_KEYS.map(k => T + '.' + k).filter(k => !(/\.q[23]$/.test(k) && !GB.max[k] && !GB.rows.some(r => r.cells[k] !== '' && r.cells[k] != null)));
+  return GB.cols.filter(c => c.term === T).map(c => c.key).filter(k => !(/\.q[23]$/.test(k) && !GB.max[k] && !GB.rows.some(r => r.cells[k] !== '' && r.cells[k] != null)));
 }
 /* With Quiz 2 and 3 switched off, Quiz 1 is the one term quiz. */
 function gbLabel(k) {
@@ -1745,8 +1762,8 @@ function viewGradebook(box, arg) {
 function loadGradebook(box, tabs, tab, term, focusCode) {
   loading(box);
   api('record.get', { tab }).then(res => {
-    GB = { tab, tabs, term, cols: res.cols, rows: res.rows, max: {}, labels: {}, edits: {}, maxEdits: {}, hdrEdits: {}, q: GB && GB.tab === tab ? GB.q : '' };
-    res.cols.forEach(c => { GB.max[c.key] = c.max; GB.labels[c.key] = c.label; });
+    GB = { tab, tabs, term, cols: res.cols, rows: res.rows, grading: res.grading, colBy: {}, max: {}, labels: {}, edits: {}, maxEdits: {}, hdrEdits: {}, q: GB && GB.tab === tab ? GB.q : '' };
+    res.cols.forEach(c => { GB.max[c.key] = c.max; GB.labels[c.key] = c.label; GB.colBy[c.key] = c; });
     paintGradebook(box);
     if (focusCode) {
       const tr = $(`tr[data-code="${CSS.escape(focusCode)}"]`, box);
@@ -1763,7 +1780,7 @@ function paintGradebook(box) {
   $('[data-save]', a).addEventListener('click', e => gbSave(e.currentTarget, box));
 
   const T = GB.term, keys = gbKeys(T);
-  const head2 = keys.map(k => `<th class="gb-max"><input data-max="${k}" value="${h(GB.max[k])}" inputmode="decimal" aria-label="Maximum for ${h(gbLabel(k))}" title="${/\.q[23]$/.test(k) ? 'Maximum score (0 = not used)' : 'Maximum score'}"></th>`).join('');
+  const head2 = keys.map(k => gbCount(k) ? `<th class="gb-max"><small title="Points taken off attendance per absence (set by the section's meetings per week in Grading System)">−${h(GB.max[k])} each</small></th>` : `<th class="gb-max"><input data-max="${k}" value="${h(GB.max[k])}" inputmode="decimal" aria-label="Maximum for ${h(gbLabel(k))}" title="${/\.q[23]$/.test(k) ? 'Maximum score (0 = not used)' : 'Maximum score'}"></th>`).join('');
   box.innerHTML = `
     <div class="gb-bar">
       <select class="ad-select" data-tab aria-label="Section">${GB.tabs.map(t => `<option value="${h(t.tab)}" ${t.tab === GB.tab ? 'selected' : ''}>${h(t.tab)} (${t.students})</option>`).join('')}</select>
@@ -1771,14 +1788,16 @@ function paintGradebook(box) {
       <input class="ad-search" type="search" placeholder="Find a student…" data-q value="${h(GB.q)}">
       <span class="ad-muted gb-dirty" data-dirty></span>
     </div>
-    <p class="ad-hint gb-help">Type a score and press <kbd>Enter</kbd> or the arrow keys to move. Type <kbd>x</kbd> to mark it <b>not submitted</b> (red in the sheet). Row 2 holds each maximum. Click a performance task's name to rename it. In a performance-task cell, press <kbd>R</kbd> or click 📋 to <b>score it with its rubric</b>. <kbd>Ctrl</kbd>+<kbd>S</kbd> saves.</p>
+    <p class="ad-muted gb-sys">Grading system: <b>${h(GB.grading.name)}</b> · ${h(GB.grading.summary)} <button class="ad-link" data-gsys>Change</button></p>
+    <p class="ad-hint gb-help">${GB.grading.absKey ? 'Under <b>Absences</b>, type how many times the student was absent in the term (blank = none). ' : ''}Type a score and press <kbd>Enter</kbd> or the arrow keys to move. Type <kbd>x</kbd> to mark it <b>not submitted</b> (red in the sheet). Row 2 holds each maximum. Click a performance task's name to rename it. In a performance-task cell, press <kbd>R</kbd> or click 📋 to <b>score it with its rubric</b>. <kbd>Ctrl</kbd>+<kbd>S</kbd> saves.</p>
     <div class="ad-card flush"><div class="gb-wrap"><table class="gb">
       <thead><tr><th class="gb-n">#</th><th class="gb-name">Student</th>
-        ${T === 'ALL' ? '<th>MT Grade</th><th>MG</th><th>FT Grade</th><th>FTG</th><th>Final</th><th>FG</th><th>Status</th><th>Remarks</th>'
+        ${T === 'ALL' ? (GB.grading.absKey ? '<th>Absences</th>' : '') + '<th>MT Grade</th><th>MG</th><th>FT Grade</th><th>FTG</th><th>Final</th><th>FG</th><th>Status</th><th>Remarks</th>'
           : keys.map(k => `<th class="gb-h ${/pt\d$/.test(k) ? 'pt' : ''}" ${/pt\d$/.test(k) ? `data-hdr="${k}" title="Rename this performance task"` : ''}>${h(gbLabel(k))}</th>`).join('') + `<th class="gb-calc">${T} Grade</th><th class="gb-calc">${T === 'MT' ? 'MG' : 'FTG'}</th><th>Status</th>`}
       </tr>${T === 'ALL' ? '' : `<tr class="gb-maxrow"><th class="gb-n"></th><th class="gb-name"><small>Maximum</small></th>${head2}<th class="gb-calc"></th><th class="gb-calc"></th><th></th></tr>`}</thead>
       <tbody data-rows></tbody></table></div></div>`;
 
+  $('[data-gsys]', box).addEventListener('click', () => navTo('grading'));
   $('[data-tab]', box).addEventListener('change', e => {
     const to = e.target.value;
     (gbDirty() ? confirmBox('Leave this section?', 'You have unsaved scores here. Save first, or they will be lost.', 'Leave', true) : Promise.resolve(true))
@@ -1808,7 +1827,7 @@ function gbRows(box) {
   $('[data-rows]', box).innerHTML = rows.length ? rows.map((r, i) => {
     const c = gbCalc(r), st = gbVal(r, 'status');
     const name = `<td class="gb-n">${GB.rows.indexOf(r) + 1}</td><td class="gb-name"><button class="ad-link" data-prof="${h(r.code)}">${h(r.surname)}, ${h(r.given)}</button>${r.studno ? `<small>${h(r.studno)}</small>` : ''}</td>`;
-    if (T === 'ALL') return `<tr data-code="${h(r.code)}">${name}<td class="num">${fmtNum(c.mt)}</td><td class="num">${fmtEq(c.mg)}</td><td class="num">${fmtNum(c.ft)}</td><td class="num">${fmtEq(c.ftg)}</td>
+    if (T === 'ALL') return `<tr data-code="${h(r.code)}">${name}${GB.grading.absKey ? `<td class="num ${c.remarks === 'Dropped' && c.abs > GB.grading.dropAfter ? 'bad' : ''}">${h(c.abs)}</td>` : ''}<td class="num">${fmtNum(c.mt)}</td><td class="num">${fmtEq(c.mg)}</td><td class="num">${fmtNum(c.ft)}</td><td class="num">${fmtEq(c.ftg)}</td>
       <td class="num"><b>${fmtNum(c.final)}</b></td><td class="num"><b>${fmtEq(c.fg)}</b></td><td>${h(st || '')}</td><td>${remPill(c.remarks)}</td></tr>`;
     return `<tr data-code="${h(r.code)}">${name}${keys.map((k, j) => {
       const v = gbVal(r, k), miss = gbMiss(r, k), dirty = GB.edits[r.code + '|' + k];
@@ -1829,7 +1848,7 @@ function gbRows(box) {
       else if (raw === '') e = { value: '', missing: false };
       else if (!isNaN(Number(raw))) e = { value: Number(raw), missing: false };
       else { td.classList.add('bad'); return; }
-      const over = e.value !== '' && (e.value < 0 || e.value > GB.max[k]);
+      const over = gbBad(k, e.value);
       td.classList.toggle('bad', over);
       const orig = row.cells[k], origMiss = !!row.missing[k];
       if (e.value === orig && e.missing === origMiss) delete GB.edits[id]; else GB.edits[id] = e;
@@ -1924,16 +1943,16 @@ function gbDirtyLabel(box) {
 
 function gbSave(btn, box) {
   if (!gbDirty()) return toast('Nothing to save.');
-  const bad = Object.keys(GB.edits).filter(id => { const [, k] = id.split('|'); const v = GB.edits[id].value; return k !== 'status' && v !== '' && (v < 0 || v > GB.max[k]); });
-  if (bad.length) return toast(bad.length + ' score' + (bad.length > 1 ? 's are' : ' is') + ' above the maximum. Fix the red cells first.', 'bad');
+  const bad = Object.keys(GB.edits).filter(id => { const [, k] = id.split('|'); return k !== 'status' && gbBad(k, GB.edits[id].value); });
+  if (bad.length) return toast(bad.length + ' cell' + (bad.length > 1 ? 's are' : ' is') + ' out of range (above the maximum, or absences that are not a whole number). Fix the red cells first.', 'bad');
   const cells = Object.keys(GB.edits).map(id => { const [code, key] = id.split('|'); return Object.assign({ code, key }, GB.edits[id]); });
   const maxes = Object.keys(GB.maxEdits).map(key => ({ key, value: GB.maxEdits[key] }));
   const headers = Object.keys(GB.hdrEdits).map(key => ({ key, name: GB.hdrEdits[key] }));
   busy(btn, true, 'Saving…');
   api('record.save', { tab: GB.tab, cells, maxes, headers }).then(res => {
     busy(btn, false);
-    GB.cols = res.cols; GB.rows = res.rows; GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {};
-    res.cols.forEach(c => { GB.max[c.key] = c.max; GB.labels[c.key] = c.label; });
+    GB.cols = res.cols; GB.rows = res.rows; GB.grading = res.grading || GB.grading; GB.edits = {}; GB.maxEdits = {}; GB.hdrEdits = {}; GB.colBy = {};
+    res.cols.forEach(c => { GB.max[c.key] = c.max; GB.labels[c.key] = c.label; GB.colBy[c.key] = c; });
     if (res.errors && res.errors.length) toast('Saved ' + res.written + '. Not saved: ' + res.errors.join(' '), 'bad');
     else toast('Saved ' + res.written + ' change' + (res.written === 1 ? '' : 's') + ' to ' + GB.tab + '.');
     paintGradebook(box);
@@ -1955,6 +1974,178 @@ function download(text, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
+/* ═════════════════════════ GRADING SYSTEM ═════════════════════════ */
+/* Which components make up a term grade, their weights, how the two terms
+   make the final rating, the absence rule, and how often each section meets.
+   Saving lays every section's class record out again (Apps Script backs up
+   any tab whose columns change, and every typed score is carried over). */
+
+const GS_RULES = { pool: 'Total of the points', avg: 'Average of the percentages', absences: 'Attendance (absences)' };
+const GS_RULE_HINT = {
+  pool: 'All scores added up ÷ all maximums added up. Use for quizzes and exams. A quiz column with maximum 0 is skipped.',
+  avg: 'Each score ÷ its maximum, then averaged, so every task counts the same.',
+  absences: 'Starts full. Each absence takes off the section\'s points per absence (1 for once a week, 0.5 for twice a week). A blank means no absences.'
+};
+let GS = null;
+const gsDirty = () => !!(GS && GS.dirty);
+
+function viewGrading(box) {
+  loading(box);
+  Promise.all([api('grading.get'), api('sections.get')]).then(([g, sec]) => {
+    GS = { data: g, setup: JSON.parse(JSON.stringify(g.setup)), sections: sec.sections, dirty: false };
+    paintGrading(box);
+  }).catch(err => {
+    const up = needsUpdate(err);
+    if (up) { box.innerHTML = `<div class="ad-empty"><div class="ad-empty-ico">🔧</div><h3>One more step</h3><p>${h(up)}</p></div>`; return; }
+    failed(box, err, () => viewGrading(box));
+  });
+}
+
+function gsTotal() { return r2(GS.setup.comps.reduce((a, c) => a + (Number(c.weight) || 0), 0)); }
+function gsKeyLabel(k) { const x = GS.data.keys.find(y => y.key === k); return x ? x.label : k; }
+function gsSame(a, b) {
+  const pick = s => JSON.stringify({ c: s.comps.map(c => [c.label, Number(c.weight), c.rule, c.keys.slice().sort().join(), Number(c.points) || 0, Number(c.per) || 0]), f: [Number(s.final.mt), Number(s.final.ft)], d: Number(s.dropAfter) || 0 });
+  return pick(a) === pick(b);
+}
+
+/* A worked example under the rules on screen: every score at 85% of its maximum, 2 absences in a once-a-week class. */
+function gsExample() {
+  const s = GS.setup;
+  let grade = 0;
+  const lines = s.comps.map(c => {
+    const p = c.rule === 'absences' ? r2(Math.max(0, c.points / 2 - 2 * (Number(c.per) || 0)) / (c.points / 2) * 100) : 85;
+    const w = r2(p * (Number(c.weight) || 0) / 100); grade += w;
+    return `${h(c.label)} ${fmtNum(p)}% × ${h(c.weight)}% = <b>${fmtNum(w)}</b>`;
+  });
+  grade = r2(grade);
+  return `<p class="ad-muted">Example: a student with 85% on every score and 2 absences in a once-a-week class gets</p>
+    <ul class="gs-ex">${lines.map(l => `<li>${l}</li>`).join('')}</ul>
+    <p>Term grade <b>${fmtNum(grade)}</b> → <b>${fmtEq(gbEqOf(grade))}</b>. With the same grade in both terms the final rating is also ${fmtNum(grade)}.</p>`;
+}
+const gbEqOf = v => { const x = r2(v); for (const [m, e] of GB_SCALE) if (x >= m) return e; return 5; };
+
+function paintGrading(box) {
+  const d = GS.data, s = GS.setup, total = gsTotal();
+  const used = {}; s.comps.forEach((c, i) => c.keys.forEach(k => { used[k] = i; }));
+  const presetCard = (key, p) => `<div class="gs-preset ${d.grading.preset === key ? 'on' : ''}">
+      <div><b>${h(p.name)}</b>${d.grading.preset === key ? ' <span class="ad-pill ok">In use</span>' : ''}</div>
+      <ul>${p.comps.map(c => `<li>${h(c.label)} <b>${h(c.weight)}%</b></li>`).join('')}</ul>
+      <small>Final rating = (Midterm + Final Term) ÷ 2${p.dropAfter ? ` · more than ${p.dropAfter} absences = Dropped` : ''}</small>
+      ${d.grading.preset === key ? '' : `<button class="ad-btn sm" data-preset="${key}">Use this system</button>`}
+    </div>`;
+  const absComp = s.comps.find(c => c.rule === 'absences');
+  box.innerHTML = `
+    <div class="ad-card"><div class="ad-card-h"><h4>Grading system in use</h4>${d.grading.updated ? `<span class="ad-muted">Changed ${h(fmtDate(d.grading.updated))}</span>` : ''}</div>
+      <p><b>${h(d.grading.name)}</b>: ${h(d.grading.summary)}</p>
+      ${d.outdated ? `<p class="bad">${d.outdated} class record tab${d.outdated === 1 ? ' was' : 's were'} built with a different system. Press <b>Build / refresh class record</b> on the Class Record page to update ${d.outdated === 1 ? 'it' : 'them'}.</p>` : ''}
+      <div class="gs-presets">${Object.keys(d.presets).map(k => presetCard(k, d.presets[k])).join('')}</div>
+      <p class="ad-hint">Switching lays out every section's class record again for the new system. Every score you typed is carried over to the column with the same name, and each tab is first saved as a backup copy (for example "BSED 1A (backup 2027-01-20)"). It is safest to choose before the first scores are in.</p>
+    </div>
+
+    <div class="ad-card"><div class="ad-card-h"><h4>Components and weights</h4><span class="ad-pill ${total === 100 ? 'ok' : 'bad'}" data-total>Total ${fmtNum(total)}%</span></div>
+      <p class="ad-muted">Edit the system in use. Each component takes the score columns ticked on its row, combines them, and counts for its weight in each term grade.</p>
+      <div class="ad-table-wrap"><table class="ad-table gs-comps"><thead><tr><th>Component</th><th>Weight</th><th>Combined as</th><th>Score columns (each term)</th><th></th></tr></thead><tbody>
+        ${s.comps.map((c, i) => `<tr data-i="${i}">
+          <td><input data-f="label" value="${h(c.label)}" maxlength="60" aria-label="Component name"></td>
+          <td class="nowrap"><input class="gs-w" data-f="weight" value="${h(c.weight)}" inputmode="decimal" aria-label="Weight in percent"> %</td>
+          <td><select data-f="rule" aria-label="How the scores are combined">${Object.keys(GS_RULES).map(r => `<option value="${r}" ${c.rule === r ? 'selected' : ''}>${GS_RULES[r]}</option>`).join('')}</select><small class="ad-muted">${h(GS_RULE_HINT[c.rule])}</small>
+            ${c.rule === 'absences' ? `<div class="gs-abs"><label>Points for the semester <input class="gs-w" data-f="points" value="${h(c.points)}" inputmode="decimal"></label><label>Points off per absence (once a week) <input class="gs-w" data-f="per" value="${h(c.per)}" inputmode="decimal"></label><small class="ad-muted">Each term counts half (${fmtNum((Number(c.points) || 0) / 2)} points). Twice-a-week sections take off half as much per absence.</small></div>` : ''}</td>
+          <td><div class="gs-keys">${d.keys.filter(k => (c.rule === 'absences' ? k.count : !k.count) && !(used[k.key] != null && used[k.key] !== i)).map(k => {
+            const mine = c.keys.indexOf(k.key) >= 0;
+            return `<label class="gs-key ${mine ? 'on' : ''}"><input type="checkbox" data-key="${k.key}" ${mine ? 'checked' : ''}>${h(k.label)}${/^pt[1-3]$/.test(k.key) ? `<small>${h(d.ptNames.MT[k.key])} / ${h(d.ptNames.FT[k.key])}</small>` : ''}</label>`;
+          }).join('')}</div><small class="ad-muted">Columns already in another component are not listed.</small></td>
+          <td><button class="ad-btn sm ghost danger-text" data-del title="Remove this component" aria-label="Remove ${h(c.label)}">✕</button></td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="ad-row"><button class="ad-btn sm ghost" data-add>＋ Add a component</button></div>
+      <hr class="ad-hr">
+      <div class="gs-final">
+        <label class="ad-lbl">Final rating<span class="ad-row">Midterm <input class="gs-w" data-fin="mt" value="${h(s.final.mt)}" inputmode="decimal"> % + Final Term <input class="gs-w" data-fin="ft" value="${h(s.final.ft)}" inputmode="decimal"> %</span>
+          <small class="ad-muted">50 + 50 is (Midterm Grade + Final Term Grade) ÷ 2.</small></label>
+        ${absComp ? `<label class="ad-lbl">Dropped after<span class="ad-row">more than <input class="gs-w" data-drop value="${h(s.dropAfter)}" inputmode="numeric"> absences in the semester</span><small class="ad-muted">0 = no limit. Remarks then say Dropped by themselves.</small></label>` : ''}
+      </div>
+      <div class="gs-example">${gsExample()}</div>
+      <div class="ad-row"><button class="ad-btn" data-save>Save and update the class record</button><button class="ad-btn ghost" data-undo ${GS.dirty ? '' : 'disabled'}>Undo changes</button><span class="ad-muted" data-msg></span></div>
+    </div>
+
+    <div class="ad-card"><div class="ad-card-h"><h4>Sections: meetings per week</h4></div>
+      <p class="ad-muted">How often each section meets sets how much one absence costs: <b>once a week (3 hours)</b> takes off 1 point, <b>twice a week (1.5 hours each)</b> takes off 0.5. Add a section here when you enroll it, before its students sign in.</p>
+      ${GS.sections.length ? `<table class="ad-table compact"><thead><tr><th>Section</th><th>Students</th><th>Meets</th><th class="num">Per absence</th><th></th></tr></thead><tbody>
+        ${GS.sections.map(x => `<tr data-sec="${h(x.tab)}"><td><b>${h(x.tab)}</b>${x.hasTab ? '' : '<small>no class record tab yet</small>'}</td><td>${x.students}</td>
+          <td><select data-meet aria-label="Meetings per week for ${h(x.tab)}"><option value="1" ${x.meetings === 1 ? 'selected' : ''}>Once a week · 3 hours</option><option value="2" ${x.meetings === 2 ? 'selected' : ''}>Twice a week · 1.5 hours each</option></select></td>
+          <td class="num">−${h(x.deduction)}</td><td>${x.students ? '' : '<button class="ad-btn sm ghost danger-text" data-rm title="Remove this section">✕</button>'}</td></tr>`).join('')}
+      </tbody></table>` : '<p class="ad-muted">No sections yet.</p>'}
+      <div class="ad-row gs-addsec"><input data-newsec maxlength="40" placeholder="New section, e.g. BSED 1A"><select data-newmeet><option value="1">Once a week · 3 hours</option><option value="2">Twice a week · 1.5 hours each</option></select><button class="ad-btn sm" data-addsec>Add section</button></div>
+    </div>`;
+
+  const changed = () => { GS.dirty = !gsSame(GS.setup, GS.data.setup); paintGrading(box); };
+  $$('[data-preset]', box).forEach(b => b.addEventListener('click', () => gsApply(box, { preset: b.dataset.preset }, b)));
+  $$('.gs-comps tr[data-i]', box).forEach(tr => {
+    const c = s.comps[Number(tr.dataset.i)];
+    $$('[data-f]', tr).forEach(inp => inp.addEventListener('change', () => {
+      const f = inp.dataset.f, v = inp.value;
+      if (f === 'label') { c.label = v.trim(); c.abbr = c.abbrW = c.label; }
+      else if (f === 'rule') {
+        c.rule = v; c.keys = [];
+        if (v === 'absences') { c.keys = ['abs']; c.points = c.points || 18; c.per = c.per || 1; }
+      } else c[f] = Number(v);
+      changed();
+    }));
+    $$('[data-key]', tr).forEach(cb => cb.addEventListener('change', () => {
+      const k = cb.dataset.key;
+      c.keys = cb.checked ? c.keys.concat(k) : c.keys.filter(x => x !== k);
+      changed();
+    }));
+    $('[data-del]', tr).addEventListener('click', () => { s.comps.splice(Number(tr.dataset.i), 1); changed(); });
+  });
+  $('[data-add]', box).addEventListener('click', () => { s.comps.push({ id: '', label: 'New component', weight: 0, rule: 'avg', keys: [] }); changed(); });
+  $$('[data-fin]', box).forEach(inp => inp.addEventListener('change', () => {
+    const v = Number(inp.value), other = inp.dataset.fin === 'mt' ? 'ft' : 'mt';
+    s.final[inp.dataset.fin] = v; if (v >= 0 && v <= 100) s.final[other] = r2(100 - v);
+    changed();
+  }));
+  const dr = $('[data-drop]', box); if (dr) dr.addEventListener('change', () => { s.dropAfter = Number(dr.value) || 0; changed(); });
+  $('[data-undo]', box).addEventListener('click', () => { GS.setup = JSON.parse(JSON.stringify(GS.data.setup)); GS.dirty = false; paintGrading(box); });
+  $('[data-save]', box).addEventListener('click', e => {
+    if (!GS.dirty) return toast('Nothing changed.');
+    if (gsTotal() !== 100) return toast('The weights add up to ' + fmtNum(gsTotal()) + '%. Make them add up to exactly 100%.', 'bad');
+    gsApply(box, { setup: GS.setup }, e.currentTarget);
+  });
+
+  const meet = (tab, meetings, btn, remove) => {
+    if (btn) busy(btn, true, 'Saving…');
+    api('sections.set', remove ? { tab, remove: true } : { tab, meetings }).then(r => {
+      GS.sections = r.sections;
+      toast(remove ? 'Section removed.' : r.saved + (meetings === 2 ? ': twice a week, 0.5 off per absence.' : ': once a week, 1 off per absence.'));
+      paintGrading(box);
+    }).catch(err => { if (btn) busy(btn, false); toast(err.message, 'bad'); });
+  };
+  $$('tr[data-sec]', box).forEach(tr => {
+    $('[data-meet]', tr).addEventListener('change', e => meet(tr.dataset.sec, Number(e.target.value)));
+    const rm = $('[data-rm]', tr); if (rm) rm.addEventListener('click', () => meet(tr.dataset.sec, 0, rm, true));
+  });
+  $('[data-addsec]', box).addEventListener('click', e => {
+    const name = $('[data-newsec]', box).value.trim();
+    if (!name) return toast('Type the section name first.', 'bad');
+    meet(name, Number($('[data-newmeet]', box).value), e.currentTarget);
+  });
+}
+
+function gsApply(box, body, btn) {
+  const name = body.preset ? GS.data.presets[body.preset].name : 'your edited system';
+  confirmBox('Switch to ' + name + '?', 'Every section\'s class record is laid out again for this system. Typed scores are carried over, and each changed tab is saved as a backup copy first.', 'Switch and update')
+    .then(ok => {
+      if (!ok) return;
+      busy(btn, true, 'Updating the class record…');
+      api('grading.set', body).then(r => {
+        GS = { data: r, setup: JSON.parse(JSON.stringify(r.setup)), sections: GS.sections, dirty: false };
+        const backups = (r.results || []).filter(x => x.backup).map(x => x.backup);
+        const errs = (r.results || []).filter(x => x.error);
+        toast('Grading system saved.' + (backups.length ? ' Backups: ' + backups.join(', ') + '.' : '') + (errs.length ? ' Not updated: ' + errs.map(x => x.tab).join(', ') + '.' : ''), errs.length ? 'bad' : '');
+        paintGrading(box);
+      }).catch(err => { busy(btn, false); toast(err.message, 'bad'); });
+    });
+}
+
 /* ═════════════════════════ COMMAND PALETTE ═════════════════════════ */
 /* Ctrl+K: jump to any view, test, lesson, student or section, or run an action. */
 
@@ -1965,6 +2156,8 @@ function paletteItems() {
     { ico: '＋', label: 'New quiz or exam', run: () => guardLeave().then(ok => ok && editTest(null)) },
     { ico: '＋', label: 'New lesson', run: () => guardLeave().then(ok => { if (ok) editLesson(null); }) },
     { ico: '🧾', label: 'Build / refresh class record', run: () => navTo('record') },
+    { ico: '⚖️', label: 'Change the grading system', run: () => navTo('grading') },
+    { ico: '⚖️', label: 'Set meetings per week for a section', run: () => navTo('grading') },
     { ico: '👁', label: 'Preview the module as a student', run: () => navTo('viewer') },
     { ico: '⬇', label: 'Install the Studio on this computer', run: installApp },
     { ico: '⌨', label: 'Keyboard shortcuts', hint: '?', run: showShortcuts },
