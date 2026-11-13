@@ -35,7 +35,7 @@ function termHtml(t) {
   const items = t.items.map(it => `
       <tr class="${it.missing ? 'gx-miss' : ''}">
         <th scope="row">${h(it.label)}</th>
-        <td>${it.count ? `<b>${h(it.score)}</b> absence${Number(it.score) === 1 ? '' : 's'}` : it.missing ? '<span class="gx-tag">Not submitted</span>' : `<b>${h(it.score)}</b> / ${h(it.max)}`}</td>
+        <td>${it.count ? `<b>${h(it.score)}</b> absence${Number(it.score) === 1 ? '' : 's'} this semester` : it.missing ? '<span class="gx-tag">Not submitted</span>' : `<b>${h(it.score)}</b> / ${h(it.max)}`}</td>
       </tr>`).join('');
   const parts = t.parts.map(p => `
       <li><span class="gx-part-l">${h(p.label)} <em>${h(p.weight)}%</em></span>${bar(p.percent)}<b>${h(Math.round(p.percent * 100) / 100)}%</b></li>`).join('');

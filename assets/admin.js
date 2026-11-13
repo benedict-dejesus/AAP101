@@ -1694,14 +1694,16 @@ const gbEq = v => { if (v === '' || v == null) return ''; const x = r2(v); for (
 /* The same rules as the class record's formulas (ClassRecord.gs), for the
    grading system the server sends with the tab. */
 function gbPart(c, n, M) {
-  if (c.rule === 'absences') { const base = c.points / 2, per = Number(M(c.keys[0])) || 0; return r2(Math.max(0, base - n(c.keys[0]) * per) / base * 100); }
+  if (c.rule === 'absences') { const per = Number(M(c.keys[0])) || 0; return r2(Math.max(0, c.points - n(c.keys[0]) * per) / c.points * 100); }
   if (c.rule === 'avg') return r2(c.keys.reduce((a, k) => a + (M(k) ? n(k) / M(k) : 0), 0) / c.keys.length * 100);
   const of = c.keys.reduce((a, k) => a + (Number(M(k)) || 0), 0);
   return of ? r2(c.keys.reduce((a, k) => a + n(k), 0) / of * 100) : 0;
 }
 function gbTerm(cells, max, t) {
-  const v = k => cells[t + '.' + k], n = k => (v(k) === '' || v(k) == null ? 0 : Number(v(k))), M = k => max[t + '.' + k];
-  if (GB.cols.filter(c => c.term === t).every(c => v(c.k) === '' || v(c.k) == null)) return '';
+  /* The semester's absences are typed once, under the Midterm, and count in both terms. */
+  const at = k => (k === GB.grading.absKey ? 'MT' : t) + '.' + k;
+  const v = k => cells[at(k)], n = k => (v(k) === '' || v(k) == null ? 0 : Number(v(k))), M = k => max[at(k)];
+  if (GB.cols.filter(c => c.term === t).every(c => cells[c.key] === '' || cells[c.key] == null)) return '';
   return r2(GB.grading.comps.reduce((a, c) => a + r2(gbPart(c, n, M) * c.weight / 100), 0));
 }
 function gbFinal(mt, ft) {
@@ -1715,7 +1717,7 @@ function gbCalc(row) {
   Object.keys(GB.edits).forEach(k => { const [code, key] = k.split('|'); if (code === row.code && key !== 'status') cells[key] = GB.edits[k].value; });
   const mt = gbTerm(cells, max, 'MT'), ft = gbTerm(cells, max, 'FT');
   const fin = gbFinal(mt, ft), fg = gbEq(fin);
-  const ak = GB.grading.absKey, abs = ak ? ['MT', 'FT'].reduce((a, t) => a + (Number(cells[t + '.' + ak]) || 0), 0) : '';
+  const ak = GB.grading.absKey, abs = ak ? Number(cells['MT.' + ak]) || 0 : '';
   const over = ak && GB.grading.dropLimit > 0 && abs > GB.grading.dropLimit;
   const st = String(gbVal(row, 'status')).toUpperCase();
   const remarks = st === 'INC' ? 'Incomplete' : st === 'DROPPED' || over ? 'Dropped' : fg === '' ? '' : fg <= 3 ? 'Passed' : fg === 4 ? 'Conditional' : 'Failed';
@@ -1789,7 +1791,7 @@ function paintGradebook(box) {
       <span class="ad-muted gb-dirty" data-dirty></span>
     </div>
     <p class="ad-muted gb-sys">Grading system: <b>${h(GB.grading.name)}</b> · ${h(GB.grading.summary)} <button class="ad-link" data-gsys>Change</button></p>
-    <p class="ad-hint gb-help">${GB.grading.absKey ? 'Under <b>Absences</b>, type how many times the student was absent in the term (blank = none). ' : ''}Type a score and press <kbd>Enter</kbd> or the arrow keys to move. Type <kbd>x</kbd> to mark it <b>not submitted</b> (red in the sheet). Row 2 holds each maximum. Click a performance task's name to rename it. In a performance-task cell, press <kbd>R</kbd> or click 📋 to <b>score it with its rubric</b>. <kbd>Ctrl</kbd>+<kbd>S</kbd> saves.</p>
+    <p class="ad-hint gb-help">${GB.grading.absKey ? 'Under <b>Absences</b> (Midterm tab), type the semester\'s total from the class secretary\'s report (blank = none); it counts in both terms. ' : ''}Type a score and press <kbd>Enter</kbd> or the arrow keys to move. Type <kbd>x</kbd> to mark it <b>not submitted</b> (red in the sheet). Row 2 holds each maximum. Click a performance task's name to rename it. In a performance-task cell, press <kbd>R</kbd> or click 📋 to <b>score it with its rubric</b>. <kbd>Ctrl</kbd>+<kbd>S</kbd> saves.</p>
     <div class="ad-card flush"><div class="gb-wrap"><table class="gb">
       <thead><tr><th class="gb-n">#</th><th class="gb-name">Student</th>
         ${T === 'ALL' ? (GB.grading.absKey ? '<th>Absences</th>' : '') + '<th>MT Grade</th><th>MG</th><th>FT Grade</th><th>FTG</th><th>Final</th><th>FG</th><th>Status</th><th>Remarks</th>'
@@ -2013,12 +2015,12 @@ function gsExample() {
   const s = GS.setup;
   let grade = 0;
   const lines = s.comps.map(c => {
-    const p = c.rule === 'absences' ? r2(Math.max(0, c.points / 2 - 2 * (Number(c.per) || 0)) / (c.points / 2) * 100) : 85;
+    const p = c.rule === 'absences' ? r2(Math.max(0, c.points - 2 * (Number(c.per) || 0)) / c.points * 100) : 85;
     const w = r2(p * (Number(c.weight) || 0) / 100); grade += w;
     return `${h(c.label)} ${fmtNum(p)}% × ${h(c.weight)}% = <b>${fmtNum(w)}</b>`;
   });
   grade = r2(grade);
-  return `<p class="ad-muted">Example: a student with 85% on every score and 2 absences in a once-a-week class gets</p>
+  return `<p class="ad-muted">Example: a student with 85% on every score and 2 absences in the semester (once-a-week class) gets</p>
     <ul class="gs-ex">${lines.map(l => `<li>${l}</li>`).join('')}</ul>
     <p>Term grade <b>${fmtNum(grade)}</b> → <b>${fmtEq(gbEqOf(grade))}</b>. With the same grade in both terms the final rating is also ${fmtNum(grade)}.</p>`;
 }
@@ -2049,7 +2051,7 @@ function paintGrading(box) {
           <td><input data-f="label" value="${h(c.label)}" maxlength="60" aria-label="Component name"></td>
           <td class="nowrap"><input class="gs-w" data-f="weight" value="${h(c.weight)}" inputmode="decimal" aria-label="Weight in percent"> %</td>
           <td><select data-f="rule" aria-label="How the scores are combined">${Object.keys(GS_RULES).map(r => `<option value="${r}" ${c.rule === r ? 'selected' : ''}>${GS_RULES[r]}</option>`).join('')}</select><small class="ad-muted">${h(GS_RULE_HINT[c.rule])}</small>
-            ${c.rule === 'absences' ? `<div class="gs-abs"><label>Points for the semester <input class="gs-w" data-f="points" value="${h(c.points)}" inputmode="decimal"></label><label>Points off per absence (once a week) <input class="gs-w" data-f="per" value="${h(c.per)}" inputmode="decimal"></label><small class="ad-muted">Each term counts half (${fmtNum((Number(c.points) || 0) / 2)} points). Twice-a-week sections take off half as much per absence.</small></div>` : ''}</td>
+            ${c.rule === 'absences' ? `<div class="gs-abs"><label>Points for the semester <input class="gs-w" data-f="points" value="${h(c.points)}" inputmode="decimal"></label><label>Points off per absence (once a week) <input class="gs-w" data-f="per" value="${h(c.per)}" inputmode="decimal"></label><small class="ad-muted">Type the semester's total absences once (class secretary's report); the same attendance score counts in both terms. Twice-a-week sections take off half as much per absence.</small></div>` : ''}</td>
           <td><div class="gs-keys">${d.keys.filter(k => (c.rule === 'absences' ? k.count : !k.count) && !(used[k.key] != null && used[k.key] !== i)).map(k => {
             const mine = c.keys.indexOf(k.key) >= 0;
             return `<label class="gs-key ${mine ? 'on' : ''}"><input type="checkbox" data-key="${k.key}" ${mine ? 'checked' : ''}>${h(k.label)}${/^pt[1-3]$/.test(k.key) ? `<small>${h(d.ptNames.MT[k.key])} / ${h(d.ptNames.FT[k.key])}</small>` : ''}</label>`;
