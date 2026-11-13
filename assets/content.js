@@ -144,7 +144,7 @@ m: {
           <li>Final Term Quiz <em>(Week 17)</em></li>
           <li>Final Term Exam <em>(Week 18)</em></li>
         </ol>
-        <p style="margin-top:12px">Grading for each term: Term Examination 30%, Quizzes 20%, Activities 20% (the classroom workshops, the Theater Play Viewing and the Photography Challenge), Projects 20% (the Coffee Painting Self-Portrait and the Live Guitar Performance) and Attendance 10%. Final rating = (Midterm Grade + Final Term Grade) ÷ 2. More than 5 absences in the semester means you are dropped from the subject.</p>`},
+        <p style="margin-top:12px">Grading for each term: Term Examination 30%, Quizzes 20%, Activities 20% (the classroom workshops, the Theater Play Viewing and the Photography Challenge), Projects 20% (the Coffee Painting Self-Portrait and the Live Guitar Performance) and Attendance 10%. Final rating = (Midterm Grade + Final Term Grade) ÷ 2. More than 3 absences in the semester (6 if your class meets twice a week) means you are dropped from the subject.</p>`},
 
       {t:'polaroids', gate:'m1-gal', xp:40,
        title:'The Studio Wall', kicker:'Photo Reveal',

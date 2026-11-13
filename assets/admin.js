@@ -1480,7 +1480,7 @@ function viewRecord(box) {
     const g = r.grading, cols = k => r.keys.find(x => x.key === k).label;
     const src = c => c.rule === 'absences' ? 'you type the absences' : c.keys.some(k => /^(q1|exam)$/.test(k)) ? 'from the module' : 'you type them';
     $('[data-how]', box).innerHTML = `<p><b>${h(g.name)}</b></p><table class="ad-table compact"><tbody>${g.comps.map(c => `<tr><td>${h(c.label)}<small>${h(c.keys.map(cols).join(', '))}</small></td><td class="num"><b>${h(c.weight)}%</b></td><td class="ad-muted">${src(c)}</td></tr>`).join('')}</tbody></table>
-      <p class="ad-muted">${h(g.summary)}${g.dropAfter ? ' More than ' + g.dropAfter + ' absences in the semester: Remarks say Dropped.' : ''}</p>`;
+      <p class="ad-muted">${h(g.summary)}</p>`;
   }).catch(err => { $('[data-how]', box).innerHTML = `<p class="bad">${h(needsUpdate(err) || err.message)}</p>`; });
   consultCard($('[data-consult]', box));
 }
@@ -1716,7 +1716,7 @@ function gbCalc(row) {
   const mt = gbTerm(cells, max, 'MT'), ft = gbTerm(cells, max, 'FT');
   const fin = gbFinal(mt, ft), fg = gbEq(fin);
   const ak = GB.grading.absKey, abs = ak ? ['MT', 'FT'].reduce((a, t) => a + (Number(cells[t + '.' + ak]) || 0), 0) : '';
-  const over = ak && GB.grading.dropAfter > 0 && abs > GB.grading.dropAfter;
+  const over = ak && GB.grading.dropLimit > 0 && abs > GB.grading.dropLimit;
   const st = String(gbVal(row, 'status')).toUpperCase();
   const remarks = st === 'INC' ? 'Incomplete' : st === 'DROPPED' || over ? 'Dropped' : fg === '' ? '' : fg <= 3 ? 'Passed' : fg === 4 ? 'Conditional' : 'Failed';
   return { mt, mg: gbEq(mt), ft, ftg: gbEq(ft), final: fin, fg, remarks, abs };
@@ -1827,7 +1827,7 @@ function gbRows(box) {
   $('[data-rows]', box).innerHTML = rows.length ? rows.map((r, i) => {
     const c = gbCalc(r), st = gbVal(r, 'status');
     const name = `<td class="gb-n">${GB.rows.indexOf(r) + 1}</td><td class="gb-name"><button class="ad-link" data-prof="${h(r.code)}">${h(r.surname)}, ${h(r.given)}</button>${r.studno ? `<small>${h(r.studno)}</small>` : ''}</td>`;
-    if (T === 'ALL') return `<tr data-code="${h(r.code)}">${name}${GB.grading.absKey ? `<td class="num ${c.remarks === 'Dropped' && c.abs > GB.grading.dropAfter ? 'bad' : ''}">${h(c.abs)}</td>` : ''}<td class="num">${fmtNum(c.mt)}</td><td class="num">${fmtEq(c.mg)}</td><td class="num">${fmtNum(c.ft)}</td><td class="num">${fmtEq(c.ftg)}</td>
+    if (T === 'ALL') return `<tr data-code="${h(r.code)}">${name}${GB.grading.absKey ? `<td class="num ${c.remarks === 'Dropped' && GB.grading.dropLimit > 0 && c.abs > GB.grading.dropLimit ? 'bad' : ''}">${h(c.abs)}</td>` : ''}<td class="num">${fmtNum(c.mt)}</td><td class="num">${fmtEq(c.mg)}</td><td class="num">${fmtNum(c.ft)}</td><td class="num">${fmtEq(c.ftg)}</td>
       <td class="num"><b>${fmtNum(c.final)}</b></td><td class="num"><b>${fmtEq(c.fg)}</b></td><td>${h(st || '')}</td><td>${remPill(c.remarks)}</td></tr>`;
     return `<tr data-code="${h(r.code)}">${name}${keys.map((k, j) => {
       const v = gbVal(r, k), miss = gbMiss(r, k), dirty = GB.edits[r.code + '|' + k];
@@ -2030,7 +2030,7 @@ function paintGrading(box) {
   const presetCard = (key, p) => `<div class="gs-preset ${d.grading.preset === key ? 'on' : ''}">
       <div><b>${h(p.name)}</b>${d.grading.preset === key ? ' <span class="ad-pill ok">In use</span>' : ''}</div>
       <ul>${p.comps.map(c => `<li>${h(c.label)} <b>${h(c.weight)}%</b></li>`).join('')}</ul>
-      <small>Final rating = (Midterm + Final Term) ÷ 2${p.dropAfter ? ` · more than ${p.dropAfter} absences = Dropped` : ''}</small>
+      <small>Final rating = (Midterm + Final Term) ÷ 2${p.dropAfter ? ` · Dropped after more than ${p.dropAfter} absences (once a week) or ${2 * p.dropAfter} (twice a week)` : ''}</small>
       ${d.grading.preset === key ? '' : `<button class="ad-btn sm" data-preset="${key}">Use this system</button>`}
     </div>`;
   const absComp = s.comps.find(c => c.rule === 'absences');
@@ -2061,18 +2061,18 @@ function paintGrading(box) {
       <div class="gs-final">
         <label class="ad-lbl">Final rating<span class="ad-row">Midterm <input class="gs-w" data-fin="mt" value="${h(s.final.mt)}" inputmode="decimal"> % + Final Term <input class="gs-w" data-fin="ft" value="${h(s.final.ft)}" inputmode="decimal"> %</span>
           <small class="ad-muted">50 + 50 is (Midterm Grade + Final Term Grade) ÷ 2.</small></label>
-        ${absComp ? `<label class="ad-lbl">Dropped after<span class="ad-row">more than <input class="gs-w" data-drop value="${h(s.dropAfter)}" inputmode="numeric"> absences in the semester</span><small class="ad-muted">0 = no limit. Remarks then say Dropped by themselves.</small></label>` : ''}
+        ${absComp ? `<label class="ad-lbl">Allowed absences in the semester<span class="ad-row"><input class="gs-w" data-drop value="${h(s.dropAfter)}" inputmode="numeric"> for a once-a-week class, so ${h(2 * (Number(s.dropAfter) || 0))} for a twice-a-week class</span><small class="ad-muted">One more than that and Remarks say Dropped by themselves. 0 = no limit.</small></label>` : ''}
       </div>
       <div class="gs-example">${gsExample()}</div>
       <div class="ad-row"><button class="ad-btn" data-save>Save and update the class record</button><button class="ad-btn ghost" data-undo ${GS.dirty ? '' : 'disabled'}>Undo changes</button><span class="ad-muted" data-msg></span></div>
     </div>
 
     <div class="ad-card"><div class="ad-card-h"><h4>Sections: meetings per week</h4></div>
-      <p class="ad-muted">How often each section meets sets how much one absence costs: <b>once a week (3 hours)</b> takes off 1 point, <b>twice a week (1.5 hours each)</b> takes off 0.5. Add a section here when you enroll it, before its students sign in.</p>
-      ${GS.sections.length ? `<table class="ad-table compact"><thead><tr><th>Section</th><th>Students</th><th>Meets</th><th class="num">Per absence</th><th></th></tr></thead><tbody>
+      <p class="ad-muted">How often each section meets sets how much one absence costs and how many are allowed: <b>once a week (3 hours)</b> takes off 1 point and allows ${h(s.dropAfter || 0)} absences; <b>twice a week (1.5 hours each)</b> takes off 0.5 and allows ${h(2 * (s.dropAfter || 0))}. Add a section here when you enroll it, before its students sign in.</p>
+      ${GS.sections.length ? `<table class="ad-table compact"><thead><tr><th>Section</th><th>Students</th><th>Meets</th><th class="num">Per absence</th><th class="num">Allowed absences</th><th></th></tr></thead><tbody>
         ${GS.sections.map(x => `<tr data-sec="${h(x.tab)}"><td><b>${h(x.tab)}</b>${x.hasTab ? '' : '<small>no class record tab yet</small>'}</td><td>${x.students}</td>
           <td><select data-meet aria-label="Meetings per week for ${h(x.tab)}"><option value="1" ${x.meetings === 1 ? 'selected' : ''}>Once a week · 3 hours</option><option value="2" ${x.meetings === 2 ? 'selected' : ''}>Twice a week · 1.5 hours each</option></select></td>
-          <td class="num">−${h(x.deduction)}</td><td>${x.students ? '' : '<button class="ad-btn sm ghost danger-text" data-rm title="Remove this section">✕</button>'}</td></tr>`).join('')}
+          <td class="num">−${h(x.deduction)}</td><td class="num">${x.dropLimit ? h(x.dropLimit) : 'no limit'}</td><td>${x.students ? '' : '<button class="ad-btn sm ghost danger-text" data-rm title="Remove this section">✕</button>'}</td></tr>`).join('')}
       </tbody></table>` : '<p class="ad-muted">No sections yet.</p>'}
       <div class="ad-row gs-addsec"><input data-newsec maxlength="40" placeholder="New section, e.g. BSED 1A"><select data-newmeet><option value="1">Once a week · 3 hours</option><option value="2">Twice a week · 1.5 hours each</option></select><button class="ad-btn sm" data-addsec>Add section</button></div>
     </div>`;
@@ -2115,7 +2115,8 @@ function paintGrading(box) {
     if (btn) busy(btn, true, 'Saving…');
     api('sections.set', remove ? { tab, remove: true } : { tab, meetings }).then(r => {
       GS.sections = r.sections;
-      toast(remove ? 'Section removed.' : r.saved + (meetings === 2 ? ': twice a week, 0.5 off per absence.' : ': once a week, 1 off per absence.'));
+      const x = r.sections.find(y => y.tab === r.saved);
+      toast(remove ? 'Section removed.' : r.saved + ': ' + (meetings === 2 ? 'twice' : 'once') + ' a week, ' + (x ? x.deduction : '') + ' off per absence' + (x && x.dropLimit ? ', up to ' + x.dropLimit + ' absences allowed.' : '.'));
       paintGrading(box);
     }).catch(err => { if (btn) busy(btn, false); toast(err.message, 'bad'); });
   };
